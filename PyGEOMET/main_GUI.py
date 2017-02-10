@@ -364,19 +364,19 @@ class PlotSlab:
             #print(self.var.shape)
             #account for unstaggering of the grids in 3-dimensional variables
             if self.appobj.dname == 'WRF':
-                if len(self.var.shape) == 3:
-                    if self.var.shape[0] == self.diffdata.nz[self.dataSet.currentGrid-1]:
-                        self.var = wrf.unstaggerZ(self.diffvar)
-                    if self.var.shape[1] == self.dataSet.ny[self.dataSet.currentGrid-1]:
-                        self.var = wrf.unstaggerY(self.diffvar)
-                    if self.var.shape[2] == self. dataSet.nx[self.dataSet.currentGrid-1]:
-                        self.var = wrf.unstaggerX(self.diffvar)
+                if len(self.diffvar.shape) == 3:
+                    if self.diffvar.shape[0] == self.diffdata.nz[self.diffdata.currentGrid-1]:
+                        self.diffvar = wrf.unstaggerZ(self.diffvar)
+                    if self.diffvar.shape[1] == self.diffdata.ny[self.diffdata.currentGrid-1]:
+                        self.diffvar = wrf.unstaggerY(self.diffvar)
+                    if self.diffvar.shape[2] == self. diffdata.nx[self.diffdata.currentGrid-1]:
+                        self.diffvar = wrf.unstaggerX(self.diffvar)
                     #self.varTitle = self.varTitle + ', Level=' + str(self.dataSet.levelList[self.currentLevel])
                 else:
-                    if self.var.shape[0] == self.dataSet.ny[self.dataSet.currentGrid-1]:
-                        self.var = wrf.unstaggerY(self.diffvar)
-                    if self.var.shape[1] == self.dataSet.nx[self.dataSet.currentGrid-1]:
-                        self.var = wrf.unstaggerX(self.diffvar)
+                    if self.diffvar.shape[0] == self.diffdata.ny[self.diffdata.currentGrid-1]:
+                        self.diffvar = wrf.unstaggerY(self.diffvar)
+                    if self.diffvar.shape[1] == self.diffdata.nx[self.diffdata.currentGrid-1]:
+                        self.diffvar = wrf.unstaggerX(self.diffvar)
         else:
             #Call wrf_dvar class
             #t0 = time.clock()
