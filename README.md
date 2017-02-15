@@ -12,10 +12,10 @@ PyGEOMET was designed to be a cross-platform (Windows, Mac, Linux) Python packag
 
 PyGEOMET consists of two main parts, the Graphical User Interface (GUI) and the dataset objects. The GUI was built using the PyQt5 python bindings for Qt cross-platform framework and contains all of the plotting code. The dataset objects, which are used for importing and accessing each dataset, are linked into the GUI but they can also be used independently within Python scripts.   
  
-#####Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used. Also, any comment/suggests are welcomed as well.
+#####Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used. Also, any comments/suggests are welcomed as well.
 
 ###Installing PyGEOMET
-Either download and unzip the `zip file <https://github.com/pygeomet/PyGEOMET/archive/master.zip>` or use git to clone the respository:
+Either download and unzip the [zip file](https://github.com/pygeomet/PyGEOMET/archive/master.zip) or use git to clone the respository:
 
     git clone https://github.com/pygeomet/PyGEOMET.git
   
@@ -24,7 +24,7 @@ Once the package has been downloaded to your computer, navigate into the PyGEOME
     python setup.py install
   
 ###Dependencies
-While there are many different ways to get and install Python, we recommend you install the Anaconda Python Distribution from Continuum Analytics (`download site <https://www.continuum.io/downloads>`). PyGEOMET is primarily tested using this distribution on both Python 2.7 and 3.5.  
+While there are many different ways to get and install Python, we recommend you install the Anaconda Python Distribution from Continuum Analytics ([download site](https://www.continuum.io/downloads)). PyGEOMET is primarily tested using this distribution on both Python 2.7 and 3.5.  
 
 Many of the PyGEOMET dependencies are already included in standard distributions, but for completeness the following packages are required:
 - PyQt5
