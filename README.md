@@ -47,7 +47,14 @@ Many of the PyGEOMET dependencies are already included in standard distributions
 - warnings
 
 If you use the Anaconda, all of the non-standard packages can be installed using "conda install".
-  
+
+###Using the PyGEOMET GUI
+To run the GUI, change into the PyGEOMET directory.  Once there, you will see the "main_GUI.py" file. Run the command:
+
+    python main_GUI.py
+
+This will open the GUI window. Load a dataset by selecting the appropriate name under the "Add Dataset" tab. Once the data is loaded into the GUI (this will take a variable amount of time depending on the number of files under the selected directory), click on the "Add Plot" button to display the dataset.
+
 ###Future Development
 PyGEOMET is in the early stages of developement and therefore, we have many planned additions. Some of the current planned dataset additions include:
 - Ocean Land Atmosphere Model (OLAM)
