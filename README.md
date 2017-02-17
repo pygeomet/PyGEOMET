@@ -1,7 +1,7 @@
 # PyGEOMET
 Python GUI of Earth Observations and Model Evaluation Toolkit
 
-PyGEOMET was designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
+PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
 
 - Weather Research and Forecasting (WRF) Advanced Research (ARW) core
 - Community Multi-scale Air Quality (CMAQ) model
@@ -10,16 +10,16 @@ PyGEOMET was designed to be a cross-platform (Windows, Mac, Linux) Python packag
 - Next-Generation Radar (NEXRAD) Level II data
 - Geostationary Operational Environmental Satellite (GOES)
 
-PyGEOMET consists of two main parts, the Graphical User Interface (GUI) and the dataset objects. The GUI was built using the PyQt5 python bindings for Qt cross-platform framework and contains all of the plotting code. The dataset objects, which are used for importing and accessing each dataset, are linked into the GUI but they can also be used independently within Python scripts.   
+PyGEOMET consists of two main parts, the Graphical User Interface (GUI) and the dataset objects. The GUI was built using the PyQt5 python bindings for Qt cross-platform framework and contains all of the plotting code. The dataset objects, which are used for importing and accessing each dataset, are linked into the GUI but can also be implemented independently within Python scripts.   
  
-#####Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used. Also, any comments/suggests are welcomed as well.
+#####Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used and how it can be improved either through bug fixes or additonal useful datasets.
 
 ###Installing PyGEOMET
 Either download and unzip the [zip file](https://github.com/pygeomet/PyGEOMET/archive/master.zip) or use git to clone the respository:
 
     git clone https://github.com/pygeomet/PyGEOMET.git
   
-Once the package has been downloaded to your computer, navigate into the PyGEOMET directory and install using this command:
+Once the package has been downloaded to your computer, navigate .000000000000to t2154844444444444444444444402h51844444444444444444444444444444444444444444444444441e PyGEOMET directory and install using this command:
 
     python setup.py install
   
