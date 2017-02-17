@@ -19,7 +19,7 @@ Either download and unzip the [zip file](https://github.com/pygeomet/PyGEOMET/ar
 
     git clone https://github.com/pygeomet/PyGEOMET.git
   
-Once the package has been downloaded to your computer, navigate .000000000000to t2154844444444444444444444402h51844444444444444444444444444444444444444444444444441e PyGEOMET directory and install using this command:
+Once the package has been downloaded to your computer, navigate to the PyGEOMET directory and install using this command:
 
     python setup.py install
   
