@@ -133,44 +133,6 @@ class WRFDerivedVar:
                 self.var2 = None
                 self.varTitle = None
 
-    def getDvarList(varlist):
-        dvarlist = []
-        variables = varlist
-
-        dvarlist.extend(['CAPE_SB','CAPE_ML','CAPE_MU',
-                        'CIN_SB','CIN_ML','CIN_MU',
-                        'mslp','lcl_hgt','pwat', 't2m','td2m',
-                        'temp-3d','temp_ML','theta-e-3d',
-                        'wind10m'])
-
-        if ('U' in variables and 'V' in variables):
-            dvarlist.extend(['300mb_winds','500mb_hgt','500mb_temp',
-                            '500mb_vort','700mb_rh','850mb_vort',
-                            '850mb_temp','divergence','froude no',
-                            'shear0_1km','shear0_3km','shear0_6km',
-                            'wind-3d','pot_vort'])
-
-        if ('RAINNC' in variables and 'RAINSH' in variables
-            and 'RAINC' in variables):
-            dvarlist.extend(['acc_pcp','rainrate'])
-
-        if ('QCLOUD' in variables and 'QRAIN' in variables 
-            and 'QSNOW' in variables and 'QICE' in variables
-            and 'QGRAUPEL' in variables):
-            dvarlist.extend(['clwp','iwp','twp','ice water',
-                            'cloud water','total water'])
-        
-        if ('QRAIN' in variables and 'QSNOW' in variables
-            and 'QGRAUPEL' in variables) or ('REFL_10CM' in variables):
-            dvarlist.append('refl')
-
-        if ('SWDNT' in variables and 'SWUPTC' in variables
-            and 'SWUPT' in variables):
-            dvarlist.append('cloud albedo')
-        dvars = np.asarray(dvarlist)
-        dvars.flatten()
-        return sorted(dvars)
-
     def winds_300mb(self):
         
         u = self.dataSet.readNCVariable('U')
