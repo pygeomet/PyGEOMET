@@ -9,7 +9,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.LayoutFormat as Layout
-from PyGEOMET.utils.DerivedVar import WRFDerivedVar
 
 class WrfDataset:
 
@@ -122,7 +121,7 @@ class WrfDataset:
                     self.twoDVars.append(varname)
             self.setGridDefinition()
 
-            self.dvarlist = WRFDerivedVar.getDvarList(self.variableList)
+            self.dvarlist = wrf.getDvarList(self.variableList)
 
     def readNCVariable(self,vname,barbs=None, vectors=None, contour2=None,varonly=False):
         variable = self.dsets[vname][self.currentTimeIndex]
@@ -615,6 +614,6 @@ class WrfDataset:
         return self.qscroll
 
 ###############################################################################
-####                          End WRFDataset() Object                      ####
+####                          End GGataset() Object                      ####
 ###############################################################################
 
