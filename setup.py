@@ -11,7 +11,7 @@ license = "GPL"
 keywords = "meteorology modeling"
 url = "https://github.com/pygeomet/PyGEOMET"
 packages = ['PyGEOMET','PyGEOMET.datasets', 'PyGEOMET.utils']
-package_data = {"PyGEOMET.inons": ["down.png"],"PyGEOMET.utils":["radar_sites.csv"]}
+package_data = {"PyGEOMET.icons": ["down.png"],"PyGEOMET.utils":["radar_sites.csv"]}
 classifiers = ["Development Status :: 3 - Alpha",
                "Programming Language :: Python :: 3.5,2.7",]
 
