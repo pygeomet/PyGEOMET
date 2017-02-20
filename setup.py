@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 ### ACTUAL SETUP VALUES ###
 name = "PyGEOMET"
-version = '1.0'
+version = '1.0.0'
 author = "Andrew White, Brian Freitag and Udaysankar Nair"
 author_email = "whiteat@nsstc.uah.edu, brian.freitag@nsstc.uah.edu, nair@nsstc.uah.edu"
 description = "Python GUI for Earth Observations and Modeling Evaluation Toolkit"
