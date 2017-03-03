@@ -53,8 +53,8 @@ class Radardataset:
         self.resolution = 'i'
         self.cmap = 'pyart_NWSRef'
         self.range = [0,80]
-        self.lon_0 = [-86.0836]
-        self.lat_0 = [34.9305]
+        self.lon0 = [None]
+        self.lat0 = [None]
         self.NEXRADfile(update=True)
 
     def setURL(self,update=None):

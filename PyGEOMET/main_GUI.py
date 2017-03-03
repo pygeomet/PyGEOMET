@@ -772,8 +772,8 @@ class PlotSlab:
             self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
 
         if self.dataSet.dsetname == 'NEXRAD Radar':
-            self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon_0,
-                    self.dataSet.lat_0, marker='o',color='k',latlon=True)
+            self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
+                    self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
         self.appobj.recallProjection = False
         self.appobj.changeColor = False
         line, = self.appobj.axes1[self.pNum-1].plot([0], [0])  # empty line
