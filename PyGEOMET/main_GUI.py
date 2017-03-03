@@ -544,6 +544,15 @@ class PlotSlab:
         xb, yb = self.dataSet.map[self.currentGrid-1](
                  self.dataSet.glons[self.currentGrid-1],
                  self.dataSet.glats[self.currentGrid-1])
+
+        #Set NEXRAD settings
+        if self.dataSet.dsetname == 'NEXRAD Radar':
+            self.nz = 1
+            self.appobj.filltype = 'pcolormesh'
+            self.cmap = self.dataSet.cmap
+            self.colormin = self.dataSet.range[0]
+            self.colormax = self.dataSet.range[1]
+
         #Set background map
         alpha = 1
         if self.appobj.background is not None:
@@ -640,7 +649,8 @@ class PlotSlab:
                                               self.dataSet.glons[self.currentGrid-1],
                                               self.dataSet.glats[self.currentGrid-1])
                 else:
-                    if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
+                    if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or
+                        self.dataSet.dsetname == 'NEXRAD Radar' or 
                         np.isnan(pltfld).any()):
                         self.appobj.axes1[self.pNum-1] = None
                         self.ColorBar = None
@@ -761,6 +771,9 @@ class PlotSlab:
             # draw meridians
             self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
 
+        if self.dataSet.dsetname == 'NEXRAD Radar':
+            self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon_0,
+                    self.dataSet.lat_0, marker='o',color='k',latlon=True)
         self.appobj.recallProjection = False
         self.appobj.changeColor = False
         line, = self.appobj.axes1[self.pNum-1].plot([0], [0])  # empty line
@@ -1469,8 +1482,8 @@ class PlotSlab:
             #   return 'i=%6.2f, j=%6.2f, value=%10.6f'%(col, row, z)
             #else:
             return 'lon=%6.2f, lat=%6.2f, i=%6.2f, j=%6.2f, value=%10.6f'%(x1, y1, col, row, z)
-
-        self.appobj.axes1[self.pNum-1].format_coord = format_coord
+        if self.dataSet.dsetname != 'NEXRAD Radar':
+            self.appobj.axes1[self.pNum-1].format_coord = format_coord
 
     def getTable(self,col,row):
         self.table = QTableView()
@@ -2741,7 +2754,8 @@ class AppForm(QMainWindow):
             if self.dname != 'NEXRAD Radar':
                 self.pltList[plotnum-1].drawPlot()
             else:
-                print('finish this!')
+                self.pltList[plotnum-1].drawPlot()
+
         self.main_frame.show()
         
     def on_key_press(self, event):

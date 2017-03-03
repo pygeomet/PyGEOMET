@@ -6,9 +6,10 @@ import os
 import PyGEOMET.utils
 
 WBAN = []
-latlon = []
-fnames = ['WBAN #', 'STATION_ID', 'STATION_NAME', 
-          'LAT/LON', 'ELEV (ft)"', 'TOWER HEIGHT (m)']
+lat = []
+lon = []
+fnames = ['NCDCID', 'ICAO', 'WBAN', 'NAME', 'ST', 'COUNTY', 
+          'LAT', 'LON', 'ELEV (ft)"', 'TOWER HEIGHT (m)']
 
 def get_sites(): 
     
@@ -16,25 +17,11 @@ def get_sites():
     with open(os.path.join(path,'radar_sites.csv')) as csvfile:
         reader = csv.DictReader(csvfile,fieldnames=fnames)
         next(reader)
+        next(reader)
         for row in reader:
-            WBAN.append(row['STATION_ID'])
-            latlon.append(row['LAT/LON'])
+            WBAN.append(row['ICAO'])
+            lat.append(np.float(row['LAT']))
+            lon.append(np.float(row['LON']))
 
-    def get_latlon(ll):
-        lat = []
-        lon = []
-        for l in ll:
-            tmp = l.split('/')[0]
-            lat.append(int(tmp[0:2])+int(tmp[2:4])/60. + int(tmp[4:6])/3600.)
-            tmp = l.split('/')[1]
-            if len(tmp) == 8:
-                lon.append(-1*(int(tmp[1:4])+int(tmp[4:6])/60. + int(tmp[6:8])/3600.))
-            else:
-                lon.append(int(tmp[1:4])+int(tmp[4:6])/60. + int(tmp[6:8])/3600.)
-
-        return lon, lat
-
-    longitude, latitude = get_latlon(latlon)
-
-    return sorted(WBAN), longitude, latitude
+    return sorted(WBAN), lon, lat
 

@@ -6,6 +6,7 @@ import boto
 import netCDF4
 import os
 import datetime
+import matplotlib as mpl
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import PyGEOMET.utils.NEXRADsites as NEXRADsites
@@ -43,13 +44,17 @@ class Radardataset:
         self.currentMinuteIndex = -1
         self.currentTimeIndex = -1
         self.currentSweep = 0
-        self.currentGridIndex = 67
+        self.currentGridIndex = 68 #69 is KHTX
         self.description = None
         self.dsetname = "NEXRAD Radar"
         self.gridList, latitudes, longitudes = NEXRADsites.get_sites()
         self.grid = self.gridList[self.currentGridIndex]
         self.projectionType = "lcc"
         self.resolution = 'i'
+        self.cmap = 'pyart_NWSRef'
+        self.range = [0,80]
+        self.lon_0 = [-86.0836]
+        self.lat_0 = [34.9305]
         self.NEXRADfile(update=True)
 
     def setURL(self,update=None):
@@ -140,7 +145,9 @@ class Radardataset:
             self.swp = self.swpList[self.currentSweep]
         self.variableList = list(self.radar.fields.keys())
         if self.var == None:
-            self.var = self.variableList[self.currentVarIndex]
+            self.var = 'reflectivity'
+            ind = np.where(np.asarray(self.variableList) == 'reflectivity')[0][0]
+            self.currentVarIndex = ind
      
         self.lon0 = [self.radar.longitude['data'][0]]
         self.lat0 = [self.radar.latitude['data'][0]]
@@ -171,19 +178,56 @@ class Radardataset:
         self.currentGridIndex = Indx
         self.grid = self.gridList[self.currentGridIndex]
 
-    def readNCVariable(self,vname, barbs=None, contour2=None):
-        variable = np.squeeze(self.variables[vname][self.currentTimeIndex])
-        if (hasattr(self.variables[vname],'units')):
-            self.units = self.variables[self.var].units
-        else:
-            self.units = ''
-        if (hasattr(self.variables[vname],'long_name')):
-            self.description = self.variables[vname].long_name
+    def readNCVariable(self,vname, barbs=None, vectors=None,contour2=None):
+        #if vname == 'velocity' and self.currentSweep == 0:
+        #    sweep = self.currentSweep+1
+        #else:
+        #    sweep = self.currentSweep
+        variable = np.squeeze(self.radar.get_field(sweep=self.currentSweep,field_name=vname))
+        if vname == 'reflectivity':
+            self.units = 'dBZ'
+            self.description = 'Reflectivity'
+            self.cmap = 'pyart_NWSRef'
+            self.range = [0,80]
+        if vname == 'velocity':
+            self.units = 'm s$^-1$'
+            self.description = 'Radial Velocity'
+            self.cmap = 'pyart_NWSVel'
+            self.range = [-30,30]
+
+        if vname == 'differential_phase':
+            self.units = 'deg'
+            self.description = 'Differential Phase'
+            self.cmap = 'pyart_RefDiff'
+            self.range = [0,360]
+
+        if vname == 'differential_reflectivity':
+            self.units = 'dBZ'
+            self.description = 'Differential Reflectivity'
+            self.cmap = 'pyart_RefDiff'
+            self.range = [-2,8]
+
+        if vname == 'spectrum_width':
+            self.units = 'm s$^{-1}$'
+            self.description = 'Spectrum Width'
+            self.cmap = 'pyart_NWS_SPW'
+            self.range = [0,14]
+
+        if vname == 'cross_correlation_ratio':
+            self.units = 'ratio'
+            self.description = 'Cross-Polar Correlation Coefficient'
+            self.cmap = 'pyart_RefDiff'
+            self.range = [0.5,1]
+        print(vname)
+        print(np.nanmax(variable),np.nanmin(variable))
+        return variable 
 
     def setProjection(self,gid=None,axs=None):
         self.map = [None]*1
         self.nx = [None]
         self.ny = [None]
+        self.glons = [None]*1
+        self.glats = [None]*1
         self.ll_lon = self.lon0[0] - 2.25
         self.ll_lat = self.lat0[0] - 1.75
         self.ur_lon = self.lon0[0] + 2.25
@@ -194,6 +238,17 @@ class Radardataset:
                       llcrnrlat = self.ll_lat, urcrnrlon = self.ur_lon,
                       urcrnrlat = self.ur_lat, resolution=self.resolution,
                       ax = axs)
+
+        display = pyart.graph.RadarMapDisplay(self.radar)
+        if ( self.var == 'velocity' or self.var == 'spectrum_width' ) and self.currentSweep == 0:
+            self.currentSweep += 1
+        if (self.var == 'differential_reflectivity' or 
+            self.var == 'differential_phase' or 
+            self.var == 'cross_correlation_ratio') and self.currentSweep == 1:
+            self.currentSweep -= 1
+        x,y = display._get_x_y(self.currentSweep,True,None)
+        x0,y0 = self.map[0](self.lon0[0],self.lat0[0])
+        self.glons[0],self.glats[0] = self.map[0]((x0+x*1000.),(y0+y*1000.),inverse=True)
 
     def getDsetControlBar(self, plotObj):
         self.plothook = plotObj
@@ -247,7 +302,7 @@ class Radardataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['1-panel','2-panel','4-panel']
+        ptypes = ['1-panel']#,'2-panel','4-panel']
         self.selectPlotType.addItems(ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 #       self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
@@ -510,13 +565,16 @@ class Radardataset:
 
     def plotButtonAction(self):
         self.NEXRADfile(update=True)
-        self.plothook.nz = len(self.swpList)
+        self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
+        self.plothook.nz = 1
         self.plothook.currentVar = self.currentVarIndex
         self.plothook.currentTime = self.currentTimeIndex
-        if len(self.plothook.appobj.axes1) != 0:
-            self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
-            self.plothook.figure.clear()
-        self.plotRadarData()#self.plothook.pNum)
+        self.plothook.readField()
+        self.plothook.pltFxn(self.plothook.pNum)
+#        if len(self.plothook.appobj.axes1) != 0:
+#            self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
+#            self.plothook.figure.clear()
+#        self.plotRadarData()#self.plothook.pNum)
 
     def nxtButtonAction(self):
         self.currentTimeIndex+=1
@@ -541,10 +599,10 @@ class Radardataset:
         if not errorflag:
             self.getTimeIndex()
             self.plothook.currentTime = self.currentTimeIndex
-##            self.plothook.readField()
-##            self.plothook.pltFxn(self.plothook.pNum)
             self.NEXRADfile(update=True)
-            self.plotRadarData()
+            self.plothook.readField()
+            self.plothook.pltFxn(self.plothook.pNum)
+#            self.plotRadarData()
         else:
             pass
 
@@ -571,10 +629,10 @@ class Radardataset:
         if not errorflag:
             self.getTimeIndex()
             self.plothook.currentTime = self.currentTimeIndex
-##            self.plothook.readField()
-##            self.plothook.pltFxn(self.plothook.pNum)
             self.NEXRADfile(update=True)
-            self.plotRadarData()
+            self.plothook.readField()
+            self.plothook.pltFxn(self.plothook.pNum)
+#            self.plotRadarData()
         else:
             pass
 
