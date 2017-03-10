@@ -138,7 +138,7 @@ class WrfDataset:
             i = 1
 
             #Determine 1/2 the number of processors
-            procs = multiprocessing.cpu_count()/2
+            procs = int(multiprocessing.cpu_count()/2)
             #Error check if only 1 processor
             if procs == 0:
                 procs = 1
