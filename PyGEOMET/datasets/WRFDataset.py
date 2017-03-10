@@ -2,6 +2,8 @@ import numpy as np
 import os
 import glob
 import netCDF4
+import multiprocessing
+import time
 from datetime import datetime
 from mpl_toolkits.basemap import Basemap
 from PyQt5.QtCore import *
@@ -9,6 +11,58 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.LayoutFormat as Layout
+
+#This function is used to create the time list using multiprocessing
+def read_nctime(infile):
+    ncId = netCDF4.Dataset(infile,'r')
+    variables = ncId.variables
+    ntimes = ncId.dimensions['Time'].size
+    #timeString = []
+    #Read the variable
+    if ntimes > 1:
+        timeString = []
+        for ctime in range(ntimes):
+            tm = variables['Times'][ctime]
+            #Create time string
+            year   = tm[0]+tm[1]+tm[2]+tm[3]
+            month  = tm[5]+tm[6]
+            day    = tm[8]+tm[9]
+            hour   = tm[11]+tm[12]
+            minute = tm[14]+tm[15]
+            second = tm[17]+tm[18]
+
+            timeObj  = datetime(
+                                int(year),
+                                int(month),
+                                int(day),
+                                int(hour),
+                                int(minute),
+                                int(second)
+                                )
+            timeString.append(timeObj.strftime("%d %b %Y, %H:%M:%S UTC"))
+            #timeString = timeObj.strftime("%d %b %Y, %H:%M:%S UTC")
+    else:
+        tm = variables['Times'][0]
+        #Create time string
+        year   = tm[0]+tm[1]+tm[2]+tm[3]
+        month  = tm[5]+tm[6]
+        day    = tm[8]+tm[9]
+        hour   = tm[11]+tm[12]
+        minute = tm[14]+tm[15]
+        second = tm[17]+tm[18]
+
+        timeObj  = datetime(
+                            int(year),
+                            int(month),
+                            int(day),
+                            int(hour),
+                            int(minute),
+                            int(second)
+                            )
+        #timeString.append(timeObj.strftime("%d %b %Y, %H:%M:%S UTC"))
+        timeString = timeObj.strftime("%d %b %Y, %H:%M:%S UTC")
+
+    return timeString
 
 class WrfDataset:
 
@@ -83,6 +137,13 @@ class WrfDataset:
             totalFiles = len(files)
             i = 1
 
+            #Determine 1/2 the number of processors
+            procs = multiprocessing.cpu_count()/2
+            #Error check if only 1 processor
+            if procs == 0:
+                procs = 1
+            print("num of procs", procs)
+
             while(True):
                 if(i <= 9):
                     files = sorted(glob.glob(self.dsPrefix+'_d0'+str(i)+'*'))
@@ -91,15 +152,36 @@ class WrfDataset:
 
                 numFiles = len(files)
                 times = []
-                append_time = times.append
+                #append_time = times.append
+                append_time = times.extend
 
                 if numFiles != 0 :
                     self.fileList.append(files)
                     self.setGrid(self.numGrids+1)
-                    for ii in range(len(files)*self.ntimes):
-                        self.setTimeIndex(ii)
-                        append_time(self.getTime())
-                    self.timeList.append(times)
+                    #t0 = time.clock()
+                    #t1 = time.time()
+                    #Old Way
+                    #for ii in range(len(files)*self.ntimes):
+                    #    self.setTimeIndex(ii)
+                    #    append_time(self.getTime())
+                    #self.timeList.append(times)
+
+                    #Used for testing the multiprocessing function
+                    #for file in files:
+                    #    r = read_nctime(file)
+                    #    append_time(r)
+                    #self.timeList.append(times)
+                    pool = multiprocessing.Pool(processes=procs)
+                    r = pool.map(read_nctime,files)
+                    pool.close()
+                    #print(r)
+                    #Flatten list if necessary
+                    if any(isinstance(el, list) for el in r):
+                        r = [ent for sublist in r for ent in sublist]
+                    self.timeList.append(r)
+                    #print(self.timeList)
+                    #print(time.clock()-t0, "Seconds process time")
+                    #print(time.time()-t1, "Seconds wall time")
                     self.numGrids += 1
                     self.setTimeIndex(0,update=False)
                 totalFiles = totalFiles-numFiles
