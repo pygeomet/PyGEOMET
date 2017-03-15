@@ -69,6 +69,9 @@ class MERRAdataset:
         self.variables = self.ncId.variables
         self.dimensions = self.ncId.dimensions
         self.attributes = self.ncId.__dict__
+        self.getDDlists(update=True)
+
+    def getDDlists(self, update=None):
         self.variableList = list(sorted(self.variables.keys()))
         if self.var == None:
             self.var = self.variableList[self.currentVarIndex]
@@ -80,10 +83,13 @@ class MERRAdataset:
                 self.nz = [1]
             if tmp.size == 1:
                 self.levelList=[str(tmp)]
+
             else:
                 self.levelList = ["%7.2f" % x for x in tmp]
+                self.currentLevelIndex = 0
                 if self.grid[5] == "V":
                     self.levelList.reverse()
+                    self.currentLevelIndex = -1
         else:
             self.levelList = ['NA']
         
@@ -100,22 +106,35 @@ class MERRAdataset:
             ohr = int((offset - np.floor(offset))*24.)
             self.offset = datetime.timedelta(days = oday, hours = ohr)
 
+        reftime = datetime.datetime(1,1,1,0,0,0)
+        lasttime = self.variables['time'][-1]
+        dt = datetime.timedelta(days = lasttime)
+        timeobj = reftime + dt - self.offset
+        now = datetime.datetime.now()
+
         if not hasattr(self,'yearList'):
-            lasttime = self.variables['time'][-1]
-            dt = datetime.timedelta(days = lasttime)
-            timeobj = reftime + dt - self.offset
-            tmp = np.arange(timeobj.year-1, self.init.year,-1)
+            if timeobj.year == now.year:
+                tmp = np.arange(timeobj.year, self.init.year,-1)
+            else:
+                tmp = np.arange(timeobj.year-1, self.init.year,-1)
             self.yearList = ["%04d" % x for x in tmp] 
             if self.year == None:
                 self.year = self.yearList[self.currentYearIndex]
-        if not hasattr(self, 'monList'):
+       # if not hasattr(self, 'monList'):
+        if self.year == "{0:0>4}".format(timeobj.year):
+            maxmon = timeobj.month
+        else:
             maxmon = 12
-            tmp = np.arange(1,maxmon+1,1)
-            self.monList = ["%02d" % x for x in tmp]
-            if self.month == None:
-                self.month = self.monList[self.currentMonthIndex]
+        tmp = np.arange(1,maxmon+1,1)
+        self.monList = ["%02d" % x for x in tmp]
+        if self.month == None:
+            self.month = self.monList[self.currentMonthIndex]
 
-        if not hasattr(self,'dayList'):
+        #if not hasattr(self,'dayList'):
+        if (self.year == "{0:0>4}".format(timeobj.year) and
+            self.month == "{0:0>2}".format(timeobj.month)):
+            dayList = np.arange(1,timeobj.day+1,1)
+        else:
             dayList = np.arange(1,31+1,1)
             if self.month == '02':
                 tmp = dayList[0:28]
@@ -125,22 +144,38 @@ class MERRAdataset:
                 tmp = dayList[0:30]
             else:
                 tmp = dayList
-                self.dayList = ["%02d" % x for x in tmp]
-            if self.day == None:
-                self.day = self.dayList[self.currentDayIndex]
-        if '3' in self.grid:
-            tmp = np.arange(0,21+1,3)
-            self.hourList = ["%02d" % x for x in tmp]
-        elif '6' in self.grid:
-            tmp = np.arange(0,18+1,6)
-            self.hourList = ["%02d" % x for x in tmp]
+        self.dayList = ["%02d" % x for x in tmp]
+        if self.day == None:
+            self.day = self.dayList[self.currentDayIndex]
+        if (self.year == "{0:0>4}".format(timeobj.year) and
+            self.month == "{0:0>2}".format(timeobj.month) and
+            self.day == "{0:0>2}".format(timeobj.day)):
+            maxhr = timeobj.hour
         else:
-            self.hourList = ["00"]
-            self.hour = "00"
+            maxhr = 21
+        if '3' in self.grid:
+            tmp = np.arange(0,maxhr+1,3)
+        elif '6' in self.grid:
+            if maxhr == 21:
+                maxhr = 18
+            tmp = np.arange(0,maxhr+1,6)
+        else:
+            self.hourList = [0]
+        self.hourList = ["%02d" % x for x in tmp]
         if self.hour == None:
             self.hour = self.hourList[self.currentHourIndex]
 
         if update == True:
+            self.threeDVars = []
+            self.twoDVars = []
+            for varname in self.variables :
+                if varname == 'time' or varname == 'lat' or varname == 'lon':
+                    pass
+                else:
+                    if len(self.variables[varname].shape) > 2:
+                        self.threeDVars.append(varname)
+                    else:
+                        self.twoDVars.append(varname)
             self.readNCVariable(self.var)
             self.setProjection()
 
@@ -186,12 +221,11 @@ class MERRAdataset:
                 inst = 'V'
             else:
                 print("This one hasn't been accounted for. Fix it")
-
-            if (len(self.hourList) ==  8):
+            if (self.grid[3] == '3'):
                 gd = 'M2I3N' + inst + 'ASM'
-            elif (len(self.hourList) == 4):
+            elif (self.grid[3] == '6'):
                 gd = 'M2I6N' + inst + 'ANA'
-            elif (len(self.hourList) == 1):
+            elif (self.grid[3] == 'M'):
                 gd = 'M2IMN' + inst + 'ASM'
             else:
                 print("This one has not yet been accounted for. Fix it")
@@ -211,11 +245,11 @@ class MERRAdataset:
             inst = 'V'
         else:
             print("This one hasn't been accounted for. Fix it")
-        if (len(self.hourList) ==  8):
+        if (self.grid[3] == '3'):
             gd = 'M2I3N' + inst + 'ASM'
-        elif (len(self.hourList) == 4):
+        elif (self.grid[3] == '6'):
             gd = 'M2I6N' + inst + 'ANA'
-        elif (len(self.hourList) == 1):
+        elif (self.grid[3] == 'M'):
             gd = 'M2IMN' + inst + 'ASM'
         else:
             print("This one has not yet been accounted for. Fix it")
@@ -226,14 +260,14 @@ class MERRAdataset:
         tmp1 = np.squeeze(tmp.variables['omega'][self.currentTimeIndex])
         t = np.squeeze(tmp.variables['t'][self.currentTimeIndex])
         height = np.squeeze(tmp.variables['h'][self.currentTimeIndex])/1000.
+        tmp2 = t.shape
         if inst == 'P':
-            press = np.squeeze(tmp.variables['lev'])
+            press = (np.tile(np.squeeze(tmp.variables['lev']),tmp2[2]*tmp2[1]).reshape(tmp2[2],tmp2[1],tmp2[0])).T
         elif inst == 'V':
             press = np.squeeze(tmp.variables['pl'][self.currentTimeIndex])/100.
 
         rho = (press*100.)/(287.05*t)
         w = -tmp1/(rho*9.81)
-        
         return u, v, w, press, height
  
     def setProjection(self,gid=None,axs=None):
@@ -477,32 +511,45 @@ class MERRAdataset:
     def selectionChangeYear(self,i):
         self.currentYearIndex = i
         self.year = self.yearList[self.currentYearIndex]
+        self.getDDlists()
         if self.year == self.yearList[0]:
             self.currentYearIndex = 0
             self.currentMonthIndex = -1
             self.currentDayIndex = -1
             self.month = self.monList[self.currentMonthIndex]
             self.day = self.dayList[self.currentDayIndex]
+        self.plothook.selectMonth.clear()
+        self.plothook.selectDay.clear()
+        self.plothook.selectHour.clear()
+        self.plothook.selectMonth.addItems(self.monList)
+        self.plothook.selectDay.addItems(self.dayList)
+        self.plothook.selectHour.addItems(self.hourList)
 
     def selectionChangeMonth(self,i):
         self.month = self.monList[i]
-        dayList = np.arange(1,31+1,1)
-        if self.month == '02' and (((int(self.year)-1900) % 4) == 0):
-            tmp = dayList[0:29]
-        elif self.month == '02':
-            tmp = dayList[0:28]
-        elif self.month == '04' or self.month == '06' or\
-             self.month =='09' or self.month == '11':
-            tmp = dayList[0:30]
-        else:
-            tmp = dayList
-        self.dayList = ["%02d" % x for x in tmp]
+        self.getDDlists()
+#        dayList = np.arange(1,31+1,1)
+#        if self.month == '02' and (((int(self.year)-1900) % 4) == 0):
+#            tmp = dayList[0:29]
+#        elif self.month == '02':
+#            tmp = dayList[0:28]
+#        elif self.month == '04' or self.month == '06' or\
+#             self.month =='09' or self.month == '11':
+#            tmp = dayList[0:30]
+#        else:
+#            tmp = dayList
+#        self.dayList = ["%02d" % x for x in tmp]
         self.day = self.dayList[self.currentDayIndex]
+        self.plothook.selectHour.clear()
         self.plothook.selectDay.clear()
+        self.plothook.selectHour.addItems(self.hourList)
         self.plothook.selectDay.addItems(self.dayList)
 
     def selectionChangeDay(self,i):
         self.day = self.dayList[i]
+        self.getDDlists()
+        self.plothook.selectHour.clear()
+        self.plothook.selectHour.addItems(self.hourList)
 
     def selectionChangeHour(self,i):
         self.hour = self.hourList[i]
@@ -510,7 +557,7 @@ class MERRAdataset:
     def selectionChangeVar(self,i):
         self.currentVarIndex = i
         self.var = self.variableList[self.currentVarIndex]
-        self.plothook.currentLevel = 0
+        self.plothook.currentLevel = self.currentLevelIndex
         self.plothook.colormax = None
         self.plothook.colormin = None
 
@@ -533,6 +580,11 @@ class MERRAdataset:
 
     def selectionChangeLevel(self,i):
         self.plothook.currentLevel=i
+        if self.grid[5] == "V":
+            vlevels = np.squeeze(self.variables['lev'])
+            ind = np.where(vlevels == float(self.levelList[self.plothook.currentLevel]))[0][0]
+            self.currentLevelIndex = ind
+            self.plothook.currentLevel=ind
         self.plothook.colormax = None
         self.plothook.colormin = None
 

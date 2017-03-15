@@ -271,6 +271,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.resolution = 'l'
+        self.appobj.domain_average = None
         self.coasts = None
         self.countries = None
         self.states = None
@@ -598,6 +599,7 @@ class PlotSlab:
                     labels.remove()
             if self.appobj.barbs != None:
                 self.appobj.barbs.remove()
+                self.appobj.vectors2.remove()
             if self.appobj.vectors != None:
                 self.appobj.vectors.remove()
             if self.appobj.vectorkey != None:
@@ -682,7 +684,15 @@ class PlotSlab:
             self.ColorBar.ax.tick_params(labelsize=9)
             self.appobj.axes1[self.pNum-1].set_title(self.varTitle,fontsize = 10)
             self.displayValuesXYZ(pltfld)
- 
+
+            if self.appobj.domain_average != None:
+                self.appobj.domain_average.remove()
+            self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
+                 ("Domain Average: " + str(np.nanmean(pltfld))),
+                 verticalalignment='bottom',horizontalalignment='right',
+                 transform = self.appobj.axes1[self.pNum-1].transAxes,
+                 color='k',fontsize=12)
+
             if self.appobj.plotbarbs == True or self.appobj.plotvectors == True:
                 self.readField()
 
@@ -694,7 +704,17 @@ class PlotSlab:
                         self.u10 = self.dataSet.u10
                         self.v10 = self.dataSet.v10
 
-                if (self.dataSet.dx[self.currentGrid-1] >= 15000):
+                if (self.dataSet.dsetname == "MERRA" or self.dataSet.dsetname == 'NCEP/NCAR Reanalysis II'):
+                    if len(self.u10.shape) == 3:
+                        self.u10 = self.dataSet.u10[self.currentLevel]
+                    if len(self.v10.shape) == 3:
+                        self.v10 = self.dataSet.v10[self.currentLevel]
+                    if self.dataSet.dsetname == 'MERRA':
+                        interval = 20
+                    if self.dataSet.dsetname == 'NCEP/NCAR Reanalysis II':
+                        interval = 8
+
+                elif (self.dataSet.dx[self.currentGrid-1] >= 15000):
                     if (self.dataSet.ny[self.currentGrid-1] < 250. and self.dataSet.nx[self.currentGrid-1] < 250.):
                         interval = 3
                     else:
@@ -705,14 +725,22 @@ class PlotSlab:
                     else:
                         interval = 10
                 maxspeed = np.amax((self.u10[::interval,::interval]**2+self.v10[::interval,::interval]**2)**(1./2.))
-
                 if self.appobj.plotbarbs == True:
                     self.appobj.barbs = self.appobj.axes1[self.pNum-1].barbs(
                         xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                         yb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                         self.u10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                         self.v10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
-                        length = 5, barbcolor='k', flagcolor='k',linewidth=0.50)
+                        length = 5, sizes={"emptybarb":0.0}, barbcolor='k', flagcolor='k',linewidth=0.50, pivot='middle')
+ 
+                    unorm = self.u10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
+                    vnorm = self.v10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
+                    self.appobj.vectors2 = self.appobj.axes1[self.pNum-1].quiver(xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
+                        yb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
+                        unorm[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
+                        vnorm[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
+                        pivot='middle', headwidth=0, headlength=0, headaxislength=0,scale=60,width=0.0015)
+
                 if self.appobj.plotvectors == True:
                         self.appobj.vectors = self.appobj.axes1[self.pNum-1].quiver(
                             xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
@@ -795,7 +823,6 @@ class PlotSlab:
             self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
 
         if(self.nz < 3):
-            print("here")
             self.error3DVar()
         else:
             if (self.dataSet.dsetname == 'CMAQ'):
@@ -1011,7 +1038,18 @@ class PlotSlab:
                             plevs[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
                             hwind[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
                             wwind[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
-                            length = 5, barbcolor='k', flagcolor='k',linewidth=0.50)
+                            length = 5, sizes={"emptybarb":0.0},barbcolor='k', flagcolor='k',linewidth=0.50, pivot='middle')
+
+                        hnorm = hwind/np.sqrt(np.power(hwind,2) + np.power(wwind,2))
+                        wnorm = wwind/np.sqrt(np.power(hwind,2) + np.power(wwind,2))
+
+                        self.appobj.vectors2 = self.appobj.axes1[self.pNum-1].quiver(
+                            horiz[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
+                            plevs[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
+                            hnorm[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
+                            wnorm[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
+                            pivot='middle', headwidth=0, headlength=0, headaxislength=0,scale=60,width=0.0015)
+
                     if self.appobj.plotvectors == True:
                         self.appobj.vectors = self.appobj.axes1[self.pNum-1].quiver(
                             horiz[int(interval/2.):self.dataSet.nz[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval2:hdim-1-int(interval2/2.):interval2],
@@ -1034,7 +1072,8 @@ class PlotSlab:
                 ax1 = self.appobj.axes1[self.pNum-1]
                 ax1.set_ylabel("Pressure [hPa]")
                 ax1.set_yscale('log')
-                ax1.set_ylim(plevs.max(), self.minpress)
+                ax1.set_ylim(plevs.max()+1, self.minpress)
+                print(plevs.max(),self.minpress)
                 subs = [1,2,3,5,7,8.5]
                 loc = matplotlib.ticker.LogLocator(base=10., subs=subs)
                 ax1.yaxis.set_major_locator(loc)
@@ -1044,11 +1083,16 @@ class PlotSlab:
                 ax2 = self.appobj.axes1[self.pNum-1].twinx()
                 ax2.set_ylabel("Altitude [km]")
                 if self.dataSet.dsetname == "MERRA":
-                    min_ind = -1
+                    if self.dataSet.grid[5] == 'P':
+                        min_ind = 0
+                    else:
+                        min_ind = -1
                 else:
                     min_ind = 0
                 diff = abs(plevs[:,0] - self.minpress)
                 ind = np.where(diff == diff.min())
+                if len(ind[0]) > 1:
+                    ind = ind[0]
                 ax2.set_ylim(hgt.min(), hgt[ind[0],0])
                 ax2.set_xlim(horiz[min_ind,:].min(),horiz[min_ind,:].max())
                 ax2.fill_between(horiz[min_ind,:],0, hgt[min_ind,:], facecolor='peru')
@@ -1539,6 +1583,7 @@ class PlotSlab:
                 self.appobj.barbs = None
                 self.appobj.vectors = None
                 self.appobj.vectorkey = None
+                self.appobj.domain_average = None
                 self.appobj.recallProjection = True
                 self.coasts = None
                 self.countries = None
@@ -1864,6 +1909,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.cs2label = None
+        self.appobj.domain_average=None
         self.coasts = None
         self.countries = None
         self.states = None
@@ -1971,6 +2017,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.cs2label = None
+        self.appobj.domain_average = None
         self.ColorBar = None
         self.derivedVar = False
         self.appobj.recallProjection = True
@@ -2393,6 +2440,7 @@ class AppForm(QMainWindow):
         self.cs2label = None
         self.barbs = None
         self.vectors = None
+        self.vectors2 = None
         self.vectorkey = None
         self.resolution = 'l'
     
@@ -2565,6 +2613,7 @@ class AppForm(QMainWindow):
             self.plotbarbs = False
             if self.barbs != None:
                 self.barbs.remove()
+                self.vectors2.remove()
             self.barbs = None
         self.on_draw(self.plotCount)
 
@@ -2573,6 +2622,7 @@ class AppForm(QMainWindow):
             self.plotbarbs = False
             if self.barbs != None:
                 self.barbs.remove()
+                self.vectors2.remove()
             self.plotvectors = True
             self.barbs = None
         else:
