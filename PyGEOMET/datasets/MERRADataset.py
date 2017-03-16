@@ -714,6 +714,7 @@ class MERRAdataset:
         msg.exec_()
 
     def calcPGF(self,col=None, row=None,level=None):
+        #level = self.currentLevelIndex
         if self.grid[5] == 'P':
             inst = 'P'
         elif self.grid[5] == 'V':
