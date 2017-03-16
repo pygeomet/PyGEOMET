@@ -1632,12 +1632,12 @@ def getDvarList(varlist):
 
     if ('QCLOUD' in variables and 'QRAIN' in variables
         and 'QSNOW' in variables and 'QICE' in variables
-        and 'QGRAUPEL' in variables):
+        and 'QGRAUP' in variables):
         dvarlist.extend(['clwp','iwp','twp','ice water',
                          'cloud water','total water'])
 
     if ('QRAIN' in variables and 'QSNOW' in variables
-        and 'QGRAUPEL' in variables) or ('REFL_10CM' in variables):
+        and 'QGRAUP' in variables) or ('REFL_10CM' in variables):
         dvarlist.append('refl')
 
     if ('SWDNT' in variables and 'SWUPTC' in variables
