@@ -569,6 +569,13 @@ class PlotSlab:
             else:
                 pltfld = self.var[self.currentLevel]
             davg = np.nanmean(pltfld)
+            time = self.dataSet.timeObj.strftime("%Y%m%d_%H%M%S")
+            if not self.derivedVar:
+                varname = self.dataSet.variableList[self.currentVar]
+            else:
+                varname = self.dataSet.dvarlist[self.currentdVar]
+            #change the default plot name
+            self.figure.canvas.get_default_filename = lambda: (varname + '_' + time + '.png')
 
             #Initialize colorbar range and increment
             if self.colormin is None:
