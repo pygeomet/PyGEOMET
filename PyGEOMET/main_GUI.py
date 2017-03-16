@@ -568,6 +568,7 @@ class PlotSlab:
                 pltfld = self.var
             else:
                 pltfld = self.var[self.currentLevel]
+            davg = np.nanmean(pltfld)
 
             #Initialize colorbar range and increment
             if self.colormin is None:
@@ -635,8 +636,9 @@ class PlotSlab:
                 #if (len(np.where(pltfld <= self.colormin)[0]) > 1):
                 if (self.derivedVar == True):
                     if (self.dataSet.dvarlist[self.currentdVar] == 'refl' or
-                        np.isnan(pltfld).any()):
+                        np.ma.count_masked(pltfld).any()):
                         self.appobj.axes1[self.pNum-1] = None
+                        self.appobj.domain_average = None
                         self.ColorBar = None
                         self.figure.clear()
                         if len(self.appobj.axes1) >= self.pNum:
@@ -653,7 +655,7 @@ class PlotSlab:
                 else:
                     if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or
                         self.dataSet.dsetname == 'NEXRAD Radar' or 
-                        np.isnan(pltfld).any()):
+                        np.ma.count_masked(pltfld).any()):
                         self.appobj.axes1[self.pNum-1] = None
                         self.ColorBar = None
                         self.figure.clear()
@@ -688,7 +690,7 @@ class PlotSlab:
             if self.appobj.domain_average != None:
                 self.appobj.domain_average.remove()
             self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
-                 ("Domain Average: " + str(np.nanmean(pltfld))),
+                 ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.appobj.axes1[self.pNum-1].transAxes,
                  color='k',fontsize=12)
@@ -880,7 +882,7 @@ class PlotSlab:
                     pvar = np.ma.masked_less_equal(pvar,self.colormin)
                     norm = matplotlib.colors.Normalize(vmin=np.amin(lvls),vmax=np.amax(lvls))
                     if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or
-                        np.isnan(pvar).any()):
+                        np.ma.count_masked(pvar).any()):
                         self.appobj.axes1[self.pNum-1] = None
                         self.ColorBar = None
                         self.figure.clear()
@@ -1004,7 +1006,7 @@ class PlotSlab:
                     pvar = np.ma.masked_less_equal(pvar,self.colormin)
                     norm = matplotlib.colors.Normalize(vmin=np.amin(lvls),vmax=np.amax(lvls))
                     if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or
-                        np.isnan(pvar).any()):
+                        np.ma.count_masked(pvar).any()):
                         self.appobj.axes1[self.pNum-1] = None
                         self.ColorBar = None
                         self.figure.clear()
@@ -2590,11 +2592,13 @@ class AppForm(QMainWindow):
                 for coll in self.cs.collections:
                     coll.remove()
         self.cs = None
+        self.domain_average = None
         self.filltype = "pcolormesh"
         self.on_draw(self.plotCount)
 
     def ContourFPlot(self):
         self.cs = None
+        self.domain_average = None
         self.filltype = "contourf"
         self.on_draw(self.plotCount)
 
