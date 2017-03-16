@@ -462,6 +462,7 @@ class WrfDataset:
         self.xs[i] = (x_ll, x_ur, x_ur, x_ll, x_ll)
         self.ys[i] = (y_ll, y_ll, y_ur, y_ur, y_ll)
         self.test = axs
+        
     def setGridCorners(self):
 
         # Save current state.
@@ -550,7 +551,7 @@ class WrfDataset:
                 count += 1
         self.selectDset.setCurrentIndex(plotObj.currentDset-1)
         self.selectDset.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
+        #self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
         self.selectDset.currentIndexChanged.connect(plotObj.selectionChangeDset)
         selectDsetWidgetLayout.addWidget(selectDsetLabel)
         selectDsetWidgetLayout.addWidget(self.selectDset)

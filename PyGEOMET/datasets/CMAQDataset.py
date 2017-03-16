@@ -470,7 +470,7 @@ class CmaqDataset:
                 count += 1
         self.selectDset.setCurrentIndex(plotObj.currentDset-1)
         self.selectDset.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
+        #self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
         self.selectDset.currentIndexChanged.connect(plotObj.selectionChangeDset)
         selectDsetWidgetLayout.addWidget(selectDsetLabel)
         selectDsetWidgetLayout.addWidget(self.selectDset)
