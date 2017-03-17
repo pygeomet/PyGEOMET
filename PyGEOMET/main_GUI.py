@@ -394,22 +394,6 @@ class PlotSlab:
 
         self.appobj.cbar = self.dataSet.getDsetControlBar(self)
         self.dataSet.qscroll.setStyleSheet(Layout.QScrollArea())
-        #self.dataSet.qscroll.setMinimumSize(310,630)
-        #self.dataSet.qscroll.setMaximumSize(310,630)
-        #self.dataSet.qscroll.setMinimumSize(self.appobj.screenx*.31*.8,self.appobj.screeny*.63*.8)
-        #self.dataSet.qscroll.setMaximumSize(self.appobj.screenx*.31*.8,self.appobj.screeny*.63*.8)
-        #self.dataSet.qscroll.setMinimumSize(self.appobj.screenx*.31*.8,self.appobj.screeny*.63)
-        #self.dataSet.qscroll.setMaximumSize(self.appobj.screenx*.31*.8,self.appobj.screeny*.63)
-        #self.dataSet.qscroll.resize(self.dataSet.qscroll.sizeHint())
-        #self.dataSet.qscroll.setGeometry(0,0,640,480)
-        #print ( self.dataSet.DCBar.geometry())
-        #self.dataSet.qscroll.setMinimumSize(470-45,640)
-        #self.dataSet.qscroll.setMaximumSize(470-45,640)
-        #self.dataSet.qscroll.setMinimumSize(640,480)
-        #self.dataSet.qscroll.setMaximumSize(640,480)
-        #print( "plot Tab GUI",self.appobj.plotTab[0].geometry() )
-        #print( "QScroll GUI",self.dataSet.qscroll.geometry() )
-        #print( "GBox GUI", self.dataSet.gbox.geometry() )
         self.appobj.tabLayout.addWidget(self.appobj.cbar)
  
     def lockColorBar(self):
@@ -560,9 +544,10 @@ class PlotSlab:
             pre = 'self.dataSet.map['
             gridnum = str(self.currentGrid-1)+']'
             end = self.appobj.background+'(ax=self.appobj.axes1['+str(self.pNum-1)+'])'
-            exec(pre+gridnum+end)
+            exec(pre+gridnum+end,None,None)
             #Make variable transparent
-            alpha=0.75        
+            alpha=0.75
+            
         if(self.currentVar != None or self.currentdVar != None):
             if(self.nz == 1):
                 pltfld = self.var
@@ -2452,7 +2437,6 @@ class AppForm(QMainWindow):
         self.vectors2 = None
         self.vectorkey = None
         self.resolution = 'l'
-    
  
     #Select the directory
     def wrfOpen(self):
@@ -2569,13 +2553,14 @@ class AppForm(QMainWindow):
         self.recallProjection = True
         if i == 0:
             self.background = None
+            self.axes1[self.slbplt.pNum-1] = None
+            self.slbplt.figure.clear()
         elif i == 1:
             self.background = '.bluemarble'
         elif i == 2:
             self.background = '.shadedrelief'
         else:
             self.background = '.etopo'
-        print(self.background)
         self.on_draw(self.plotCount)
 
     def changeResolution(self,i):
@@ -2784,14 +2769,14 @@ class AppForm(QMainWindow):
         if len(self.dataSet) >= 2:
             self.plotCount = self.plotCount + 1
             self.cw = CanvasWidget(self,self.plotCount)
-            slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
-            slbplt.setConnection(self.on_draw,self.plotCount)
-            slbplt.plotCount = self.plotCount
+            self.slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
+            self.slbplt.setConnection(self.on_draw,self.plotCount)
+            self.slbplt.plotCount = self.plotCount
             self.plotTab.append(QWidget())
             self.tabLayout = QVBoxLayout()
             self.plotTab[self.plotCount].setLayout(self.tabLayout)
-            slbplt.getControlBar()
-            self.cw.setPlot(slbplt)
+            self.slbplt.getControlBar()
+            self.cw.setPlot(self.slbplt)
             self.plotLayout.addWidget(self.cw)
             self.pltList.append(self.cw)
             tabName = 'Plot #'+ str(self.plotCount)
@@ -2803,11 +2788,10 @@ class AppForm(QMainWindow):
 
     def deleteButtonAction(self):
         if (self.plotCount != 0):
-            self.plotLayout.itemAt(self.plotCount-1).widget().deleteLater()
-            del self.plotTab[self.plotCount-1]
-            del self.pltList[self.plotCount-1]
-            self.plotControlTabs.removeTab(self.plotCount-1)
-            self.plotCount = self.plotCount-1
+            self.plotLayout.itemAt(self.plotControlTabs.currentIndex()).widget().deleteLater()
+            #self.plotTab[self.plotControlTabs.currentIndex()] = None
+            #self.pltList[self.plotControlTabs.currentIndex()] = None
+            self.plotControlTabs.removeTab(self.plotControlTabs.currentIndex())
             self.on_draw(self.plotCount)
 
     def on_draw(self,plotnum):
