@@ -581,8 +581,7 @@ class MERRAdataset:
     def selectionChangeLevel(self,i):
         self.plothook.currentLevel=i
         if self.grid[5] == "V":
-            vlevels = np.squeeze(self.variables['lev'])
-            ind = np.where(vlevels == float(self.levelList[self.plothook.currentLevel]))[0][0]
+            ind = (len(self.levelList)-1)-self.plothook.currentLevel
             self.currentLevelIndex = ind
             self.plothook.currentLevel=ind
         self.plothook.colormax = None
@@ -729,18 +728,31 @@ class MERRAdataset:
             gd = 'M2IMN' + inst + 'ASM'
         else:
             print("This one has not yet been accounted for. Fix it")
-        phi = np.squeeze(self.variables['h'][self.currentTimeIndex])*9.81
+        height = np.squeeze(self.variables['h'][self.currentTimeIndex])
+        tmp = height.shape 
         if inst == 'P':
-            press = np.squeeze(self.variables['lev'])*100.
+            press = (np.tile(np.squeeze(self.variables['lev']),tmp[2]*tmp[1]).reshape(tmp[2],tmp[1],tmp[0])).T
+            if press[level][row][col] == press[:,row,col].min():
+                dp = (press[level][row][col] - press[level-1][row][col])*100.
+                dz = height[level][row][col] - height[level-1][row][col]
+            else:
+                dp = (press[level+1][row][col] - press[level][row][col])*100.
+                dz = height[level+1][row][col] - height[level][row][col]
+
         elif inst == 'V':
             press = np.squeeze(self.variables['pl'][self.currentTimeIndex])
-            press = press[:,row,col]
+            if press[level][row][col] == press[:,row,col].max():
+                dp = (press[level][row][col] - press[level-1][row][col])*100.
+                dz = height[level][row][col] - height[level-1][row][col]
+
+            else:
+                dp = (press[level+1][row][col] - press[level][row][col])*100.
+                dz = height[level+1][row][col] - height[level][row][col]
+
+        rho = (press[level,row,col]*100.)/(287.05*self.variables['t'][self.currentTimeIndex,level,row,col])
+        dphidz = dp/(dz*rho)
+        phi = height*9.81
         tmp = np.gradient(phi)
-        if press[level] == press.min():
-            dphidp = tmp[0][level][row][col]/(press[level-1] - press[level])
-        else:
-            dphidp = tmp[0][level][row][col]/((press[level] - press[level+1]))
-        print(self.glons[0].shape, self.glats[0].shape)
         dy = wrf.get_distance(self.glats[0][row][col], self.glons[0][row][col],
                               self.glats[0][row+1][col], self.glons[0][row+1][col])
         dx = wrf.get_distance(self.glats[0][row][col], self.glons[0][row][col],
@@ -749,14 +761,16 @@ class MERRAdataset:
         print("phi-x",tmp[2][level][row][col])
         print("dy",dy)
         print("phi-y",tmp[1][level][row][col])
+        print('dp-z = ', dp)
+        print('dz = ', dz)
 
         dphidy = tmp[1][level][row][col]/(dy*1000.)
         dphidx = tmp[2][level][row][col]/(dx*1000.)
-        print("dphidy",dphidy)
-        print("dphidx",dphidx)        
+        print("dphidx",dphidx)
+        print("dphidy",dphidy)        
+        print("dpdz",dphidz)
 
-
-        return dphidx, dphidy, dphidp
+        return dphidx, dphidy, dphidz
 
     def calcCOR(self,col=None, row=None,level=None):
         if self.grid[5] == 'P':

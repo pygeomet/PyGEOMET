@@ -1531,7 +1531,7 @@ class PlotSlab:
         #self.table.setStyle(QStyleFactory.create("Windows"))
         self.model = QStandardItemModel()
         row1 = ['X-Comp', 'Y-Comp', 'Z-Comp']
-        col1 = ['PGF', 'Cor', 'Grav']
+        col1 = ['PGF', 'Cor','Grav']
         QStandardItemModel.setHorizontalHeaderLabels(self.model,col1)
         QStandardItemModel.setVerticalHeaderLabels(self.model,row1)
         if(self.nz == 1):
@@ -1549,7 +1549,8 @@ class PlotSlab:
         self.model.setItem(2,1, QStandardItem("{:.3E}".format(corz)))
         self.model.setItem(0,2, QStandardItem("N/A"))
         self.model.setItem(1,2, QStandardItem("N/A"))
-        self.model.setItem(2,2, QStandardItem(str(9.81)))
+        self.model.setItem(2,2, QStandardItem("9.81"))
+
         self.table.setModel(self.model)
         self.table.show()
 
