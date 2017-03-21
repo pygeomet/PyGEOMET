@@ -1,8 +1,6 @@
 # PyGEOMET
 Python GUI of Earth Observations and Model Evaluation Toolkit
 
-(Supported by the NSF Career Grant AGS 1352046)
-
 PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
 
 - Weather Research and Forecasting (WRF) Advanced Research (ARW) core
@@ -77,3 +75,7 @@ The current developers of PyGEOMET are:
 - Andrew White (The University of Alabama in Huntsville - PhD Candidate)
 - Brian Freitag (The University of Alabama in Huntsville - PhD Candidate)
 - Udaysankar Nair (The University of Alabama in Huntsville - Associate Professor)
+
+(Supported by the NSF Career Grant AGS 1352046)
+
+
