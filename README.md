@@ -12,9 +12,9 @@ PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package
 
 PyGEOMET consists of two main parts, the Graphical User Interface (GUI) and the dataset objects. The GUI was built using the PyQt5 python bindings for Qt cross-platform framework and contains all of the plotting code. The dataset objects, which are used for importing and accessing each dataset, are linked into the GUI but can also be implemented independently within Python scripts.   
  
-#####Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used and how it can be improved either through bug fixes or additonal useful datasets.
+##### Note: Please send an email to py.geomet@gmail.com to let us know how PyGEOMET is being used and how it can be improved either through bug fixes or additonal useful datasets.
 
-###Installing PyGEOMET
+### Installing PyGEOMET
 Either download and unzip the [zip file](https://github.com/pygeomet/PyGEOMET/archive/master.zip) or use git to clone the respository:
 
     git clone https://github.com/pygeomet/PyGEOMET.git
@@ -23,7 +23,7 @@ Once the package has been downloaded to your computer, navigate to the PyGEOMET 
 
     python setup.py install
   
-###Dependencies
+### Dependencies
 While there are many different ways to get and install Python, we recommend you install the Anaconda Python Distribution from Continuum Analytics ([download site](https://www.continuum.io/downloads)). PyGEOMET is primarily tested using this distribution on both Python 2.7 and 3.5.  
 
 Many of the PyGEOMET dependencies are already included in standard distributions, but for completeness the following packages are required:
@@ -48,14 +48,14 @@ Many of the PyGEOMET dependencies are already included in standard distributions
 
 If you use the Anaconda, all of the non-standard packages can be installed using "conda install".
 
-###Using the PyGEOMET GUI
+### Using the PyGEOMET GUI
 To run the GUI, change into the PyGEOMET directory.  Once there, you will see the "main_GUI.py" file. Run the command:
 
     python main_GUI.py
 
 This will open the GUI window. Load a dataset by selecting the appropriate name under the "Add Dataset" tab. Once the data is loaded into the GUI (this will take a variable amount of time depending on the number of files under the selected directory), click on the "Add Plot" button to display the dataset.
 
-###Future Development
+### Future Development
 PyGEOMET is in the early stages of developement and therefore, we have many planned additions. Some of the current planned dataset additions include:
 - Ocean Land Atmosphere Model (OLAM)
 - The Regional Atmospheric Modeling System (RAMS)
@@ -70,7 +70,7 @@ PyGEOMET is in the early stages of developement and therefore, we have many plan
 
 PyGEOMET is open source and intended to be a community software project. Contributions to the package are welcomed.
 
-###PyGEOMET Development Team
+### PyGEOMET Development Team
 The current developers of PyGEOMET are:
 - Andrew White (The University of Alabama in Huntsville - PhD Candidate)
 - Brian Freitag (The University of Alabama in Huntsville - PhD Candidate)
