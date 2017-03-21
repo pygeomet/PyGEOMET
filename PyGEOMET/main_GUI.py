@@ -511,6 +511,26 @@ class PlotSlab:
         #print(self.appobj.eom)
         if self.appobj.changeColor == True:
             self.cmap = self.appobj.cmap      
+
+        #Set background map
+        alpha = 1
+        if self.appobj.clear:
+            self.figure.clear()
+            self.appobj.clear = False
+            self.appobj.cs = None
+            self.coasts = None
+            self.states = None
+            self.countries = None
+            self.ColorBar = None
+            self.appobj.domain_average = None
+        if self.appobj.background is not None:
+            pre = 'self.dataSet.map['
+            gridnum = str(self.currentGrid-1)+']'
+            end = self.appobj.background+'(ax=self.appobj.axes1['+str(self.pNum-1)+'])'
+            exec(pre+gridnum+end,None,None)
+            #Make variable transparent
+            alpha=0.75
+
         if self.appobj.recallProjection == True:
             #print("axes", len(self.appobj.axes1))
             #print("Pnum",self.pNum)
@@ -538,16 +558,6 @@ class PlotSlab:
             self.colormin = self.dataSet.range[0]
             self.colormax = self.dataSet.range[1]
 
-        #Set background map
-        alpha = 1
-        if self.appobj.background is not None:
-            pre = 'self.dataSet.map['
-            gridnum = str(self.currentGrid-1)+']'
-            end = self.appobj.background+'(ax=self.appobj.axes1['+str(self.pNum-1)+'])'
-            exec(pre+gridnum+end,None,None)
-            #Make variable transparent
-            alpha=0.75
-            
         if(self.currentVar != None or self.currentdVar != None):
             if(self.nz == 1):
                 pltfld = self.var
@@ -2438,6 +2448,7 @@ class AppForm(QMainWindow):
         self.vectors2 = None
         self.vectorkey = None
         self.resolution = 'l'
+        self.clear = False
  
     #Select the directory
     def wrfOpen(self):
@@ -2554,8 +2565,9 @@ class AppForm(QMainWindow):
         self.recallProjection = True
         if i == 0:
             self.background = None
-            self.axes1[self.slbplt.pNum-1] = None
-            self.slbplt.figure.clear()
+            self.clear = True
+            #self.axes1[self.slbplt.pNum-1] = None
+            #self.slbplt.figure.clear()
         elif i == 1:
             self.background = '.bluemarble'
         elif i == 2:
@@ -2770,14 +2782,14 @@ class AppForm(QMainWindow):
         if len(self.dataSet) >= 2:
             self.plotCount = self.plotCount + 1
             self.cw = CanvasWidget(self,self.plotCount)
-            self.slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
-            self.slbplt.setConnection(self.on_draw,self.plotCount)
-            self.slbplt.plotCount = self.plotCount
+            slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
+            slbplt.setConnection(self.on_draw,self.plotCount)
+            slbplt.plotCount = self.plotCount
             self.plotTab.append(QWidget())
             self.tabLayout = QVBoxLayout()
             self.plotTab[self.plotCount].setLayout(self.tabLayout)
-            self.slbplt.getControlBar()
-            self.cw.setPlot(self.slbplt)
+            slbplt.getControlBar()
+            self.cw.setPlot(slbplt)
             self.plotLayout.addWidget(self.cw)
             self.pltList.append(self.cw)
             tabName = 'Plot #'+ str(self.plotCount)
