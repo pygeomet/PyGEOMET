@@ -303,8 +303,8 @@ class MERRAdataset:
     def getDsetControlBar(self, plotObj):
         self.plothook = plotObj
         self.tabbing = QWidget()
-        self.tabbingLayout = QVBoxLayout()
-        self.tabbing.setLayout(self.tabbingLayout)
+        plotObj.tabbingLayout = QVBoxLayout()
+        self.tabbing.setLayout(plotObj.tabbingLayout)
 
         self.qscroll = QScrollArea()
 
@@ -500,9 +500,7 @@ class MERRAdataset:
         cpanelLayout.addWidget(prevButton)
         cpanelLayout.addWidget(nxtButton)
         self.gboxLayout.addWidget(cpanel)
-        self.tabbingLayout.addWidget(self.gbox)
-        self.optionTabs = QTabWidget()
-        self.optionTabs.setMaximumHeight(plotObj.appobj.screeny*.8*.4)
+        plotObj.tabbingLayout.addWidget(self.gbox)
         plotObj.qscrollLayout.addWidget(self.tabbing,Qt.AlignTop)
 
 

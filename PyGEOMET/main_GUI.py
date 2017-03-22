@@ -394,6 +394,8 @@ class PlotSlab:
 
         self.appobj.cbar = self.dataSet.getDsetControlBar(self)
         self.dataSet.qscroll.setStyleSheet(Layout.QScrollArea())
+        self.optionTabs = QTabWidget()
+        self.optionTabs.setMaximumHeight(self.appobj.screeny*.8*.4)        
         self.appobj.tabLayout.addWidget(self.appobj.cbar)
  
     def lockColorBar(self):
@@ -467,9 +469,9 @@ class PlotSlab:
         colorboxLayout.addWidget(self.selectcontours)
         colorboxLayout.addWidget(self.PlotButton)
         #self.qscrollLayout.addWidget(self.colorbox)
-        self.dataSet.optionTabs.addTab(self.colorbox,boxTitleString)
-        self.dataSet.optionTabs.setCurrentIndex(self.dataSet.optionTabs.count()-1)
-        self.dataSet.tabbingLayout.addWidget(self.dataSet.optionTabs)
+        self.optionTabs.addTab(self.colorbox,boxTitleString)
+        self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+        self.tabbingLayout.addWidget(self.optionTabs)
 
     def verticalSliceControl(self):
         boxTitleString = 'Vertical Slice Control'
@@ -503,9 +505,9 @@ class PlotSlab:
         vsliceboxLayout.addWidget(pboxLabel)
         vsliceboxLayout.addWidget(self.pbox)
         self.qscrollLayout.addWidget(self.vslicebox)
-        self.dataSet.optionTabs.addTab(self.vslicebox,boxTitleString)
-        self.dataSet.optionTabs.setCurrentIndex(self.dataSet.optionTabs.count()-1)
-        self.dataSet.tabbingLayout.addWidget(self.dataSet.optionTabs)
+        self.optionTabs.addTab(self.vslicebox,boxTitleString)
+        self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+        self.tabbingLayout.addWidget(self.optionTabs)
  
     def plot(self):
         #print(self.appobj.eom)
@@ -1659,9 +1661,9 @@ class PlotSlab:
                     selectVarWidgetLayout.addWidget(selectVarLabel)
                     selectVarWidgetLayout.addWidget(selectPVar)
                     self.pControlLayout.addWidget(selectVarWidget)
-                    self.dataSet.optionTabs.addTab(self.pControl,parTitle)
-                    self.dataSet.optionTabs.setCurrentIndex(self.dataSet.optionTabs.count()-1)
-                    self.dataSet.tabbingLayout.addWidget(self.dataSet.optionTabs)
+                    self.optionTabs.addTab(self.pControl,parTitle)
+                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+                    self.tabbingLayout.addWidget(self.optionTabs)
                     self.pltFxn(self.pNum)
 
                 #Vertical Profiles
@@ -1687,9 +1689,9 @@ class PlotSlab:
                     selectVarWidgetLayout.addWidget(selectVarLabel)
                     selectVarWidgetLayout.addWidget(selectVVar)
                     self.vertControlLayout.addWidget(selectVarWidget)
-                    self.dataSet.optionTabs.addTab(self.vertControl,vertTitle)
-                    self.dataSet.optionTabs.setCurrentIndex(self.dataSet.optionTabs.count()-1)
-                    self.dataSet.tabbingLayout.addWidget(self.dataSet.optionTabs)                  
+                    self.optionTabs.addTab(self.vertControl,vertTitle)
+                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+                    self.tabbingLayout.addWidget(self.optionTabs)                  
 
                 #Time Series
                 if self.currentPType == 4:
@@ -1733,9 +1735,9 @@ class PlotSlab:
                     selectdataWidgetLayout.addWidget(selectdataLabel)
                     selectdataWidgetLayout.addWidget(self.selectData)
                     self.diffControlLayout.addWidget(selectdataWidget)
-                    self.dataSet.optionTabs.addTab(self.diffControl,diffTitle)
-                    self.dataSet.optionTabs.setCurrentIndex(self.dataSet.optionTabs.count()-1)
-                    self.dataSet.tabbingLayout.addWidget(self.dataSet.optionTabs)
+                    self.optionTabs.addTab(self.diffControl,diffTitle)
+                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+                    self.tabbingLayout.addWidget(self.optionTabs)
 
                     #Popup to select dataset for difference
                     self.dControl = QDialog(self.appobj)
