@@ -39,6 +39,7 @@ import PyGEOMET.datasets.MERRADataset as MERRA
 import PyGEOMET.datasets.GOESClassDataset as GOESClass
 import PyGEOMET.datasets.RadarDataset as NEXRAD
 import PyGEOMET.datasets.CMAQDataset as CmaqDataset
+import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import time
 import os
@@ -309,7 +310,7 @@ class PlotSlab:
                 #print(self.varTitle)
                 #print(self.var.shape)
                 #account for unstaggering of the grids in 3-dimensional variables
-                if self.appobj.dname == 'WRF':
+                if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
                     if len(self.var.shape) == 3:
                         if self.var.shape[0] == self.dataSet.nz[self.dataSet.currentGrid-1]:
                             self.var = wrf.unstaggerZ(self.var)
@@ -364,7 +365,7 @@ class PlotSlab:
             #print(self.varTitle)
             #print(self.var.shape)
             #account for unstaggering of the grids in 3-dimensional variables
-            if self.appobj.dname == 'WRF':
+            if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
                 if len(self.diffvar.shape) == 3:
                     if self.diffvar.shape[0] == self.diffdata.nz[self.diffdata.currentGrid-1]:
                         self.diffvar = wrf.unstaggerZ(self.diffvar)
@@ -938,18 +939,19 @@ class PlotSlab:
                     horiz = np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     horiz2 =np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     pvar = np.squeeze(np.sum(var[:,ind[0:4],:],axis=1)/4.)
-                    pvar2 = np.squeeze(np.sum(var2[:,ind[0:4],:],axis=1)/4.)
+                    if self.appobj.dname != 'MET':
+                        pvar2 = np.squeeze(np.sum(var2[:,ind[0:4],:],axis=1)/4.)
+                        wwind = np.squeeze(np.sum(w[:,ind[0:4],:],axis=1)/4.)
                     hgt = np.squeeze(np.sum(height[:,ind[0:4],:],axis=1)/4.)
                     plevs = np.squeeze(np.sum(press[:,ind[0:4],:],axis=1)/4.)
                     hwind = np.squeeze(np.sum(self.u10[:,ind[0:4],:],axis=1)/4.)
-                    wwind = np.squeeze(np.sum(w[:,ind[0:4],:],axis=1)/4.)
         
                     #add the wind vectors in knots
 #                    hwind*=1.943844492574
 #                    wwind*=1.943844492574
         
                     xx = np.arange(0,self.u10.shape[2],int(self.dataSet.nx[self.currentGrid-1]/15.))
-                    yy = np.arange(0,w.shape[0],int(self.dataSet.nz[self.currentGrid-1]/20.))
+                    yy = np.arange(0,press.shape[0],int(self.dataSet.nz[self.currentGrid-1]/20.))
                     points = np.meshgrid(yy,xx)
                     hdim = self.dataSet.nx[self.currentGrid-1]
     
@@ -959,18 +961,19 @@ class PlotSlab:
                     horiz = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
                     horiz2 =np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
                     pvar = np.squeeze(np.sum(var[:,:,ind[0:4]],axis=2)/4.)
-                    pvar2 = np.squeeze(np.sum(var2[:,:,ind[0:4]],axis=2)/4.)
+                    if self.appobj.dname != 'MET':
+                        pvar2 = np.squeeze(np.sum(var2[:,:,ind[0:4]],axis=2)/4.)
+                        wwind = np.squeeze(np.sum(w[:,:,ind[0:4]],axis=2)/4.)
                     hgt = np.squeeze(np.sum(height[:,:,ind[0:4]],axis=2)/4.)
                     plevs = np.squeeze(np.sum(press[:,:,ind[0:4]],axis=2)/4.)
                     hwind = np.squeeze(np.sum(self.v10[:,:,ind[0:4]],axis=2)/4.)
-                    wwind = np.squeeze(np.sum(w[:,:,ind[0:4]],axis=2)/4.)
         
                     #add the wind vectors
 #                    hwind*=1.943844492574
 #                    wwind*=1.943844492574
         
                     xx = np.arange(0,self.v10.shape[1],int(self.dataSet.nx[self.currentGrid-1]/15.))
-                    yy = np.arange(0,w.shape[0],int(self.dataSet.nz[self.currentGrid-1]/20.))
+                    yy = np.arange(0,press.shape[0],int(self.dataSet.nz[self.currentGrid-1]/20.))
                     points = np.meshgrid(yy,xx)    
                     hdim = self.dataSet.ny[self.currentGrid-1]    
 
@@ -1027,7 +1030,7 @@ class PlotSlab:
                 self.Colorbar = self.figure.colorbar(self.appobj.cs, ax=self.appobj.axes1[self.pNum-1], 
                                                      orientation='horizontal', pad=0.1)
                 self.Colorbar.ax.tick_params(labelsize=9)
-                if self.appobj.plotbarbs == True or self.appobj.plotvectors == True:
+                if (self.appobj.plotbarbs == True or self.appobj.plotvectors == True) and self.appobj.dname != 'MET':
                     if (self.dataSet.nz[self.currentGrid-1] < 60.):
                         interval = 2
                     else:
@@ -1067,7 +1070,7 @@ class PlotSlab:
                                        self.appobj.vectors, 0.05, -0.08,
                                        int(maxspeed*.75), str(int(maxspeed*.75))+' $m s^{-1}$',labelpos='E')
 
-                if self.appobj.plotcontour2 == True:
+                if self.appobj.plotcontour2 == True and self.appobj.dname != 'MET':
                     self.appobj.cs2 = self.appobj.axes1[self.pNum-1].contour(horiz, plevs,
                     pvar2, colors='k', linewidths=1.5)
                     if np.abs(pvar2).max() <= 1:
@@ -1130,18 +1133,37 @@ class PlotSlab:
                 self.appobj.recallProjection = False
 
     def plotSkewT(self,i,j):
-       
-        #Get Variables 
-        p = np.squeeze(self.dataSet.readNCVariable('P'))
-        pb = np.squeeze(self.dataSet.readNCVariable('PB'))
-        theta_prime = np.squeeze(self.dataSet.readNCVariable('T'))
-        qv = np.squeeze(self.dataSet.readNCVariable('QVAPOR'))
-        
-        #Construct full fields        
-        pressure = (p + pb) * 0.01
-        temp = (theta_prime + 300.) * (pressure/1000.) ** (287.04/1004.)
 
-        self.skewt = SkewT.SkewTobj(temp = temp[:,j,i], pressure = pressure[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel)
+        #The WRF MET files have different pressure, temp and humidity variables      
+        if self.appobj.dname == 'MET':
+            #Get Variables
+            p = np.squeeze(self.dataSet.readNCVariable('PRES'))/100. #Convert from pascal
+            t = np.squeeze(self.dataSet.readNCVariable('TT'))-273.15 #Convert from K
+            rh = np.squeeze(self.dataSet.readNCVariable('RH'))/100. #Convert from % 
+            
+            #Make sure RH values are valid (0-100%)
+            rh[rh > 1.] = 1.
+            rh[rh < 0.0] = 0.0
+            #Calculate vapor pressure from temperature and RH
+            qv = 6.11*np.exp((17.67*t)/(243.5+t))*rh
+            self.skewt = SkewT.SkewTobj(temp = t[:,j,i], pressure = p[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel)
+                       
+
+        else:
+            #WRF
+            #Get Variables 
+            p = np.squeeze(self.dataSet.readNCVariable('P'))
+            pb = np.squeeze(self.dataSet.readNCVariable('PB'))
+            theta_prime = np.squeeze(self.dataSet.readNCVariable('T'))
+            qv = np.squeeze(self.dataSet.readNCVariable('QVAPOR'))
+        
+            #Construct full fields        
+            pressure = (p + pb) * 0.01
+            temp = (theta_prime + 300.) * (pressure/1000.) ** (287.04/1004.)
+
+            self.skewt = SkewT.SkewTobj(temp = temp[:,j,i], pressure = pressure[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel)
+
+        #Create Figure
         self.skewt.fig.canvas.set_window_title('Skew-T at i='+str(i)+' j='+str(j))
         self.skewt.ax.set_title(self.Plist[self.selectedParcel]+' Profile')        
         self.skewt.ax.set_xlabel('Temperature [$^o$C] \n'+self.dataSet.getTime())
@@ -1628,16 +1650,16 @@ class PlotSlab:
                 #Skew-T
                 if self.currentPType == 2:
                     #Change to mixed-layer CAPE plot
-                    i = np.where(np.array(self.dataSet.dvarlist) == 'CAPE_ML')
-                    if self.derivedVar == False:
-                        self.selectionChangedVar(i[0][0])
-                        self.replot2d = True
-                    else:
-                        if self.currentdVar != i[0][0]:
-                           self.selectionChangedVar(i[0][0])
-                           self.replot2d = True
-                        else:
-                           self.replot2d = False
+                    #i = np.where(np.array(self.dataSet.dvarlist) == 'CAPE_ML')
+                    #if self.derivedVar == False:
+                    #    self.selectionChangedVar(i[0][0])
+                    #    self.replot2d = True
+                    #else:
+                    #    if self.currentdVar != i[0][0]:
+                    #       self.selectionChangedVar(i[0][0])
+                    #       self.replot2d = True
+                    #    else:
+                    #       self.replot2d = False
 
                     #Create tab to control parcel type
                     self.pControl = QGroupBox()
@@ -1833,7 +1855,7 @@ class PlotSlab:
                 self.extend = 'both'
                 self.cmap = self.appobj.cmap
             ndim   = len(self.var.shape)
-            if self.currentPType == 3:
+            if self.currentPType == 3 or self.currentPType == 2:
                 self.replot2d = True
                 self.col = None
                 self.row = None
@@ -1884,7 +1906,7 @@ class PlotSlab:
                 self.cmap = self.appobj.cmap
 
             ndim = len(self.var.shape)
-            if self.currentPType == 3:
+            if self.currentPType == 3 or self.currentPType == 2:
                 self.replot2d = True
                 self.row = None
                 self.col = None
@@ -1995,6 +2017,10 @@ class PlotSlab:
             self.colormax = None
             self.colormin = None
             self.ncontours = None
+        if self.currentPType == 2:
+            self.replot2d = True
+            self.col = None
+            self.row = None
         if self.currentPType == 3:
             self.replot2d = True
             self.col = None
@@ -2050,6 +2076,10 @@ class PlotSlab:
             self.currentTime = 0
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
+        if self.currentPType == 2:
+            self.replot2d = True
+            self.col = None
+            self.row = None
         if self.currentPType == 3:
             self.replot2d = True
             self.col = None
@@ -2073,6 +2103,10 @@ class PlotSlab:
             self.currentTime = self.dataSet.getNumFiles()*self.dataSet.ntimes-1
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
+        if self.currentPType == 2:
+            self.replot2d = True
+            self.col = None
+            self.row = None
         if self.currentPType == 3:
             self.replot2d = True
             self.col = None
@@ -2234,7 +2268,7 @@ class AppForm(QMainWindow):
         
         #Create Dataset menu bar###############################
         #WRF
-        openWRF = QAction("&WRF", self)
+        openWRF = QAction("&WRF-ARW", self)
         openWRF.setShortcut("Ctrl+W")
         openWRF.setStatusTip('Open WRF Directory')
         openWRF.triggered.connect(self.wrfOpen)
@@ -2274,6 +2308,12 @@ class AppForm(QMainWindow):
         openCMAQ.setShortcut("Ctrl+Q")
         openCMAQ.setStatusTip('Open CMAQ')
         openCMAQ.triggered.connect(self.cmaqOpen)
+
+        #WRF met_em files
+        openMET = QAction("&MET",self)
+        openMET.setShortcut("Ctrl+I")
+        openMET.setStatusTip('Open MET')
+        openMET.triggered.connect(self.metOpen)
 
         ####End Dataset menu bar ##############################
 
@@ -2346,17 +2386,24 @@ class AppForm(QMainWindow):
 
         dataSetMenu = mainMenu.addMenu('&Add Dataset')
         dataSetMenu.setStyleSheet(Layout.QMenu())
-        dataSetMenu.addAction(openWRF)
-        dataSetMenu.addAction(openCMAQ)
-        dataSetMenu.addAction(openNCEPNCAR)
-        dataSetMenu.addAction(openMERRA)
-        dataSetMenu.addAction(openNEXRAD)
+
+        #WRF
+        menuWRF = dataSetMenu.addMenu('&WRF')
+        menuWRF.setStyleSheet(Layout.QMenu())
+        menuWRF.addAction(openWRF)
+        menuWRF.addAction(openMET)
 
         #GOES
         menuGOES = dataSetMenu.addMenu('&GOES')
         menuGOES.setStyleSheet(Layout.QMenu())
         menuGOES.addAction(openGOESClass)
         menuGOES.addAction(openGOESUAH)
+
+        #Remaining Datasets
+        dataSetMenu.addAction(openCMAQ)
+        dataSetMenu.addAction(openNCEPNCAR)
+        dataSetMenu.addAction(openMERRA)
+        dataSetMenu.addAction(openNEXRAD)
 
         #set up the plot settings menu
         plotMenu = mainMenu.addMenu('&Plot Settings')
@@ -2467,6 +2514,25 @@ class AppForm(QMainWindow):
                 self.paths.append(self.path)
                 QApplication.setOverrideCursor(Qt.WaitCursor)
                 self.dataSet[self.numDset].name(path=str(self.path) , prefix='wrfout')
+                QApplication.restoreOverrideCursor()
+            else:
+                self.errorNoFilesFound()
+
+    #Select the directory
+    def metOpen(self):
+        self.dname = 'MET'
+        #self.selectdataset.close()
+        self.path = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        self.prefix = 'met*em*'
+        files = sorted(glob.glob(os.path.join(str(self.path),self.prefix)))
+        #print(os.path.join(str(self.path),self.prefix))
+        if self.path:
+            if len(files) > 0:
+                self.numDset += 1
+                self.dataSet.append(METDataset.METDataset())
+                self.paths.append(self.path)
+                QApplication.setOverrideCursor(Qt.WaitCursor)
+                self.dataSet[self.numDset].name(path=str(self.path) , prefix='met*em')
                 QApplication.restoreOverrideCursor()
             else:
                 self.errorNoFilesFound()

@@ -3,7 +3,6 @@ import os
 import glob
 import netCDF4
 import multiprocessing
-import time
 from datetime import datetime
 from mpl_toolkits.basemap import Basemap
 from PyQt5.QtCore import *
@@ -11,6 +10,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.LayoutFormat as Layout
+
 
 #This function is used to create the time list using multiprocessing
 def read_nctime(infile):
@@ -64,7 +64,8 @@ def read_nctime(infile):
 
     return timeString
 
-class WrfDataset:
+
+class METDataset:
 
     # The constructor can be initialized by specifying the #
     # directory and file prefix for WRF output files.  If  #
@@ -104,7 +105,7 @@ class WrfDataset:
 
         self.units='None'
 
-        self.dsetname = "WRF"
+        self.dsetname = "MET"
 
         self.resolution = "l"
 
@@ -146,13 +147,13 @@ class WrfDataset:
 
             while(True):
                 if(i <= 9):
-                    files = sorted(glob.glob(self.dsPrefix+'_d0'+str(i)+'*'))
+                    files = sorted(glob.glob(self.dsPrefix+'.d0'+str(i)+'*'))
                 else:
-                    files = sorted(glob.glob(self.dsPrefix+'_d'+str(i)+'*'))
+                    files = sorted(glob.glob(self.dsPrefix+'.d'+str(i)+'*'))
 
                 numFiles = len(files)
                 times = []
-                append_time = times.extend
+                append_time = times.append
 
                 if numFiles != 0 :
                     self.fileList.append(files)
@@ -185,8 +186,7 @@ class WrfDataset:
                 else:
                     self.twoDVars.append(varname)
             self.setGridDefinition()
-
-            self.dvarlist = wrf.getDvarList(self.variableList)
+            #self.dvarlist = wrf.getDvarList(self.variableList)
 
     def readNCVariable(self,vname,barbs=None, vectors=None, contour2=None,varonly=False):
         variable = self.dsets[vname][self.currentTimeIndex]
@@ -208,9 +208,9 @@ class WrfDataset:
 
         if barbs == True or vectors == True:
             if len(self.dsets[vname].shape) == 4:
-                tmp = self.dsets['U'][self.currentTimeIndex]
+                tmp = self.dsets['UU'][self.currentTimeIndex]
                 self.u10 = wrf.unstaggerX(tmp)
-                tmp = self.dsets['V'][self.currentTimeIndex]
+                tmp = self.dsets['VV'][self.currentTimeIndex]
                 self.v10 = wrf.unstaggerY(tmp)
             else:
                 self.u10 = self.dsets['U10'][self.currentTimeIndex]
@@ -219,15 +219,11 @@ class WrfDataset:
         return variable
 
     def getVertVars(self):
-        u = wrf.unstaggerX(np.squeeze(self.readNCVariable('U')))
-        v = wrf.unstaggerY(np.squeeze(self.readNCVariable('V')))
-        w = wrf.unstaggerZ(np.squeeze(self.readNCVariable('W')))
-        ph = np.squeeze(self.readNCVariable('PH'))
-        phb = np.squeeze(self.readNCVariable('PHB'))
-        p = np.squeeze(self.readNCVariable('P'))
-        pb = np.squeeze(self.readNCVariable('PB'))
-        press = (p + pb)/100.
-        height = wrf.unstaggerZ((ph + phb)/9.81)/1000.
+        u = wrf.unstaggerX(np.squeeze(self.readNCVariable('UU')))
+        v = wrf.unstaggerY(np.squeeze(self.readNCVariable('VV')))
+        height = np.squeeze(self.readNCVariable('GHT'))/1000.
+        press = np.squeeze(self.readNCVariable('PRES'))/100.
+        w = None
 
         return u, v, w, press, height
 
@@ -282,15 +278,16 @@ class WrfDataset:
 
             self.setGrid(i+1)
             self.setTimeIndex(0)
-            self.gridRatio.append(self.ncId.__dict__['PARENT_GRID_RATIO'])
-            self.pID.append(self.ncId.__dict__['PARENT_ID'])
+            self.gridRatio.append(self.ncId.__dict__['parent_grid_ratio'])
+            self.pID.append(self.ncId.__dict__['parent_id'])
             self.nx.append(self.ncId.__dict__['WEST-EAST_GRID_DIMENSION'])
             self.ny.append(self.ncId.__dict__['SOUTH-NORTH_GRID_DIMENSION'])
-            self.nz.append(self.ncId.__dict__['BOTTOM-TOP_GRID_DIMENSION'])
+            #Plus 1 to prevent vertical unstaggering within plotting code
+            self.nz.append(self.ncId.__dict__['BOTTOM-TOP_GRID_DIMENSION']+1)
             self.dx.append(self.ncId.__dict__['DX'])
             self.dy.append(self.ncId.__dict__['DY'])
-            self.istart.append(self.ncId.__dict__['I_PARENT_START'])
-            self.jstart.append(self.ncId.__dict__['J_PARENT_START'])
+            self.istart.append(self.ncId.__dict__['i_parent_start'])
+            self.jstart.append(self.ncId.__dict__['j_parent_start'])
             self.lat1.append(self.ncId.__dict__['TRUELAT1'])
             self.lat2.append(self.ncId.__dict__['TRUELAT2'])
             self.lon0.append(self.ncId.__dict__['CEN_LON'])
@@ -445,7 +442,6 @@ class WrfDataset:
         self.xs[i] = (x_ll, x_ur, x_ur, x_ll, x_ll)
         self.ys[i] = (y_ll, y_ll, y_ur, y_ur, y_ll)
         self.test = axs
-        
     def setGridCorners(self):
 
         # Save current state.
@@ -462,12 +458,12 @@ class WrfDataset:
                 self.setGrid(i+1,update=False)
                 self.setTimeIndex(indx)
 
-            self.glons[i] = self.readNCVariable('XLONG')
+            self.glons[i] = self.readNCVariable('XLONG_M')
             dims = self.glons[i].shape
             self.ll_lon[i] = self.glons[i][0,0]
             self.ur_lon[i] = self.glons[i][dims[0]-1,dims[1]-1]
 
-            self.glats[i] = self.readNCVariable('XLAT')
+            self.glats[i] = self.readNCVariable('XLAT_M')
             dims = self.glats[i].shape
             self.ll_lat[i] = self.glats[i][0,0]
             self.ur_lat[i] = self.glats[i][dims[0]-1,dims[1]-1]
@@ -534,7 +530,7 @@ class WrfDataset:
                 count += 1
         self.selectDset.setCurrentIndex(plotObj.currentDset-1)
         self.selectDset.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        #self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
+        self.selectDset.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
         self.selectDset.currentIndexChanged.connect(plotObj.selectionChangeDset)
         selectDsetWidgetLayout.addWidget(selectDsetLabel)
         selectDsetWidgetLayout.addWidget(self.selectDset)
@@ -552,9 +548,9 @@ class WrfDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
                   'Time Series', 'Difference Plot']#, 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.activated.connect(plotObj.selectionChangePlot)
         self.selectPlotType.setMinimumContentsLength(2)
@@ -580,18 +576,18 @@ class WrfDataset:
         plotObj.selectVar.activated.connect(plotObj.selectionChangeVar)
 
         #Derived Variables
-        self.selectdVar = QComboBox()
-        self.selectdVar.setStyleSheet(Layout.QComboBox())
-        self.selectdVar.addItems(self.dvarlist)
-        selectdVarWidget = QWidget()
-        selectdVarLabel = QLabel()
-        selectdVarLabel.setText('Derived Var:')
-        selectdVarLayout = QHBoxLayout()
-        selectdVarLayout.addWidget(selectdVarLabel)
-        selectdVarLayout.addWidget(self.selectdVar)
-        selectdVarWidget.setLayout(selectdVarLayout)
+        #self.selectdVar = QComboBox()
+        #self.selectdVar.setStyleSheet(Layout.QComboBox())
+        #self.selectdVar.addItems(self.dvarlist)
+        #selectdVarWidget = QWidget()
+        #selectdVarLabel = QLabel()
+        #selectdVarLabel.setText('Derived Var:')
+        #selectdVarLayout = QHBoxLayout()
+        #selectdVarLayout.addWidget(selectdVarLabel)
+        #selectdVarLayout.addWidget(self.selectdVar)
+        #selectdVarWidget.setLayout(selectdVarLayout)
         #selectdVarWidget.setFixedWidth(200)
-        self.selectdVar.activated.connect(plotObj.selectionChangedVar)
+        #self.selectdVar.activated.connect(plotObj.selectionChangedVar)
 
         #Grid selection
         self.selectGrid = QComboBox()
@@ -618,7 +614,7 @@ class WrfDataset:
         self.selectGridWidget.setLayout(selectGridLayout)
 
         self.gboxLayout.addWidget(selectVarWidget)
-        self.gboxLayout.addWidget(selectdVarWidget)
+        #self.gboxLayout.addWidget(selectdVarWidget)
         self.gboxLayout.addWidget(self.selectGridWidget)
         self.selectGrid.currentIndexChanged.connect(plotObj.selectionChangeGrid)
         plotObj.selectLevel.activated.connect(plotObj.selectionChangeLevel)
@@ -667,8 +663,6 @@ class WrfDataset:
         #self.gbox.setGeometry(0,0,271,240)
 
         plotObj.tabbingLayout.addWidget(self.gbox)
-        #self.optionTabs = QTabWidget()
-        #self.optionTabs.setMaximumHeight(plotObj.appobj.screeny*.8*.4)
         plotObj.qscrollLayout.addWidget(self.tabbing,Qt.AlignTop)
         #plotObj.qscrollLayout.addWidget(self.tabbing,Qt.AlignCenter)
         #tab1 = QWidget()
@@ -680,6 +674,6 @@ class WrfDataset:
         return self.qscroll
 
 ###############################################################################
-####                          End GGataset() Object                      ####
+####                          End WRFDataset() Object                      ####
 ###############################################################################
 
