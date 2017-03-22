@@ -3,7 +3,9 @@ Python GUI of Earth Observations and Model Evaluation Toolkit
 
 PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
 
-- Weather Research and Forecasting (WRF) Advanced Research (ARW) core
+- Weather Research and Forecasting (WRF) 
+    - WRF-Advanced Research (ARW) core
+    - Input WRF MET files
 - Community Multi-scale Air Quality (CMAQ) model
 - Modern-ERA Retrospective Analysis for Research and Applications, Version 2 (MERRA-2)
 - NCEP-DOE Reanalysis 2
