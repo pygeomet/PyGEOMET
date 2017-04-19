@@ -1382,24 +1382,24 @@ def linear_interpolate(indata,gdata,ref_val):
 
     dims = indata.shape
     newvar = np.zeros((dims[1],dims[2]),dtype=np.float)
-    diff = gdata - ref_val
+    #get the grid data in terms of AGL
+    diff = gdata - gdata[0,:,:]
     for i in range(0, dims[1]):
         for j in range(0, dims[2]):
-            ind = min(np.where(diff[:,i,j] > 0)[0])
-            if ind == 0:
-                ind1 = ind; ind2 = 1
-            elif ind == (len(diff[:,i,j])-1):
+            #find the z-index where the grid is above the reference value
+            ind = min(np.where(diff[:,i,j] > ref_val)[0])
+            if ind == (len(diff[:,i,j])-1):
                 ind1 = ind-1; ind2 = ind
             else:
                 ind1 = ind-1; ind2 = ind
-#            for sgn in range(0,len(diff)-1):
-#                if np.sign(diff[sgn]) != np.sign(diff[sgn+1]):
-#                    ind1 = sgn; ind2 = sgn+1
-            m = (indata[ind2,i,j]-indata[ind1,i,j])/(gdata[ind2,i,j]
-            -gdata[ind1,i,j])
-            c = indata[ind2,i,j] - (m*gdata[ind2,i,j])
+#                for sgn in range(0,len(diff)-1):
+#                    if np.sign(diff[sgn]) != np.sign(diff[sgn+1]):
+#                        ind1 = sgn; ind2 = sgn+1
+            m = (indata[ind2,i,j]-indata[ind1,i,j])/(diff[ind2,i,j]
+              -diff[ind1,i,j])
+            c = indata[ind2,i,j] - (m*diff[ind2,i,j])
             newvar[i,j] = m*ref_val + c
-
+    newvar = np.ma.masked_invalid(newvar)
     # return the value interpolated to the reference level
     return newvar
 
@@ -1431,19 +1431,22 @@ def loglinear_interpolate(indata,gdata,ref_val):
         for j in range(0, dims[2]):
             ind = min(np.where(diff[:,i,j] < 0)[0])
             if ind == 0:
-                ind1 = ind; ind2 = 1
-            elif ind == (len(diff[:,i,j])-1):
-                ind1 = ind-1; ind2 = ind
+                newvar[i,j] = np.nan
             else:
-                ind1 = ind-1; ind2 = ind
-#            for sgn in range(0,len(diff)-1):
-#                if np.sign(diff[sgn]) != np.sign(diff[sgn+1]):
-#                    ind1 = sgn; ind2 = sgn+1
-            m = (indata[ind2,i,j]-indata[ind1,i,j])/(np.log(gdata[ind2,i,j])
-            -np.log(gdata[ind1,i,j]))
-            c = indata[ind2,i,j] - (m*np.log(gdata[ind2,i,j]))
-            newvar[i,j] = m*np.log(ref_val) + c
+                if ind == (len(diff[:,i,j])-1):
+                    ind1 = ind-1; ind2 = ind
+                else:
+                    ind1 = ind-1; ind2 = ind
+#                for sgn in range(0,len(diff)-1):
+#                    if np.sign(diff[sgn]) != np.sign(diff[sgn+1]):
+#                        ind1 = sgn; ind2 = sgn+1
+                m = (indata[ind2,i,j]-indata[ind1,i,j])/(np.log(gdata[ind2,i,j])
+                -np.log(gdata[ind1,i,j]))
+                c = indata[ind2,i,j] - (m*np.log(gdata[ind2,i,j]))
+                newvar[i,j] = m*np.log(ref_val) + c
 
+    #mask bad values
+    newvar = np.ma.masked_invalid(newvar)
     # return the value interpolated to the reference level
     return newvar
 
