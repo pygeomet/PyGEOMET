@@ -698,11 +698,11 @@ class PlotSlab:
 
             if self.appobj.domain_average != None:
                 self.appobj.domain_average.remove()
-            #self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
-            #     ("Domain Average: " + str(davg)),
-            #     verticalalignment='bottom',horizontalalignment='right',
-            #     transform = self.appobj.axes1[self.pNum-1].transAxes,
-            #     color='k',fontsize=12)
+            self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
+                 ("Domain Average: " + str(davg)),
+                 verticalalignment='bottom',horizontalalignment='right',
+                 transform = self.appobj.axes1[self.pNum-1].transAxes,
+                 color='k',fontsize=12)
 
             if self.appobj.plotbarbs == True or self.appobj.plotvectors == True:
                 self.readField()
