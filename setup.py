@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 
 ### ACTUAL SETUP VALUES ###
 name = "PyGEOMET"
@@ -12,6 +14,8 @@ keywords = "meteorology modeling"
 url = "https://github.com/pygeomet/PyGEOMET"
 packages = ['PyGEOMET','PyGEOMET.datasets', 'PyGEOMET.utils']
 package_data = {"PyGEOMET.icons": ["down.png"],"PyGEOMET.utils":["radar_sites.csv"]}
+extensions = [Extension("PyGEOMET.utils.wrf_cython",["PyGEOMET/utils/wrf_cython.pyx"],
+                        extra_compile_args = ["-ffast-math"])]
 classifiers = ["Development Status :: 3 - Alpha",
                "Programming Language :: Python :: 3.5,2.7",]
 
@@ -28,5 +32,6 @@ setup(
     packages = packages,
     package_data = package_data,
     include_package_data=True,
+    ext_modules = cythonize(extensions),
     classifiers = classifiers
 )

@@ -1,5 +1,6 @@
 import numpy as np
 import PyGEOMET.utils.wrf_functions as wrf
+import PyGEOMET.utils.wrf_cython as wrf_cython
 import datetime
 
 class WRFDerivedVar:
@@ -141,11 +142,15 @@ class WRFDerivedVar:
         v_corr = wrf.unstaggerY(v)
         height = wrf.unstaggerZ(self.height)
         ref_val = 30000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        #Switched to Cython
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
         var1 = wrf.get_bulk_wind(self.u10,self.v10)
         self.var = wrf.convertWind_MStoKT(var1)
-        self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        #self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "300-mb Wind\n" + self.dataSet.getTime()
 
     def hgt_500mb(self):
@@ -156,9 +161,13 @@ class WRFDerivedVar:
         v_corr = wrf.unstaggerY(v)
         height = wrf.unstaggerZ(self.height)
         ref_val = 50000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
-        self.var = wrf.hypsometric(height,self.press, ref_val, self.temp)
+        #Switched to Cython
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
+        #self.var = wrf.hypsometric(height,self.press, ref_val, self.temp)
+        self.var = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.var2 = self.var
         self.varTitle = "500-mb Geopotential Height (m)\n" + self.dataSet.getTime()
 
@@ -170,11 +179,16 @@ class WRFDerivedVar:
         v_corr = wrf.unstaggerY(v)
         height = wrf.unstaggerZ(self.height)
         ref_val = 50000.
-        var1 = wrf.loglinear_interpolate(self.temp, self.press, ref_val)
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        #Switched to Cython
+        #var1 = wrf.loglinear_interpolate(self.temp, self.press, ref_val)
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        var1 = np.array(wrf_cython.loglinear_interpolate(self.temp, self.press, ref_val))
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
         self.var = wrf.convertT_KtoC(var1)
-        self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        #self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "500-mb Temperature ($^{\circ}$C)\n" + self.dataSet.getTime()
 
     def vort_500mb(self):
@@ -185,12 +199,16 @@ class WRFDerivedVar:
         v_corr = wrf.unstaggerY(v)
         height = wrf.unstaggerZ(self.height)
         ref_val = 50000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        #Switched to Cython
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
         self.var = wrf.rel_vort(self.u10, self.v10,
                    self.dataSet.dx[self.dataSet.currentGrid-1],
                    self.dataSet.dy[self.dataSet.currentGrid-1])
-        self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        #self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
+        self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "500-mb Relative Vorticity ($10^{-5}$ $s^{-1}$)\n" +\
                          self.dataSet.getTime()
 
@@ -201,10 +219,14 @@ class WRFDerivedVar:
         u_corr = wrf.unstaggerX(u)
         v_corr = wrf.unstaggerY(v)
         ref_val = 70000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        #Switched to Cython 
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
         var1 = wrf.get_rh(self.temp, self.qvapor, self.press)
-        self.var = wrf.loglinear_interpolate(var1, self.press, ref_val)
+#        self.var = wrf.loglinear_interpolate(var1, self.press, ref_val)
+        self.var = np.array(wrf_cython.loglinear_interpolate(var1, self.press, ref_val))
         self.var2 = self.var
         self.varTitle = "700-mb Relative Humidity (%)\n" + self.dataSet.getTime() 
 
@@ -215,9 +237,13 @@ class WRFDerivedVar:
         u_corr = wrf.unstaggerX(u)
         v_corr = wrf.unstaggerY(v)
         ref_val = 85000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
-        var1 = wrf.loglinear_interpolate(self.temp, self.press, ref_val)
+        #Switched to Cython
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
+        #var1 = wrf.loglinear_interpolate(self.temp, self.press, ref_val)
+        var1 = np.array(wrf_cython.loglinear_interpolate(self.temp, self.press, ref_val))
         self.var = wrf.convertT_KtoC(var1)
         self.var2 = wrf.get_mslp(self.height, self.press, self.temp, self.qvapor)
         self.varTitle = "850-mb Temperature\n" + self.dataSet.getTime()
@@ -229,8 +255,11 @@ class WRFDerivedVar:
         u_corr = wrf.unstaggerX(u)
         v_corr = wrf.unstaggerY(v)
         ref_val = 85000.
-        self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
-        self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        #Switched to Cython 
+        #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
+        #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
+        self.u10 = np.array(wrf_cython.loglinear_interpolate(u_corr, self.press, ref_val))
+        self.v10 = np.array(wrf_cython.loglinear_interpolate(v_corr, self.press, ref_val))
         self.var = wrf.rel_vort(self.u10,self.v10,
                    self.dataSet.dx[self.dataSet.currentGrid-1],
                    self.dataSet.dy[self.dataSet.currentGrid-1])
@@ -540,9 +569,12 @@ class WRFDerivedVar:
         self.varTitle = "Total Wind (m s$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cape_SB(self):
-        
-        self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'surface_based')
+
+        #Switched to Cython        
+        #self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'surface_based')
+        self.var, self.var2 = wrf_cython.cape_sb(self.temp,self.qvapor,
+                              self.press,self.height)        
         self.varTitle = "Surface-Based CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cape_ML(self):
