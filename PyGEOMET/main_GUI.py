@@ -329,9 +329,13 @@ class PlotSlab:
                 pass
         else:
             if self.currentdVar != None:
+                t0 = time.clock()
+                t1 = time.time()
                 dvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet, 
                                               var = self.dataSet.dvarlist[self.currentdVar],
                                               ptype = self.currentPType)
+                print( time.clock() - t0,"seconds process time plots")
+                print( time.time() - t1,"seconds wall time plots")
 
                 self.var = dvar.var
                 self.var2 = dvar.var2
@@ -620,7 +624,7 @@ class PlotSlab:
                     for coll in self.appobj.cs.collections:
                         coll.remove()
                 #print(self.dataSet.glons[self.currentGrid-1].shape)
-                #print(pltfld.shape)               
+                #print(pltfld.shape)
                 self.appobj.cs = self.dataSet.map[self.currentGrid-1].contourf(
                                   self.dataSet.glons[self.currentGrid-1],
                                   self.dataSet.glats[self.currentGrid-1],
@@ -694,11 +698,11 @@ class PlotSlab:
 
             if self.appobj.domain_average != None:
                 self.appobj.domain_average.remove()
-            self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
-                 ("Domain Average: " + str(davg)),
-                 verticalalignment='bottom',horizontalalignment='right',
-                 transform = self.appobj.axes1[self.pNum-1].transAxes,
-                 color='k',fontsize=12)
+            #self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
+            #     ("Domain Average: " + str(davg)),
+            #     verticalalignment='bottom',horizontalalignment='right',
+            #     transform = self.appobj.axes1[self.pNum-1].transAxes,
+            #     color='k',fontsize=12)
 
             if self.appobj.plotbarbs == True or self.appobj.plotvectors == True:
                 self.readField()

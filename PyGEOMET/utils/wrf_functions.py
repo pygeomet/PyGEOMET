@@ -1352,10 +1352,10 @@ def hypsometric(indata, gdata, ref_val, t):
             #get the layer averaged temperature
             t_avg = (t[ind1,i,j] + t[ind2,i,j])/2.
             newvar[i,j] = indata[ind1,i,j] + ((R*t_avg)/g)*np.log(gdata[ind1,i,j]/ref_val)
-            if i == 130 and j == 87:
-                print(diff[:,j,i],gdata[:,j,i])
-                print(ref_val,t_avg,ind)
-                print(newvar[j,i])
+            #if i == 130 and j == 87:
+            #    print(diff[:,j,i],gdata[:,j,i])
+            #    print(ref_val,t_avg,ind)
+            #    print(newvar[j,i])
     # return the height value interpolated to the reference level (Units: m)
     return newvar
 
