@@ -1,5 +1,3 @@
-#!/rhome/freitagb/anaconda3/bin/python
-
 #import libraries required for the various wrf functions
 import numpy as np
 import csv
@@ -740,6 +738,9 @@ def get_rh(t, q, p):
 
     #calculate the relative humidity
     rh = e/es*100.
+    
+    #Error check - rh can't be over 100%
+    rh[rh > 100.] = 100.
 
     #return relative humidity (Units: %)
     return rh
