@@ -573,37 +573,57 @@ class WRFDerivedVar:
         #Switched to Cython        
         #self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
         #                      self.press,self.height,'surface_based')
+        height = wrf.unstaggerZ(self.height)
         self.var, self.var2 = wrf_cython.cape_sb(self.temp,self.qvapor,
-                              self.press,self.height)        
+                              self.press,height)        
         self.varTitle = "Surface-Based CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cape_ML(self):
 
-        self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'mixed_layer')
+        #Switched to Cython
+        #self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'mixed_layer')
+        height = wrf.unstaggerZ(self.height)
+        self.var, self.var2 = wrf_cython.cape_ml(self.temp,self.qvapor,
+                              self.press,height)
         self.varTitle = "Mixed Layer CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cape_MU(self):
-
-        self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'most_unstable')
+        #Switched to Cython
+        #self.var, self.var2 = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'most_unstable')
+        height = wrf.unstaggerZ(self.height)
+        self.var, self.var2 = wrf_cython.cape_mu(self.temp,self.qvapor,
+                              self.press,height)
         self.varTitle = "Most Unstable CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cin_SB(self):
-        self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'surface_based')
+        #Switched to Cython
+        #self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'surface_based')
+        height = wrf.unstaggerZ(self.height)
+        self.var2, self.var = np.array(wrf_cython.cape_sb(self.temp,self.qvapor,
+                              self.press,height))        
         self.var *= -1
         self.varTitle = "Surface-Based CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cin_ML(self):
-        self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'mixed_layer')
+        #Sitched to Cython
+        #self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'mixed_layer')
+        height = wrf.unstaggerZ(self.height)
+        self.var2, self.var = np.array(wrf_cython.cape_ml(self.temp,self.qvapor,
+                              self.press,height))
         self.var *= -1
         self.varTitle = "Mixed Layer CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
     def cin_MU(self):
-        self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
-                              self.press,self.height,'most_unstable')
+        #Switched to Cython
+        #self.var2, self.var = wrf.get_cape(self.temp,self.qvapor,
+        #                      self.press,self.height,'most_unstable')
+        height = wrf.unstaggerZ(self.height)
+        self.var2, self.var = np.array(wrf_cython.cape_mu(self.temp,self.qvapor,
+                              self.press,height))
         self.var *= -1
         self.varTitle = "Most Unstable CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
 
