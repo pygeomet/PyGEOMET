@@ -1,7 +1,7 @@
 import numpy as np
 from libc.math cimport exp, log
 
-################  Begin function of hypsometric  ###########################
+################  Begin function hypsometric  ###########################
 #This subroutine uses the hypsometric 
 
 def hypsometric(float[:,:,:] z1, float[:,:,:] pressure, 
@@ -52,7 +52,7 @@ def hypsometric(float[:,:,:] z1, float[:,:,:] pressure,
 ###############################################################################
 
 
-################  Begin function of loglinear_interpolate  ####################
+################  Begin function loglinear_interpolate  ####################
 #This function interpolates a variable to a target pressure level
 
 def loglinear_interpolate(float[:,:,:] var, float[:,:,:] pressure, 
@@ -102,6 +102,106 @@ def loglinear_interpolate(float[:,:,:] var, float[:,:,:] pressure,
 ###############################################################################
 ###################  End function loglinear_interpolate()  ####################
 ###############################################################################
+
+################  Begin function linear_interpolate  ####################
+#This function interpolates a variable to a target height level
+
+def linear_interpolate(float[:,:,:] var, float[:,:,:] z,
+                       float ztarget):
+
+    #Define variables
+    cdef int nx = var.shape[2]
+    cdef int ny = var.shape[1]
+    cdef int nz = var.shape[0]
+    cdef double[:,:] var_new = np.zeros((ny,nx))
+    cdef int i, j, k, ind
+    cdef double diff
+
+    #Start the program
+    for i in range(nx):
+        for j in range(ny):
+            #Check if ztarget is below surface before looping
+            if z[0,j,i] > ztarget:
+                var_new[j,i] = np.nan
+            else:
+                for k in range(nz):
+                    diff = z[k,j,i] - ztarget
+                    if (diff >= 0):
+                        ind = k - 1
+                        #Interpolate to level
+                        var_new[j,i] = ( var[ind+1,j,i] - ((var[ind+1,j,i]-var[ind,j,i])/
+                                         (z[ind+1,j,i]-z[ind,j,i]))*(z[ind+1,j,i]-ztarget))
+                        break
+                    #Condition if ztarget is less than z at model top
+                    if (k == nz-1):
+                        var_new[j,i] = np.nan
+
+    return var_new
+
+###############################################################################
+###################  End function linear_interpolate()  ####################
+###############################################################################
+
+################  Begin function mean_layer  ####################
+#This function calculates the mean of a layer
+
+def mean_layer(float[:,:,:] var, float[:,:,:] z, 
+               float[:,:] ref1, float[:,:] ref2):
+
+    #Define variables
+    cdef int nx = var.shape[2]
+    cdef int ny = var.shape[1]
+    cdef int nz = var.shape[0]
+    cdef double[:,:] var_ml = np.zeros((ny,nx))
+    cdef double diff, diff2
+    cdef int i, j, k, ind1, ind2
+
+    for i in range(nx):
+        for j in range(ny):
+            #Find the value at reference level 1
+            ind1 = 1
+            diff = ref1[j,i] - z[0,j,i]
+            while (diff > 0):
+                diff = ref1[j,i] - z[ind1,j,i]
+                #Get out of the loop
+                if (ind1 == nz):
+                    #To keep minus 2 working below
+                    ind1 = ind1 + 1
+                    break
+                ind1 = ind1 + 1
+            #Find layer below condition
+            #Minus 2 because we add 1 before conditional check
+            ind1 = ind1 - 2
+            if (ind1 < 0):
+                ind1 = 0
+            #Find the value at reference level 2
+            ind2 = 1
+            diff2 = ref2[j,i] - z[0,j,i]
+            while (diff2 > 0):
+                diff2 = ref2[j,i] - z[ind2,j,i]
+                #Get out of the loop
+                if (ind2 == nz):
+                    #To keep minus 2 working below
+                    ind2 = ind2 + 1
+                    break
+                ind2 = ind2 + 1
+            #Find layer below condition
+            #Minus 2 because we add 1 before conditional check
+            ind2 = ind2 - 2
+            if (ind2 < 0):
+                ind2 = 0             
+            
+            #Calculate the mean layer value
+            var_ml[j,i] = ( ((var[ind1+1,j,i] + var[ind1,j,i])/2.) +
+                            ((var[ind2+1,j,i] + var[ind2,j,i])/2.))/2.              
+            
+
+    return var_ml
+
+###############################################################################
+###################  End function ean_layer()  ####################
+###############################################################################
+
 
 ################  Begin function cap_sb  ###########################
 #This subroutine calculates surface based CAPE

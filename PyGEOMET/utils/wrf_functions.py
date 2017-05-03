@@ -5,6 +5,7 @@ import matplotlib.path as mplPath
 from ftplib import FTP
 from scipy.special import gamma
 import os
+import PyGEOMET.utils.wrf_cython as wrf_cython
 
 ###############################################################################
 #                                                                             #
@@ -800,8 +801,9 @@ def get_shear(u, v, grid, ref_val):
     vcorr = unstaggerY(v)
 
     #interpolate the u and v wind fields to the reference level
-    u_lvl = linear_interpolate(ucorr, grid, ref_val)
-    v_lvl = linear_interpolate(vcorr, grid, ref_val)
+    #Switched to Cython
+    u_lvl = np.array(wrf_cython.linear_interpolate(ucorr, grid, ref_val))
+    v_lvl = np.array(wrf_cython.linear_interpolate(vcorr, grid, ref_val))
   
     #get the u and v wind fields at the surface
     u_sfc = ucorr[0,:,:]

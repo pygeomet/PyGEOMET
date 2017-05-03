@@ -486,7 +486,7 @@ class WRFDerivedVar:
         u = self.dataSet.readNCVariable('U')
         v = self.dataSet.readNCVariable('V')
         ref_val = 1000. # meters
-        self.u10, self.v10, var1 = wrf.get_shear(u, v, self.height, ref_val)
+        self.u10, self.v10, var1 = wrf.get_shear(u, v, height, ref_val)
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-1km Shear(knots)\n" + self.dataSet.getTime()
@@ -498,7 +498,7 @@ class WRFDerivedVar:
         u = self.dataSet.readNCVariable('U')
         v = self.dataSet.readNCVariable('V')
         ref_val = 3000. # meters
-        self.u10, self.v10, var1 = wrf.get_shear(u, v, self.height, ref_val)
+        self.u10, self.v10, var1 = wrf.get_shear(u, v, height, ref_val)
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-3km Shear (knots)\n" + self.dataSet.getTime()
@@ -510,7 +510,7 @@ class WRFDerivedVar:
         u = self.dataSet.readNCVariable('U')
         v = self.dataSet.readNCVariable('V')
         ref_val = 6000. # meters
-        self.u10, self.v10, var1 = wrf.get_shear(u, v, self.height, ref_val)
+        self.u10, self.v10, var1 = wrf.get_shear(u, v, height, ref_val)
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-6km Shear (knots)\n" + self.dataSet.getTime()        
@@ -726,7 +726,11 @@ class WRFDerivedVar:
         height = wrf.unstaggerZ(self.height)
         pblh = self.dataSet.readNCVariable('PBLH')
         #Calculate mean layer temperature
-        self.var = wrf.mean_layer(self.temp,height,0,pblh)
+        #Switch to Cython
+        #self.var = wrf.mean_layer(self.temp,height,0,pblh)
+        points = pblh.shape
+        ref1 = np.zeros((points[1],points[0]),dtype=np.float32)
+        self.var = wrf_cython.mean_layer(self.temp,height,ref1,pblh)
         self.var2 = self.var
         self.varTitle = "Mean Layer Temperature (K) \n"+ self.dataSet.getTime()
 
