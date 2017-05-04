@@ -1160,17 +1160,33 @@ class PlotSlab:
             pb = np.squeeze(self.dataSet.readNCVariable('PB'))
             theta_prime = np.squeeze(self.dataSet.readNCVariable('T'))
             qv = np.squeeze(self.dataSet.readNCVariable('QVAPOR'))
-        
+            ph = self.dataSet.readNCVariable('PH')
+            phb = self.dataSet.readNCVariable('PHB')
+            u_in = self.dataSet.readNCVariable('U')
+            v_in = self.dataSet.readNCVariable('V')
+       
             #Construct full fields        
             pressure = (p + pb) * 0.01
             temp = (theta_prime + 300.) * (pressure/1000.) ** (287.04/1004.)
+            height = (ph + phb)/9.81
+            
+            #Unstagger
+            #get the height array in reference to ground level
+            z = wrf.unstaggerZ(height) - wrf.unstaggerZ(height)[0,:,:]
+            u = wrf.unstaggerX(u_in)
+            v = wrf.unstaggerY(v_in)  
 
-            self.skewt = SkewT.SkewTobj(temp = temp[:,j,i], pressure = pressure[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel)
+            self.skewt = SkewT.SkewTobj(temp = temp[:,j,i], pressure = pressure[:,j,i], 
+                                        Z = z[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel,
+                                        u = u[:,j,i], v = v[:,j,i])
 
         #Create Figure
         self.skewt.fig.canvas.set_window_title('Skew-T at i='+str(i)+' j='+str(j))
-        self.skewt.ax.set_title(self.Plist[self.selectedParcel]+' Profile')        
-        self.skewt.ax.set_xlabel('Temperature [$^o$C] \n'+self.dataSet.getTime())
+        self.skewt.fig.suptitle(self.dataSet.getTime())
+        self.skewt.ax1.set_title(self.Plist[self.selectedParcel]+' Profile')   
+        self.skewt.ax2.set_title('Hodograph')     
+        self.skewt.ax1.set_xlabel('Temperature [$^o$C]')# \n'+self.dataSet.getTime())
+        
 
     def plotVertPro(self,i,j):
         

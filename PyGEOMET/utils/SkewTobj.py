@@ -10,13 +10,15 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.ticker import LogLocator
 import time
+from PyGEOMET.utils.wrf_cython import linear_interpolate1D
 
 class SkewTobj:
     
-    def __init__(self, temp = None, pressure = None, Z = None, qv = None, td = None, parcel = None):
+    def __init__(self, temp = None, pressure = None, Z = None, qv = None, td = None, parcel = None, u = None, v = None):
         
         #Set Global Constants
         self.g = 9.81            #gravity  [m/s^2]
@@ -48,12 +50,12 @@ class SkewTobj:
                 if (np.any(td > 200.)):
                     print("Input dew point temperature in Kelvin --> converting to Celsius")
                     td -= 273.15
-            self.RunProgram(temp,pressure,qv,Z,td,parcel)
+            self.RunProgram(temp,pressure,qv,Z,td,parcel,u,v)
         else:
             print("Please provide temperature, pressure and mixing ratio")
 
     #Call the routines if necessary input data is provided
-    def RunProgram(self, t, p, q, Z = None, td = None, parcel = None):
+    def RunProgram(self, t, p, q, Z = None, td = None, parcel = None, u = None, v = None):
         
         #Make sure mixing ratio values are positive
         q[np.where(q < 0.0)] = 0.0
@@ -98,6 +100,8 @@ class SkewTobj:
             self.MixedLayer(t, p, q, self.tdew)
             
         self.ParcelTemp(p, q)
+        if (u is not None and v is not None and self.Z is not None):
+            self.HodoGraph(u, v)
         self.CreatePlot()  
         
     #Mixing Ratio Lines
@@ -270,53 +274,90 @@ class SkewTobj:
         
         return x_out, y_out
 
+    #Process winds for the hodograph
+    def HodoGraph(self,u,v):
+        #Initialize arrays - a value for each km up to 10 km
+        #u and v wind
+        self.uwind = np.arange(21)
+        self.vwind = np.arange(21)        
+        #wind speed 
+        self.ws = np.arange(21)
+        #wind direction
+        self.wd = np.arange(21)
+        
+        #Determine wind speed and direction at each height level
+        for i in range(len(self.ws)):
+            #First level is 10 meters
+            if (i == 0):
+                self.uwind[i] = np.array(linear_interpolate1D(u,self.Z,10))
+                self.vwind[i] = np.array(linear_interpolate1D(v,self.Z,10))
+            else: 
+                self.uwind[i] = np.array(linear_interpolate1D(u,self.Z,i*500.))
+                self.vwind[i] = np.array(linear_interpolate1D(v,self.Z,i*500.))
+            #Calculate the wind speed
+            self.ws[i] = (self.uwind[i]**2 + self.vwind[i]**2)**(1./2.)
+            wd_tmp = 270 - np.arctan2(self.vwind[i],self.uwind[i])
+            if (wd_tmp < 0):
+                self.wd[i] = wd_tmp + 360.
+            else: 
+                self.wd[i] = wd_tmp
+        print(self.uwind)
+        print(self.vwind)
+
     #Rotate the points 
     def CreatePlot(self):
-        
-        self.fig = plt.figure(figsize=(8, 7))
+       
+        #Create figure 
+        self.fig = plt.figure(figsize=(12, 8))
         #fig.canvas.set_window_title('Skew-T')
-        self.ax = self.fig.add_subplot(111)
+        #self.ax = self.fig.add_subplot(111)
+        gs = gridspec.GridSpec(2,2,left=0.08,right=0.98,bottom=0.06,top=0.91,wspace=0.2,width_ratios=[1.8,1])
+        #############################################
+        #Create skew-t
+        #Skew T axis (all rows, 1st column)
+        self.ax1 = plt.subplot(gs[:,0])
 
         #Plot Mixing Ratio Lines
         dims_mr = self.x_mr.shape
         for i in range(dims_mr[0]):
-            plt.plot(self.x_mr[i,:],self.y_mr[i,:], 'k:')
+            self.ax1.plot(self.x_mr[i,:],self.y_mr[i,:], 'k:', linewidth=0.5)
 
         #Plot Potential Temperature Lines
         dims_theta = self.x_theta.shape
         for i in range(dims_theta[0]):
-            plt.plot(self.x_theta[i,:],self.y_theta[i,:], 'k:')
+            self.ax1.plot(self.x_theta[i,:],self.y_theta[i,:], 'k:', linewidth=0.5)
 
         #Plot Potential Temperature Lines
         dims_temp = self.x_temp.shape
         for i in range(dims_temp[0]):
-            plt.plot(self.x_temp[i,:],self.y_temp[i,:], 'k:')   
+            self.ax1.plot(self.x_temp[i,:],self.y_temp[i,:], 'k:',  linewidth=0.5)   
 
         #Plot Moist Adiabat Lines
         dims_thetae = self.x_thetae.shape
         for i in range(dims_thetae[0]):
-            plt.plot(self.x_thetae[i,:],self.y_thetae[i,:], 'k:') 
+            self.ax1.plot(self.x_thetae[i,:],self.y_thetae[i,:], 'k:', linewidth=0.5) 
         
         #Plot the Environmental Temperture
-        plt.plot(self.x_env,self.y_env, 'r', linewidth=3.0)
+        self.ax1.plot(self.x_env,self.y_env, 'r', linewidth=3.0)
 
         #Plot the Environmental Virtual Temperture
-        plt.plot(self.x_envtv,self.y_envtv, 'r:', linewidth=3.0)
+        self.ax1.plot(self.x_envtv,self.y_envtv, 'r:', linewidth=3.0)
  
         #Plot the Dew Point Temperture
-        plt.plot(self.x_dew,self.y_dew, 'g', linewidth=3.0)
+        self.ax1.plot(self.x_dew,self.y_dew, 'g', linewidth=3.0)
 
         #Plot the Parcel Path
         #plt.plot(self.x_par,self.y_par, 'b:', linewidth=2.0)
         
         #Plot the Parcel Path -- virtual temperature
-        plt.plot(self.x_parv,self.y_parv, 'b', linewidth=2.0)
+        self.ax1.plot(self.x_parv,self.y_parv, 'b', linewidth=2.0)
     
         #Set up pressure y_axis
         p_ticks = np.linspace(100, 1000, 10)
-        plt.ylim(-self.rd*np.log(1000.),-self.rd*np.log(100.))
-        self.ax.set_yticks(-self.rd*np.log(p_ticks))
-        labels = self.ax.set_yticklabels(p_ticks)
+        self.ax1.set_ylim(-self.rd*np.log(1000.),-self.rd*np.log(100.))
+        #self.ax.set_yticks(-self.rd*np.log(p_ticks))
+        self.ax1.set_yticks(-self.rd*np.log(p_ticks))
+        labels = self.ax1.set_yticklabels(p_ticks)
         #ax.set_yscale('log')
         #ax.set_ylim(self.rd*np.log(1000.),self.rd*np.log(self.press.min()))
         #subs = [1,2,3,4,5,6,7,8,9,10]
@@ -324,28 +365,52 @@ class SkewTobj:
         #ax.yaxis.set_major_locator(loc)
         #fmt = FormatStrFormatter("%g")
         #ax.yaxis.set_major_formatter(fmt)
-        plt.xlim(-50.,50)
-        self.ax.set_xticks(np.arange(-50,51,10))
-        self.ax.yaxis.grid(True)
+        self.ax1.set_xlim(-50.,50)
+        self.ax1.set_xticks(np.arange(-50,51,10))
+        self.ax1.yaxis.grid(color='k',linestyle=':',linewidth=0.5)
 
         #Axis labels
         #plt.ylabel('Pressure [hPa]')
         #plt.xlabel('Temperature [$^o$C]')
-        self.ax.set_ylabel('Pressure [hPa]')        
+        self.ax1.set_ylabel('Pressure [hPa]')        
 
         #Change background color
         #ax.set_axis_bgcolor('black')
         
         #Set up second Height axis
-        ax2 = self.ax.twinx()
+        ax12 = self.ax1.twinx()
         h_ticks = -8.0 * np.log(p_ticks/1000.)
-        ax2.set_yticks(abs(h_ticks))
-        labels = ax2.set_yticklabels(abs(h_ticks))
-        ax2.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        ax12.set_yticks(abs(h_ticks))
+        labels = ax12.set_yticklabels(abs(h_ticks))
+        ax12.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         #mhgt = self.Z.min()*np.log(1000./self.press.max())
         #ax2.set_ylim(mhgt, self.Z.max())
-        ax2.set_ylabel('Height [km]')
+        ax12.set_ylabel('Height [km]')
         
+        #############################################################
+        #Start making hodograph plot
+        #Hodograph axis (first row, second column)
+        self.ax2 = plt.subplot(gs[0,1])
+        self.ax2.set_xlim(-80,80)
+        self.ax2.set_ylim(-80,80)
+        self.ax2.get_xaxis().set_visible(False)
+        self.ax2.get_yaxis().set_visible(False)
+        #Create velocity circles
+        for i in range(10):
+            self.ax2.add_artist(plt.Circle((0,0),(i+1)*10,color='k',linestyle=':',fill=False))
+            if (i <= 6):
+                self.ax2.text((i+1)*10,0,str((i+1)*10),fontsize=6.0)
+                self.ax2.text(0,(i+1)*10,str((i+1)*10),fontsize=6.0)
+                self.ax2.text(-(i+1)*10,0,str((i+1)*10),fontsize=6.0)
+                self.ax2.text(0,-(i+1)*10,str((i+1)*10),fontsize=6.0)
+                
+        #Create zero u,v zero line
+        self.ax2.plot((0,0),(-80,80),'k:', linewidth=0.5)
+        self.ax2.plot((-80,80),(0,0),'k:', linewidth=0.5)
+
+        #Draw plot
+        self.ax2.plot(self.uwind,self.vwind,'b')
+
         #plt.show()
         #plt.close()
         
