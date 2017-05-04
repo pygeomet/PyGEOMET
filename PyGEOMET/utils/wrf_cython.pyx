@@ -142,6 +142,42 @@ def linear_interpolate(float[:,:,:] var, float[:,:,:] z,
 ###################  End function linear_interpolate()  ####################
 ###############################################################################
 
+################  Begin function linear_interpolate1d  ####################
+#This function interpolates a variable to a target height level
+#Input is a 1D array
+def linear_interpolate1D(float[:] var, float[:] z,
+                       float ztarget):
+
+    #Define variables
+    cdef int nz = var.shape[0]
+    cdef double var_new 
+    cdef int k, ind
+    cdef double diff
+
+    #Start the program
+    #Check if ztarget is below surface before looping
+    if z[0] > ztarget:
+        var_new = np.nan
+    else:
+        for k in range(nz):
+            diff = z[k] - ztarget
+            if (diff >= 0):
+                ind = k - 1
+                #Interpolate to level
+                var_new = ( var[ind+1] - ((var[ind+1]-var[ind])/
+                            (z[ind+1]-z[ind]))*(z[ind+1]-ztarget))
+                break
+            #Condition if ztarget is less than z at model top
+            if (k == nz-1):
+                var_new = np.nan
+
+    return var_new
+
+###############################################################################
+###################  End function linear_interpolate()  ####################
+###############################################################################
+
+
 ################  Begin function mean_layer  ####################
 #This function calculates the mean of a layer
 
