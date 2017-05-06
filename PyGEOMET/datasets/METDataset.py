@@ -548,7 +548,7 @@ class METDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
                   'Time Series', 'Difference Plot']#, 'Hovmoller Diagram']
         self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)

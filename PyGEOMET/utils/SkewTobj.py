@@ -14,7 +14,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib.ticker import LogLocator
 import time
-from PyGEOMET.utils.wrf_cython import linear_interpolate1D
+from PyGEOMET.utils.wrf_cython import linear_interpolate1D, loglinear_interpolate1D
 
 class SkewTobj:
     
@@ -27,6 +27,14 @@ class SkewTobj:
         self.rv = 461.           #moist air gas constant [J / (kg K)]
         self.Ep = 18.016/29.87   #mass vapor over mass dry air
         
+        #Initialize CAPE/CIN values
+        self.capesb = None
+        self.capeml = None
+        self.capemu = None
+        self.cinsb = None
+        self.cinml = None
+        self.cinmu = None
+       
         #Check if Temperature, Pressure and Mixing Ratio are provided
         if (temp is not None and pressure is not None and qv is not None):
             #Guess input temperature units (Celsius or Kelvin)
@@ -62,11 +70,15 @@ class SkewTobj:
         
         #Calculate theta
         self.theta = (t+273.15) * (1000./p)**(self.rd/self.cp)
-        
+         
         #
+        self.u = u
+        self.v = v
         self.Z = Z
         self.press = p        
- 
+        self.temp = t  
+        self.qv = q
+
         #Call functions
         #Skew-T lines
         self.MixingRatioLines()
@@ -99,9 +111,9 @@ class SkewTobj:
             print("Switching to default...ML")
             self.MixedLayer(t, p, q, self.tdew)
             
-        self.ParcelTemp(p, q)
-        if (u is not None and v is not None and self.Z is not None):
-            self.HodoGraph(u, v)
+        self.ParcelTemp(p, q, parcel)
+        if (self.u is not None and self.v is not None and self.Z is not None):
+            self.HodoGraph()
         self.CreatePlot()  
         
     #Mixing Ratio Lines
@@ -217,8 +229,24 @@ class SkewTobj:
         self.p_parcel = p[0]
         
     #Lifted Parcel Temperature
-    def ParcelTemp(self, p, q):
-        
+    def ParcelTemp(self, p, q, ptype):
+       
+        if (ptype == 'SB'):
+            if (self.capesb == None):
+                self.capesb = 0
+            if (self.cinsb == None):
+                self.cinsb = 0
+        if (ptype == 'ML'):
+            if (self.capeml == None):
+                self.capeml = 0
+            if (self.cinml == None):
+                self.cinml = 0
+        if (ptype == 'MU'):
+            if (self.capemu == None):
+                self.capemu = 0
+            if (self.cinmu == None):
+                self.cinmu = 0
+
         #Condition is mostly for surface based parcels
         #if (self.td_parcel == self.t_parcel):
         #    tlcl = self.t_parcel + 273.15
@@ -236,17 +264,36 @@ class SkewTobj:
         q_lcl = self.q_parcel
         t_par = np.zeros(len(p))
         t_parv = np.zeros(len(p))
-        
+         
         for k in range(len(qsat)):
             if (qsat[k] > self.q_parcel):
                 #Dry Lift
                 t_par[k] = self.theta_parcel * (p[k]/1000.)**(self.rd/self.cp)
-                t_parv[k] = t_par[k] * (1. + 0.61*q_lcl)
+                t_parv[k] = t_par[k] * (1. + 0.608*q_lcl)
             else:
                 #Wet Lift
                 theta_lcl, q_lcl, t_par[k] = self.TParcel(p[k],q_lcl,theta_lcl) 
                 #q_lcl is updated to be the saturation mixing ratio at t_par
-                t_parv[k] = t_par[k] * (1. + 0.61*q_lcl)
+                t_parv[k] = t_par[k] * (1. + 0.608*q_lcl)
+            #For CAPE/CIN calculations
+            if (k > 0):
+                dz = self.Z[k] - self.Z[k-1]
+                dtparcel = (t_parv[k]+t_parv[k-1])/2.
+                dtenv = ((self.tv[k]+273.15)+(self.tv[k-1]+273.15))/2.
+                dum1 = self.g * dz * (dtparcel-dtenv) / dtenv
+                if (ptype == 'SB'):
+                    self.capesb = self.capesb + np.maximum(dum1,0)
+                if (ptype == 'ML'):
+                    self.capeml = self.capeml + np.maximum(dum1,0)
+                if (ptype == 'MU'):
+                    self.capemu = self.capemu + np.maximum(dum1,0)                
+                if (self.press[k] > self.press[0]-300.):
+                    if (ptype == 'SB'):
+                        self.cinsb = self.cinsb + np.minimum(dum1,0)    
+                    if (ptype == 'ML'):
+                        self.cinml = self.cinml + np.minimum(dum1,0)
+                    if (ptype == 'MU'):
+                        self.cinmu = self.cinmu + np.minimum(dum1,0)
         #self.x_par, self.y_par = self.RotatePoints(t_par-273.15,p)
         self.x_parv, self.y_parv = self.RotatePoints(t_parv-273.15,p)
         
@@ -275,25 +322,25 @@ class SkewTobj:
         return x_out, y_out
 
     #Process winds for the hodograph
-    def HodoGraph(self,u,v):
-        #Initialize arrays - a value for each km up to 10 km
+    def HodoGraph(self):
+        #Initialize arrays - a value for each 500 m up to 12 km
         #u and v wind
-        self.uwind = np.arange(21)
-        self.vwind = np.arange(21)        
+        self.uwind = np.arange(25)
+        self.vwind = np.arange(25)        
         #wind speed 
-        self.ws = np.arange(21)
+        self.ws = np.arange(25)
         #wind direction
-        self.wd = np.arange(21)
+        self.wd = np.arange(25)
         
         #Determine wind speed and direction at each height level
         for i in range(len(self.ws)):
             #First level is 10 meters
             if (i == 0):
-                self.uwind[i] = np.array(linear_interpolate1D(u,self.Z,10))
-                self.vwind[i] = np.array(linear_interpolate1D(v,self.Z,10))
+                self.uwind[i] = np.array(linear_interpolate1D(self.u,self.Z,10))*1.94384
+                self.vwind[i] = np.array(linear_interpolate1D(self.v,self.Z,10))*1.94384
             else: 
-                self.uwind[i] = np.array(linear_interpolate1D(u,self.Z,i*500.))
-                self.vwind[i] = np.array(linear_interpolate1D(v,self.Z,i*500.))
+                self.uwind[i] = np.array(linear_interpolate1D(self.u,self.Z,i*500.))*1.94384
+                self.vwind[i] = np.array(linear_interpolate1D(self.v,self.Z,i*500.))*1.94384
             #Calculate the wind speed
             self.ws[i] = (self.uwind[i]**2 + self.vwind[i]**2)**(1./2.)
             wd_tmp = 270 - np.arctan2(self.vwind[i],self.uwind[i])
@@ -301,17 +348,17 @@ class SkewTobj:
                 self.wd[i] = wd_tmp + 360.
             else: 
                 self.wd[i] = wd_tmp
-        print(self.uwind)
-        print(self.vwind)
+        #print(self.uwind)
+        #print(self.vwind)
 
     #Rotate the points 
     def CreatePlot(self):
        
         #Create figure 
-        self.fig = plt.figure(figsize=(12, 8))
+        self.fig = plt.figure(figsize=(10, 7))
         #fig.canvas.set_window_title('Skew-T')
         #self.ax = self.fig.add_subplot(111)
-        gs = gridspec.GridSpec(2,2,left=0.08,right=0.98,bottom=0.06,top=0.91,wspace=0.2,width_ratios=[1.8,1])
+        gs = gridspec.GridSpec(2,2,left=0.1,right=0.98,bottom=0.06,top=0.91,wspace=0.25,width_ratios=[1.8,1])
         #############################################
         #Create skew-t
         #Skew T axis (all rows, 1st column)
@@ -386,6 +433,24 @@ class SkewTobj:
         #mhgt = self.Z.min()*np.log(1000./self.press.max())
         #ax2.set_ylim(mhgt, self.Z.max())
         ax12.set_ylabel('Height [km]')
+
+        #Create wind barbs with height
+        y_tmp = (np.arange(40)+1)*50
+        x_barbs = np.zeros(len(y_tmp))+50.
+        y_barbs = -self.rd*np.log(y_tmp)
+        #Interpolate wind to pressure levels
+        u_barbs = np.zeros(len(y_tmp))
+        v_barbs = np.zeros(len(y_tmp))
+        for i in range(len(y_barbs)):
+            #Below the surface
+            if (y_tmp[i] > self.press[0] or y_tmp[i] < self.press[-1]):
+                u_barbs[i] = np.nan
+                v_barbs[i] = np.nan
+            else:
+                u_barbs[i] = np.array(loglinear_interpolate1D(self.u,self.press,y_tmp[i]))*1.94384
+                v_barbs[i] = np.array(loglinear_interpolate1D(self.v,self.press,y_tmp[i]))*1.94384
+
+        self.ax1.barbs(x_barbs,y_barbs,u_barbs,v_barbs,pivot='middle')
         
         #############################################################
         #Start making hodograph plot
@@ -408,12 +473,68 @@ class SkewTobj:
         self.ax2.plot((0,0),(-80,80),'k:', linewidth=0.5)
         self.ax2.plot((-80,80),(0,0),'k:', linewidth=0.5)
 
-        #Draw plot
-        self.ax2.plot(self.uwind,self.vwind,'b')
+        #Arrange hodograph so that a color corresponds to a height layer
+        z_tmp = np.arange(len(self.uwind))*500.
+        ind1 = np.where(z_tmp <= 1000.)[0]
+        ind2 = np.where((z_tmp > 1000.) & (z_tmp <= 3000.))[0]
+        ind3 = np.where((z_tmp > 3000.) & (z_tmp <= 6000.))[0]
+        ind4 = np.where(z_tmp > 6000.)[0]
 
-        #plt.show()
-        #plt.close()
-        
+        self.ax2.plot(self.uwind[ind1],self.vwind[ind1],'g')
+        self.ax2.plot(np.append(self.uwind[ind1][-1],self.uwind[ind2]),
+                      np.append(self.vwind[ind1][-1],self.vwind[ind2]),'b')
+        self.ax2.plot(np.append(self.uwind[ind2][-1],self.uwind[ind3]),
+                      np.append(self.vwind[ind2][-1],self.vwind[ind3]),'r')
+        self.ax2.plot(np.append(self.uwind[ind3][-1],self.uwind[ind4]),
+                      np.append(self.vwind[ind3][-1],self.vwind[ind4]),'k')
+
+        #############################################################
+        #Start displaying calculations
+        #Hodograph axis (first row, second column)
+        self.ax3 = plt.subplot(gs[1,1])
+        self.ax3.set_xlim(-1,1)
+        self.ax3.set_ylim(-1,1)
+        self.ax3.get_xaxis().set_visible(False)
+        self.ax3.get_yaxis().set_visible(False)
+
+        variables = ['SB-CAPE','ML-CAPE','MU-CAPE','SB-CIN','ML-CIN','MU-CIN',
+                     'Shear 0-1km','Shear 0-3km','Shear 0-6km']
+        #Calculate Instability remaining variables
+        if (self.capesb is not None):
+            self.MixedLayer(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'ML')
+            self.MostUnstable(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'MU')
+        elif (self.capeml is not None):
+            self.Surface(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'SB')
+            self.MostUnstable(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'MU')
+        else:
+            self.MixedLayer(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'ML')
+            self.Surface(self.temp, self.press, self.qv, self.tdew)
+            self.ParcelTemp(self.press, self.qv, 'SB')        
+        #Calculate shear
+        height_lvl = [1000.,3000.,6000.]
+        shear = []
+        for i in range(len(height_lvl)):
+            u_lvl = np.array(linear_interpolate1D(self.u,self.Z,height_lvl[i]))
+            v_lvl = np.array(linear_interpolate1D(self.v,self.Z,height_lvl[i]))
+            u_shear = u_lvl - self.u[0]
+            v_shear = v_lvl - self.v[0]
+            shear.append((u_shear**2 + v_shear**2)**(1./2.)*1.94384)
+     
+        self.ax3.text(-0.8,0.8,variables[0]+' = '+"{:>6.2f}".format(self.capesb)+' J kg$^{-1}$',fontsize=10.0) 
+        self.ax3.text(-0.8,0.8-(1*.2),variables[1]+' = '+"{:>6.2f}".format(self.capeml)+' J kg$^{-1}$',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(2*.2),variables[2]+' = '+"{:>6.2f}".format(self.capemu)+' J kg$^{-1}$',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(3*.2),variables[3]+' = '+"{:>6.2f}".format(self.cinsb)+' J kg$^{-1}$',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(4*.2),variables[4]+' = '+"{:>6.2f}".format(self.cinml)+' J kg$^{-1}$',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(5*.2),variables[5]+' = '+"{:>6.2f}".format(self.cinmu)+' J kg$^{-1}$',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(6*.2),variables[6]+' = '+"{:>6.2f}".format(shear[0])+' kt',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(7*.2),variables[7]+' = '+"{:>6.2f}".format(shear[1])+' kt',fontsize=10.0)
+        self.ax3.text(-0.8,0.8-(8*.2),variables[8]+' = '+"{:>6.2f}".format(shear[2])+' kt',fontsize=10.0)
+
     #Calculate Vapor Pressure from Bolton (1980)
     def VaporPressure(self, t):
         
@@ -449,12 +570,12 @@ class SkewTobj:
         L = 2.5e6
         p0 = 1000.
         
-        dwthres = 0.000000001
-        dwf = np.zeros(sz) + 1./3.
+        dwthres = 0.00001
+        dwf = np.zeros(sz) + 1./2.5
         
         tk = theta * (p/p0)**kpa
         vp = 6.112*np.exp(17.67*(tk-273.15)/(243.5+(tk-273.15)))
-        ws = 0.622*vp / (p - vp)
+        ws = (18.016/29.87)*vp / (p - vp)
         dw = dwf * (ws - w)
                        
         while(np.any(abs(dw) > dwthres)):
@@ -472,7 +593,7 @@ class SkewTobj:
             w = w + dw
             tk = theta * (p/p0)**kpa
             vp = 6.112*np.exp(17.67*(tk-273.15)/(243.5+(tk-273.15)))
-            ws = 0.622*vp / (p-vp)
+            ws = (18.016/29.87)*vp / (p-vp)
             
             #Check to make sure ws is less than the guess w
             #If so reduce the iterator and recalculate

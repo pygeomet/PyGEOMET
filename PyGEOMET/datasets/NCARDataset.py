@@ -308,7 +308,7 @@ class NCARdataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
+        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
                   'Time Series', 'Difference Plot', 'Hovmoller Diagram']
         self.selectPlotType.addItems(ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)

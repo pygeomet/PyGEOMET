@@ -30,6 +30,7 @@ import glob
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import netCDF4
 import PyGEOMET.utils.wrf_functions as wrf
+import PyGEOMET.utils.wrf_cython as wrf_cython
 import PyGEOMET.utils.SkewTobj as SkewT
 import PyGEOMET.utils.DerivedVar as wrf_dvar
 import PyGEOMET.datasets.GOESDataset as GOES
@@ -1144,13 +1145,20 @@ class PlotSlab:
             p = np.squeeze(self.dataSet.readNCVariable('PRES'))/100. #Convert from pascal
             t = np.squeeze(self.dataSet.readNCVariable('TT'))-273.15 #Convert from K
             rh = np.squeeze(self.dataSet.readNCVariable('RH'))/100. #Convert from % 
-            
+            u = self.dataSet.readNCVariable('UU')
+            v = self.dataSet.readNCVariable('VV')
+           
+            #Estimate height from pressure
+            height = np.log(p[:,j,i]/p[0,j,i])*(-8000.)
+             
+ 
             #Make sure RH values are valid (0-100%)
             rh[rh > 1.] = 1.
             rh[rh < 0.0] = 0.0
             #Calculate vapor pressure from temperature and RH
             qv = 6.11*np.exp((17.67*t)/(243.5+t))*rh
-            self.skewt = SkewT.SkewTobj(temp = t[:,j,i], pressure = p[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel)
+            self.skewt = SkewT.SkewTobj(temp = t[:,j,i], pressure = p[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel, 
+                                        Z = height,u = u[:,j,i], v = v[:,j,i])
                        
 
         else:
@@ -1573,7 +1581,7 @@ class PlotSlab:
             #if self.currentPType == 2 or self.currentPType == 3 or self.currentPType == 4:
             #   return 'i=%6.2f, j=%6.2f, value=%10.6f'%(col, row, z)
             #else:
-            return 'lon=%6.2f, lat=%6.2f, i=%6.2f, j=%6.2f, value=%10.6f'%(x1, y1, col, row, z)
+            return 'lon=%6.2f, lat=%6.2f, i=%6i, j=%6i, value=%10.6f'%(x1, y1, col, row, z)
         if self.dataSet.dsetname != 'NEXRAD Radar':
             self.appobj.axes1[self.pNum-1].format_coord = format_coord
 

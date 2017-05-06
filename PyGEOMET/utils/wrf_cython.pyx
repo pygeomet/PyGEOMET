@@ -62,12 +62,9 @@ def loglinear_interpolate(float[:,:,:] var, float[:,:,:] pressure,
     cdef int nx = var.shape[2]
     cdef int ny = var.shape[1]
     cdef int nz = var.shape[0]
-    #cdef int zz = 1 #ptarget.shape[0]
     cdef double[:,:] var_new = np.zeros((ny,nx))
     cdef int i, j, k, kk, ind
     cdef double diff
-
-
 
     #Start the program
     for i in range(nx):
@@ -101,6 +98,49 @@ def loglinear_interpolate(float[:,:,:] var, float[:,:,:] pressure,
 
 ###############################################################################
 ###################  End function loglinear_interpolate()  ####################
+###############################################################################
+
+################  Begin function loglinear_interpolate1D  ####################
+#This function interpolates a variable to a target pressure level
+# Inputs are 1D
+
+def loglinear_interpolate1D(float[:] var, float[:] pressure,
+                          float ptarget):
+
+    #Define variables
+    cdef int nz = var.shape[0]
+    cdef double var_new 
+    cdef int k, kk, ind
+    cdef double diff
+
+    #Start the program
+    if pressure[0] < ptarget:
+        var_new = np.nan
+    else:
+        for kk in range(nz):
+            diff = pressure[kk] - ptarget
+            if (diff <= 0):
+                if (kk == 0):
+                    ind = kk
+                    #Interpolate to level
+                    var_new = ( var[ind+1] - ((var[ind+1]-var[ind])/
+                               (log(pressure[ind+1]/pressure[ind])))
+                               *log(pressure[ind+1]/ptarget) )
+                else:
+                    ind = kk - 1
+                    #Interpolate to level
+                    var_new = ( var[ind+1] - ((var[ind+1]-var[ind])/
+                              (log(pressure[ind+1]/pressure[ind])))
+                              *log(pressure[ind+1]/ptarget) )
+                break
+            #Condition if ptarget is less than pressure at model top
+            if (kk == nz-1):
+                var_new = np.nan
+
+    return var_new
+
+###############################################################################
+###################  End function loglinear_interpolate1D()  ####################
 ###############################################################################
 
 ################  Begin function linear_interpolate  ####################
@@ -177,7 +217,6 @@ def linear_interpolate1D(float[:] var, float[:] z,
 ###################  End function linear_interpolate()  ####################
 ###############################################################################
 
-
 ################  Begin function mean_layer  ####################
 #This function calculates the mean of a layer
 
@@ -235,11 +274,10 @@ def mean_layer(float[:,:,:] var, float[:,:,:] z,
     return var_ml
 
 ###############################################################################
-###################  End function ean_layer()  ####################
+###################  End function mean_layer()  ####################
 ###############################################################################
 
-
-################  Begin function cap_sb  ###########################
+################  Begin function cape_sb  ###########################
 #This subroutine calculates surface based CAPE
 
 def cape_sb(float[:,:,:] t, float[:,:,:] qv, float[:,:,:] p_in, 
