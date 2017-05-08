@@ -1192,7 +1192,7 @@ class PlotSlab:
         self.skewt.fig.canvas.set_window_title('Skew-T at i='+str(i)+' j='+str(j))
         self.skewt.fig.suptitle(self.dataSet.getTime())
         self.skewt.ax1.set_title(self.Plist[self.selectedParcel]+' Profile')   
-        self.skewt.ax2.set_title('Hodograph')     
+        self.skewt.ax2.set_title('Hodograph [kt]')     
         self.skewt.ax1.set_xlabel('Temperature [$^o$C]')# \n'+self.dataSet.getTime())
         
 
