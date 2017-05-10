@@ -632,7 +632,7 @@ class WRFDerivedVar:
     def ptheta(self):
         self.var = self.theta
         self.var2 = self.theta
-        self.varTitle = r"$\theta$ (K)$" + self.dataSet.getTime()
+        self.varTitle = r"$\mathsf{\theta}$ (K)" + self.dataSet.getTime()
 
     def theta_e(self):
         
