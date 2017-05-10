@@ -972,7 +972,7 @@ def get_wc(qcloud, qrain, qice, qsnow, qgraup, dtype):
 ###############################################################################
 
 
-#####################  4.Begin function of mean_layer()   #####################
+#####################  21.Begin function of mean_layer()   ####################
 ## Required libraries: none                                                   #
 ##                                                                            #
 ## Inputs: swu = ndarray of upwelling solar radiation at TOA (Units: W/m2)    #
@@ -1622,7 +1622,7 @@ def getDvarList(varlist):
     dvarlist.extend(['CAPE_SB','CAPE_ML','CAPE_MU',
                      'CIN_SB','CIN_ML','CIN_MU',
                      'mslp','lcl_hgt','pwat', 't2m','td2m',
-                     'temp-3d','temp_ML','theta-e-3d',
+                     'temp-3d','temp_ML','theta','theta-e-3d',
                      'wind10m'])
 
     if ('U' in variables and 'V' in variables):

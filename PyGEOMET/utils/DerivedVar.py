@@ -116,6 +116,8 @@ class WRFDerivedVar:
                 self.cin_ML()
             elif var == "CIN_MU":
                 self.cin_MU()
+            elif var == "theta":
+                self.ptheta()
             elif var == "theta-e-3d":
                 self.theta_e()
             elif var == "cloud water":
@@ -626,6 +628,10 @@ class WRFDerivedVar:
                               self.press,height))
         self.var *= -1
         self.varTitle = "Most Unstable CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+
+    def ptheta(self):
+        self.var = self.theta
+        self.varTitle = r"$\theta$ (K)$" + self.dataSet.getTime()
 
     def theta_e(self):
         
