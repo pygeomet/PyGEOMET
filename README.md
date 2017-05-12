@@ -1,7 +1,7 @@
 # PyGEOMET
 Python GUI of Earth Observations and Model Evaluation Toolkit
 
-##This branch is being updated to create a new plotting routine.
+## This branch is being updated to create a new plotting routine.
 
 PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
 
