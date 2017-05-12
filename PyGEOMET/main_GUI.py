@@ -516,12 +516,14 @@ class PlotSlab:
         self.tabbingLayout.addWidget(self.optionTabs)
  
     def plot(self):
-        #print(self.appobj.eom)
+
+        #Check if colormap was changed
         if self.appobj.changeColor == True:
             self.cmap = self.appobj.cmap      
 
         #Set background map
         alpha = 1
+        #Used for switching back to clear background
         if self.appobj.clear:
             self.figure.clear()
             self.appobj.clear = False
@@ -531,6 +533,8 @@ class PlotSlab:
             self.countries = None
             self.ColorBar = None
             self.appobj.domain_average = None
+
+        #Set map background
         if self.appobj.background is not None:
             pre = 'self.dataSet.map['
             gridnum = str(self.currentGrid-1)+']'
@@ -539,11 +543,8 @@ class PlotSlab:
             #Make variable transparent
             alpha=0.75
 
+        #Recall projection when grid/dataset is changed. 
         if self.appobj.recallProjection == True:
-            #print("axes", len(self.appobj.axes1))
-            #print("Pnum",self.pNum)
-            #if len(self.appobj.axes1) >= self.pNum:
-            #print("plot tab", self.appobj.plotControlTabs.currentIndex())
             if len(self.appobj.axes1) >= self.appobj.plotCount:
                  self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
                  self.dataSet.resolution = self.appobj.resolution
@@ -553,133 +554,120 @@ class PlotSlab:
                  self.appobj.axes1.append(self.figure.add_subplot(111))
                  self.dataSet.resolution = self.appobj.resolution
                  self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
-            #print("axes-after", len(self.appobj.axes1))
-        xb, yb = self.dataSet.map[self.currentGrid-1](
-                 self.dataSet.glons[self.currentGrid-1],
-                 self.dataSet.glats[self.currentGrid-1])
 
-        #Set NEXRAD settings
+        #Set/Force NEXRAD settings
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.nz = 1
             self.appobj.filltype = 'pcolormesh'
+            #Based on called variable color and range from pyART
             self.cmap = self.dataSet.cmap
             self.colormin = self.dataSet.range[0]
             self.colormax = self.dataSet.range[1]
 
+        #Determine if a variable was passed - plots grid if not
         if(self.currentVar != None or self.currentdVar != None):
+
+            #Determine if the passed variable is 3D
             if(self.nz == 1):
                 pltfld = self.var
             else:
                 pltfld = self.var[self.currentLevel]
-            davg = np.nanmean(pltfld)
+            
+            #Set time string
             time = self.dataSet.timeObj.strftime("%Y%m%d_%H%M%S")
+
+            #Get variable name
             if not self.derivedVar:
                 varname = self.dataSet.variableList[self.currentVar]
             else:
                 varname = self.dataSet.dvarlist[self.currentdVar]
-            #change the default plot name
+
+            #change the default plot name - for saving figure
             self.figure.canvas.get_default_filename = lambda: (varname + '_' + time + '.png')
 
             #Initialize colorbar range and increment
-            if self.colormin is None:
-                #self.colormin = np.floor(np.nanmin(pltfld))
+            if self.colormin is None or self.colormax is None or self.ncontours is None:
                 self.colormin = np.nanmin(pltfld)
+                self.colormax = np.nanmax(pltfld)
+                self.ncontours = 41.
+                #Check for NAN
                 if self.colormin != self.colormin:
                     self.colormin = 0.
-            if self.colormax is None:
-                #self.colormax = np.ceil(np.nanmax(pltfld))
-                self.colormax = np.nanmax(pltfld)
                 if self.colormax != self.colormax:
-                    self.colormax = 1.
-
-            if self.ncontours is None:
-                self.ncontours = 11.
-            if self.colormax == self.colormin:
-               if self.colormax == 0:
-                   self.colormax = 1.
-               else:
-                   self.colormax = np.abs(self.colormax) * 2
-               
+                    self.colormax = 1.         
+                #Make sure max and min are not equal       
+                if self.colormax == self.colormin:
+                    if self.colormax == 0:
+                        self.colormax = 1.
+                    else:
+                        self.colormax = np.abs(self.colormax) * 2
+            
+            #Sets up user colorbar control   
             if self.colorbox is None:
                 self.controlColorBar()
 
+            #Remove old items before creating new contour
+            #Remove second control
             if self.appobj.cs2 != None:
                 for coll in self.appobj.cs2.collections:
                     coll.remove()
                 for labels in self.appobj.cs2label:
                     labels.remove()
+            #Remove wind barbs
             if self.appobj.barbs != None:
                 self.appobj.barbs.remove()
                 self.appobj.vectors2.remove()
+            #Remove vectors
             if self.appobj.vectors != None:
                 self.appobj.vectors.remove()
+            #Remove vector magnitude legend
             if self.appobj.vectorkey != None:
                 self.appobj.vectorkey.remove()
+            #Remove Geography - have to do it before contouring otherwise it 
+            #                   won't be visible
             if self.coasts != None and self.countries != None and self.states != None:
                 self.coasts.remove()
                 self.countries.remove()
                 self.states.remove()
 
+            #Define plotting levels
+            lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
+            #Create plots - either contourf or pcolormesh
             if self.appobj.filltype == "contourf":
+                #Remove old contour before plotting - don't have to recall projection
                 if self.appobj.cs is not None:
                     for coll in self.appobj.cs.collections:
                         coll.remove()
-                #print(self.dataSet.glons[self.currentGrid-1].shape)
-                #print(pltfld.shape)
+                #Create contour on a map
                 self.appobj.cs = self.dataSet.map[self.currentGrid-1].contourf(
                                   self.dataSet.glons[self.currentGrid-1],
                                   self.dataSet.glats[self.currentGrid-1],
                                   pltfld,
-                                  levels=np.linspace(self.colormin,self.colormax,self.ncontours),
+                                  levels=lvls,
                                   latlon=True,extend=self.extend,
                                   cmap=plt.cm.get_cmap(str(self.cmap)),
                                   alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
-                divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
-                cax = divider.append_axes("right", size="5%", pad=0.1)
-                if self.ColorBar != None:
-                    self.ColorBar.remove()
-                self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax, extend = self.extend)
             elif self.appobj.filltype == "pcolormesh":
-                lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
+                #Mask values less than the minimum for pcolormesh
                 pltfld = np.ma.masked_less_equal(pltfld,self.colormin)
+                #Normalize colors between min and max
                 norm = matplotlib.colors.Normalize(vmin=np.amin(lvls),vmax=np.amax(lvls))
-                #if (len(np.where(pltfld <= self.colormin)[0]) > 1):
-                if (self.derivedVar == True):
-                    if (self.dataSet.dvarlist[self.currentdVar] == 'refl' or
-                        np.ma.count_masked(pltfld).any()):
-                        self.appobj.axes1[self.pNum-1] = None
-                        self.appobj.domain_average = None
-                        self.ColorBar = None
-                        self.figure.clear()
-                        if len(self.appobj.axes1) >= self.pNum:
-                            self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
-                            self.dataSet.resolution = self.appobj.resolution
-                            self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
-                        else:
-                            self.appobj.axes1.append(self.figure.add_subplot(111))
-                            self.dataSet.resolution = self.appobj.resolution
-                            self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
-                    xb, yb = self.dataSet.map[self.currentGrid-1](
-                                              self.dataSet.glons[self.currentGrid-1],
-                                              self.dataSet.glats[self.currentGrid-1])
-                else:
-                    if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or
-                        self.dataSet.dsetname == 'NEXRAD Radar' or 
-                        np.ma.count_masked(pltfld).any()):
-                        self.appobj.axes1[self.pNum-1] = None
-                        self.ColorBar = None
-                        self.figure.clear()
-                        if len(self.appobj.axes1) >= self.pNum:
-                            self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
-                            self.dataSet.resolution = self.appobj.resolution
-                            self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
-                        else:
-                            self.appobj.axes1.append(self.figure.add_subplot(111))
-                            self.dataSet.resolution = self.appobj.resolution
-                            self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
-                    xb, yb = self.dataSet.map[self.currentGrid-1](
-                                              self.dataSet.glons[self.currentGrid-1],
-                                              self.dataSet.glats[self.currentGrid-1]) 
+                #Clear figure if there are masked values - create new axis and set the projection
+                if (np.ma.count_masked(pltfld).any()):
+                    self.appobj.axes1[self.pNum-1] = None
+                    self.appobj.domain_average = None
+                    self.ColorBar = None
+                    self.figure.clear()
+                    if len(self.appobj.axes1) >= self.pNum:
+                        self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
+                        self.dataSet.resolution = self.appobj.resolution
+                        self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
+                    else:
+                        self.appobj.axes1.append(self.figure.add_subplot(111))
+                        self.dataSet.resolution = self.appobj.resolution
+                        self.dataSet.setProjection(self.currentGrid,axs=self.appobj.axes1[self.pNum-1])
+  
+                #Create pcolormesh on a map
                 self.appobj.cs = self.dataSet.map[self.currentGrid-1].pcolormesh(
                                   self.dataSet.glons[self.currentGrid-1],
                                   self.dataSet.glats[self.currentGrid-1],
@@ -687,28 +675,51 @@ class PlotSlab:
                                   norm=norm,
                                   latlon=True,cmap=plt.cm.get_cmap(str(self.cmap)),
                                   alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
-                #print(self.appobj.cs.QuadMesh)
-                divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
-                cax = divider.append_axes("right", size="5%", pad=0.1)
-                if self.ColorBar != None:
-                    self.ColorBar.remove()                
-                self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax)
+            
+            #Create colorbar axis    
+            divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+            #Clear old colorbar
+            if self.ColorBar != None:
+                self.ColorBar.remove()       
+            #Create colorbar
+            self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax)         
+            #Extend colorbar if contourf - pcolormesh doesn't allow extend at this point
+            if self.appobj.filltype == "contourf":
+                self.ColorBar.extend = self.extend
+           
+            #Create colorbar ticks 
             self.ColorBar.ax.tick_params(labelsize=9)
             self.appobj.axes1[self.pNum-1].set_title(self.varTitle,fontsize = 10)
-            self.displayValuesXYZ(pltfld)
 
+            #Call function to determine values on map while you hoover your mouse
+            self.displayValuesXYZ(pltfld)
+            
+            #Display domain average on the map
+            print(self.appobj.domain_average)
             if self.appobj.domain_average != None:
                 self.appobj.domain_average.remove()
+            #Calculate domain average
+            davg = np.nanmean(pltfld)
             self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.08,
                  ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.appobj.axes1[self.pNum-1].transAxes,
-                 color='k',fontsize=12)
+                 color='k',fontsize=10)
 
+            #Plot wind barbs or vectors
             if self.appobj.plotbarbs == True or self.appobj.plotvectors == True:
-                self.readField()
-
+                #Create map coordinates for wind barbs and vectors
+                xb, yb = self.dataSet.map[self.currentGrid-1](
+                         self.dataSet.glons[self.currentGrid-1],
+                         self.dataSet.glats[self.currentGrid-1])
+                                
+                #Get the winds for non derived variables
+                #Winds are already set for derived variables in DerivedVar.py
                 if not self.derivedVar:
+                    #Read field to get winds
+                    self.readField()
+                    #Set winds to current level
                     if self.nz != 1:
                         self.u10 = self.dataSet.u10[self.currentLevel]
                         self.v10 = self.dataSet.v10[self.currentLevel]
@@ -716,16 +727,20 @@ class PlotSlab:
                         self.u10 = self.dataSet.u10
                         self.v10 = self.dataSet.v10
 
+                #Handle winds for MERRA and NCAR Reanalysis datasets 
                 if (self.dataSet.dsetname == "MERRA" or self.dataSet.dsetname == 'NCEP/NCAR Reanalysis II'):
                     if len(self.u10.shape) == 3:
                         self.u10 = self.dataSet.u10[self.currentLevel]
                     if len(self.v10.shape) == 3:
                         self.v10 = self.dataSet.v10[self.currentLevel]
+                    #Set grid interval
                     if self.dataSet.dsetname == 'MERRA':
                         interval = 20
                     if self.dataSet.dsetname == 'NCEP/NCAR Reanalysis II':
                         interval = 8
 
+                #Set WRF wind barb/vector interval based on grid spacing
+                #These are just set based on what looked acceptable
                 elif (self.dataSet.dx[self.currentGrid-1] >= 15000):
                     if (self.dataSet.ny[self.currentGrid-1] < 250. and self.dataSet.nx[self.currentGrid-1] < 250.):
                         interval = 3
@@ -736,7 +751,8 @@ class PlotSlab:
                         interval = 5
                     else:
                         interval = 10
-                maxspeed = np.amax((self.u10[::interval,::interval]**2+self.v10[::interval,::interval]**2)**(1./2.))
+
+                #Plot wind barbs
                 if self.appobj.plotbarbs == True:
                     self.appobj.barbs = self.appobj.axes1[self.pNum-1].barbs(
                         xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
@@ -744,7 +760,8 @@ class PlotSlab:
                         self.u10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                         self.v10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                         length = 5, sizes={"emptybarb":0.0}, barbcolor='k', flagcolor='k',linewidth=0.50, pivot='middle')
- 
+
+                    #Create less than 5 m/s wind direction vectors 
                     unorm = self.u10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
                     vnorm = self.v10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
                     self.appobj.vectors2 = self.appobj.axes1[self.pNum-1].quiver(xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
@@ -753,38 +770,45 @@ class PlotSlab:
                         vnorm[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
                         pivot='middle', headwidth=0, headlength=0, headaxislength=0,scale=60,width=0.0015)
 
+                #Plot vectors
                 if self.appobj.plotvectors == True:
+                        #Calculate the max wind speed based on the selected grid points - used for scaling and legend
+                        maxspeed = np.nanmax((self.u10[::interval,::interval]**2+self.v10[::interval,::interval]**2)**(1./2.))
                         self.appobj.vectors = self.appobj.axes1[self.pNum-1].quiver(
                             xb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                             yb[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
                             self.u10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval],
                             self.v10[int(interval/2.):self.dataSet.ny[self.currentGrid-1]-1-int(interval/2.):int(interval/2.),interval:self.dataSet.nx[self.currentGrid-1]-1-int(interval/2.):interval], 
                             color='k',units='inches',pivot='mid',scale=maxspeed*4)
+                        #Plot vector legend
                         self.appobj.vectorkey = self.appobj.axes1[self.pNum-1].quiverkey(self.appobj.vectors, 0.05, -0.08, 
                                                 int(maxspeed*.75), str(int(maxspeed*.75))+' $m s^{-1}$',labelpos='E')
-#                    else:
-#                        maxspeed = np.amax((self.u10[points]**2+self.v10[points]**2)**(1./2.))
-#                        print(maxspeed)
-#                        self.appobj.vectors = self.appobj.axes1[self.pNum-1].quiver(
-#                            xb[points], yb[points], self.u10[points],
-#                            self.v10[points], color='k',units='inches',pivot='mid',scale=maxspeed*4)
-#                        self.appobj.vectorkey = self.appobj.axes1[self.pNum-1].quiverkey(self.appobj.vectors, 0.05, -0.08, 
-#                                                int(maxspeed*.75), str(int(maxspeed*.75))+' $m s^{-1}$',labelpos='E')
 
+            #Second contour
             if self.appobj.plotcontour2 == True:
+                #Get second contour field
                 self.readField()
+                #Derived variables have their own 2nd contour options at this point
                 if not self.derivedVar:
                     self.var2 = pltfld
-                self.appobj.cs2 = self.appobj.axes1[self.pNum-1].contour(
-                                xb, yb, self.var2,
-                                colors='k',linewidths=1.5)
+                #Create contour
+                self.appobj.cs2 = self.dataSet.map[self.currentGrid-1].contour(
+                                  self.dataSet.glons[self.currentGrid-1],
+                                  self.dataSet.glats[self.currentGrid-1],
+                                  self.var2,
+                                  latlon=True,
+                                  colors='k',
+                                  linewidths=1.5,
+                                  ax = self.appobj.axes1[self.pNum-1])
+                #Sets up displayed values
                 if np.abs(self.var2).max() <= 1:
                     fmt = '%8.6f'
                 else:
                     fmt = '%d'
                 self.appobj.cs2label = self.appobj.cs2.clabel(inline=1, 
                                        font=10, fmt=fmt)
-        #print(self.currentGrid,self.pNum)
+
+        #Create geography
         self.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
         self.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.appobj.axes1[self.pNum-1])
         self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.appobj.axes1[self.pNum-1])
@@ -794,28 +818,42 @@ class PlotSlab:
             parallels = np.arange(-90.,90.,15)
             meridians = np.arange(0.,360., 30)
         else:
+            #Create intervals than look resonable
             plim = max(int((np.nanmax(np.array(np.abs(self.dataSet.glats[self.currentGrid-1])))
                            -np.nanmin(np.array(np.abs(self.dataSet.glats[self.currentGrid-1]))))/10.),1) 
             parallels = np.arange(-90.,90.,plim)
             mlim = max(int((np.nanmax(np.array(np.abs(self.dataSet.glons[self.currentGrid-1])))
                            -np.nanmin(np.array(np.abs(self.dataSet.glons[self.currentGrid-1]))))/10.),1)
             meridians = np.arange(0.,360.,mlim)
-        
+
+        # draw parallels
+        par=self.dataSet.map[self.currentGrid-1].drawparallels(parallels,ax=self.appobj.axes1[self.pNum-1])
+        # draw meridians
+        mer=self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.appobj.axes1[self.pNum-1])
+
         #Can't put labels on Geostationary, Orthographic or Azimuthal Equidistant basemaps 	
-        if self.dataSet.projectionType == "ortho" or self.dataSet.projectionType == "aeqd" or self.dataSet.projectionType == "geos":
+        if self.dataSet.projectionType == "ortho" and self.dataSet.projectionType == "aeqd" and self.dataSet.projectionType == "geos":
+            # draw parallels
             self.dataSet.map[self.currentGrid-1].drawparallels(parallels,ax=self.appobj.axes1[self.pNum-1])
             # draw meridians
             self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.appobj.axes1[self.pNum-1])
         else:	
+            # draw parallels
             self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
             # draw meridians
             self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
 
+        #Add radar location as a black dot - cone of silence
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
+
+        #Switch to not call projection again until grid or dataset is changed - for speed
         self.appobj.recallProjection = False
+        #Keep the same colormap
         self.appobj.changeColor = False
+        
+        # Nair
         line, = self.appobj.axes1[self.pNum-1].plot([0], [0])  # empty line
         self.dataSelector = DataSelector(line)
  
@@ -2699,6 +2737,8 @@ class AppForm(QMainWindow):
 
     def ContourFPlot(self):
         self.cs = None
+        if self.domain_average != None:
+           self.domain_average.remove()
         self.domain_average = None
         self.filltype = "contourf"
         self.on_draw(self.plotCount)
