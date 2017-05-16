@@ -517,10 +517,10 @@ class PlotSlab:
         self.tabbingLayout.addWidget(self.optionTabs)
  
     def plot(self):
-
-        #Define colorbar location
-        cbar_loc = "right"          
-        cbar_or = "vertical"
+        
+        import time
+        t0 = time.clock()
+        t1 = time.time()        
 
         #Check if colormap was changed
         if self.appobj.changeColor == True:
@@ -551,10 +551,30 @@ class PlotSlab:
         #Recall projection when grid/dataset is changed.
         if self.appobj.recallProjection == True:    
             if len(self.appobj.axes1) >= self.appobj.plotCount:
+                 if (self.currentPType == 1):
+                     self.figure.clear()
+                     #Set things to none so we don't try to remove them later
+                     self.appobj.cs = None
+                     self.appobj.cs2 = None  
+                     self.appobj.barbs = None
+                     self.appobj.vectors = None
+                     self.appobj.vectorkey = None
+                     self.appobj.domain_average = None
+                     self.ColorBar = None
                  self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
                  self.dataSet.resolution = self.appobj.resolution
                  self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
             else:
+                 if (self.currentPType == 1):
+                     self.figure.clear()
+                     #Set things to none so we don't try to remove them later
+                     self.appobj.cs = None
+                     self.appobj.cs2 = None
+                     self.appobj.barbs = None
+                     self.appobj.vectors = None
+                     self.appobj.vectorkey = None 
+                     self.appobj.domain_average = None
+                     self.ColorBar = None                     
                  self.appobj.axes1.append(self.figure.add_subplot(111))
                  self.dataSet.resolution = self.appobj.resolution
                  self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
@@ -639,42 +659,6 @@ class PlotSlab:
                     hwind = np.squeeze(np.sum(self.v10[:,:,ind[0:4]],axis=2)/4.)
                     
                     xdim = self.dataSet.ny[self.currentGrid-1]-1
-
-                #Set up map insert
-                ax1 = self.appobj.axes1[self.pNum-1]
-                ax1.set_ylabel("Pressure [hPa]")
-                ax1.set_yscale('log')
-                ax1.set_ylim(plevs.max()+1, self.minpress)
-                print(plevs.max(),self.minpress)
-                subs = [1,2,3,5,7,8.5]
-                loc = matplotlib.ticker.LogLocator(base=10., subs=subs)
-                ax1.yaxis.set_major_locator(loc)
-                fmt = matplotlib.ticker.FormatStrFormatter("%g")
-                ax1.yaxis.set_major_formatter(fmt)
-                ax1.set_title(self.varTitle,fontsize = 10)
-                ax2 = self.appobj.axes1[self.pNum-1].twinx()
-                ax2.set_ylabel("Altitude [km]")
-                if self.dataSet.dsetname == "MERRA":
-                    if self.dataSet.grid[5] == 'P':
-                        min_ind = 0
-                    else:
-                        min_ind = -1
-                else:
-                    min_ind = 0
-                diff = abs(plevs[:,0] - self.minpress)
-                ind = np.where(diff == diff.min())
-                if len(ind[0]) > 1:
-                    ind = ind[0]
-                ax2.set_ylim(hgt.min(), hgt[ind[0],0])
-                ax2.set_xlim(horiz[min_ind,:].min(),horiz[min_ind,:].max())
-                ax2.fill_between(horiz[min_ind,:],0, hgt[min_ind,:], facecolor='peru')
-                ax2.plot(horiz[min_ind,:],hgt[min_ind,:],color='black')
-                fmt = matplotlib.ticker.FormatStrFormatter("%g")
-                ax2.yaxis.set_major_formatter(fmt)
-                axins = inset_axes(ax1,width="30%",height="30%",loc=1,borderpad=0)
-                #Define colorbar location and orientation
-                cbar_loc = "bottom"
-                cbar_or = "horizontal"
 
             #Initialize colorbar range and increment
             if self.colormin is None or self.colormax is None or self.ncontours is None:
@@ -782,28 +766,33 @@ class PlotSlab:
                                       norm=norm,
                                       latlon=True,cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
-            
-            #Create colorbar axis    
-            divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
-            cax = divider.append_axes(cbar_loc, size="5%", pad=0.1)
+                  
             #Clear old colorbar
             if self.ColorBar != None:
-                self.ColorBar.remove()       
+                self.ColorBar.remove()
+            
             #Create colorbar
-            self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax, orientation=cbar_or)         
+            if (self.currentPType ==  1):
+                self.ColorBar = self.figure.colorbar(self.appobj.cs, ax=self.appobj.axes1[self.pNum-1], 
+                                                     orientation='horizontal', pad=0.1)  
+            else:
+                #Create colorbar axis    
+                divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
+                cax = divider.append_axes('right', size="5%", pad=0.1)
+                self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax, orientation='vertical')         
+
             #Extend colorbar if contourf - pcolormesh doesn't allow extend at this point
             if self.appobj.filltype == "contourf":
                 self.ColorBar.extend = self.extend
            
             #Create colorbar ticks 
-            self.ColorBar.ax.tick_params(labelsize=9)
+            self.ColorBar.ax.tick_params(labelsize=9)                
             self.appobj.axes1[self.pNum-1].set_title(self.varTitle,fontsize = 10)
 
             #Call function to determine values on map while you hoover your mouse
             self.displayValuesXYZ(pltfld)
             
             #Display domain average on the map
-            print(self.appobj.domain_average)
             if self.appobj.domain_average != None:
                 self.appobj.domain_average.remove()
             #Calculate domain average
@@ -815,9 +804,9 @@ class PlotSlab:
                  color='k',fontsize=10)
 
             #Plot wind barbs or vectors
-            if (self.appobj.plotbarbs == True or self.appobj.plotvectors == True) and (self.currentPType != 1 and self.appobj.dname == 'MET'):
+            if (self.appobj.plotbarbs == True or self.appobj.plotvectors == True):
                 #Create map coordinates for wind barbs and vectors
-                if (self.currentPType == 1):
+                if (self.currentPType == 1 and self.appobj.dname != 'MET'):
                     xb = horiz
                     yb = plevs
                     self.u10 = hwind
@@ -832,14 +821,11 @@ class PlotSlab:
                         interval2 = 5
                     else:
                         interval2 = 10
-
-
-                else:                    
+                elif (self.currentPType != 1):                    
                     xb, yb = self.dataSet.map[self.currentGrid-1](
                              self.dataSet.glons[self.currentGrid-1],
                              self.dataSet.glats[self.currentGrid-1])
                                 
-
                     #Get the winds for non derived variables
                     #Winds are already set for derived variables in DerivedVar.py
                     if not self.derivedVar:
@@ -880,7 +866,6 @@ class PlotSlab:
                     interval2 = interval
                     xdim = self.dataSet.nx[self.currentGrid-1]-1
                     ydim = self.dataSet.ny[self.currentGrid-1]-1
-              
 
                 #Plot wind barbs
                 if self.appobj.plotbarbs == True:
@@ -922,7 +907,7 @@ class PlotSlab:
                         self.appobj.cs2 = self.appobj.axes1[self.pNum-1].contour(horiz, plevs,
                                           pvar2, colors='k', linewidths=1.5)
                 else:
-		    #Get second contour field
+		              #Get second contour field
                     self.readField()
                     #Derived variables have their own 2nd contour options at this point
                     if not self.derivedVar:
@@ -975,8 +960,40 @@ class PlotSlab:
                 self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
                 # draw meridians
                 self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
-
+            #Switch to not call projection again until grid or dataset is changed - for speed
+            self.appobj.recallProjection = False
         else:
+            #Set up map insert
+            ax1 = self.appobj.axes1[self.pNum-1]
+            ax1.set_ylabel("Pressure [hPa]")
+            ax1.set_yscale('log')
+            ax1.set_ylim(1013., self.minpress)
+            subs = [1,2,3,5,7,8.5]
+            loc = matplotlib.ticker.LogLocator(base=10., subs=subs)
+            ax1.yaxis.set_major_locator(loc)
+            fmt = matplotlib.ticker.FormatStrFormatter("%g")
+            ax1.yaxis.set_major_formatter(fmt)
+            ax1.set_title(self.varTitle,fontsize = 10)
+            ax2 = self.appobj.axes1[self.pNum-1].twinx()
+            ax2.set_ylabel("Altitude [km]")
+            if self.dataSet.dsetname == "MERRA":
+                if self.dataSet.grid[5] == 'P':
+                    min_ind = 0
+                else:
+                    min_ind = -1
+            else:
+                min_ind = 0
+            diff = abs(plevs[:,0] - self.minpress)
+            ind = np.where(diff == diff.min())
+            if len(ind[0]) > 1:
+                ind = ind[0]
+            ax2.set_ylim(0., hgt[ind[0],0])
+            ax2.set_xlim(horiz[min_ind,:].min(),horiz[min_ind,:].max())
+            ax2.fill_between(horiz[min_ind,:],0, hgt[min_ind,:], facecolor='peru')
+            ax2.plot(horiz[min_ind,:],hgt[min_ind,:],color='black')
+            fmt = matplotlib.ticker.FormatStrFormatter("%g")
+            ax2.yaxis.set_major_formatter(fmt)
+            axins = inset_axes(ax1,width="30%",height="30%",loc=1,borderpad=0)            
             map2 = self.dataSet.map[self.currentGrid-1]
             map2.ax = axins
             map2.etopo()
@@ -996,6 +1013,8 @@ class PlotSlab:
             if self.orientList[self.currentOrient] == 'yz':
                 xx, yy = map2(horiz2[0,:],horiz[0,:])
             map2.plot(xx,yy,color='red',linewidth=2)
+            #Have to delete the axis everytime
+            self.appobj.recallProjection = True
 
         #Add radar location as a black dot - cone of silence
         if self.dataSet.dsetname == 'NEXRAD Radar':
@@ -1003,14 +1022,16 @@ class PlotSlab:
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
 
                
-        #Switch to not call projection again until grid or dataset is changed - for speed
-        self.appobj.recallProjection = False
         #Keep the same colormap
         self.appobj.changeColor = False
         
         # Nair
         line, = self.appobj.axes1[self.pNum-1].plot([0], [0])  # empty line
         self.dataSelector = DataSelector(line)
+        
+        import time
+        print( time.clock() - t0,"seconds process time plots")
+        print( time.time() - t1,"seconds wall time plots")
  
     def plotCS(self):
         if self.appobj.changeColor == True:
