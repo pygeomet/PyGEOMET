@@ -228,7 +228,7 @@ class WrfDataset:
         pb = np.squeeze(self.readNCVariable('PB'))
         press = (p + pb)/100.
         height = wrf.unstaggerZ((ph + phb)/9.81)/1000.
-
+        
         return u, v, w, press, height
 
     def getVariable(self,vname):

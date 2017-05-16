@@ -967,15 +967,14 @@ class PlotSlab:
             ax1 = self.appobj.axes1[self.pNum-1]
             ax1.set_ylabel("Pressure [hPa]")
             ax1.set_yscale('log')
-            ax1.set_ylim(1013., self.minpress)
-            subs = [1,2,3,5,7,8.5]
-            loc = matplotlib.ticker.LogLocator(base=10., subs=subs)
-            ax1.yaxis.set_major_locator(loc)
-            fmt = matplotlib.ticker.FormatStrFormatter("%g")
-            ax1.yaxis.set_major_formatter(fmt)
+            ax1.set_xlim(horiz[0,:].min(),horiz[0,:].max())
+            ax1.set_ylim(plevs.max(), self.minpress)
+            subs = [2,3,5,7,8.5]
+            loc2 = matplotlib.ticker.LogLocator(base=10., subs=subs)
+            ax1.yaxis.set_minor_locator(loc2)
+            ax1.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+            ax1.yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
             ax1.set_title(self.varTitle,fontsize = 10)
-            ax2 = self.appobj.axes1[self.pNum-1].twinx()
-            ax2.set_ylabel("Altitude [km]")
             if self.dataSet.dsetname == "MERRA":
                 if self.dataSet.grid[5] == 'P':
                     min_ind = 0
@@ -983,14 +982,13 @@ class PlotSlab:
                     min_ind = -1
             else:
                 min_ind = 0
+            ax1.fill_between(horiz[min_ind,:],1100., plevs[0,:], facecolor='peru')
+            ax1.plot(horiz[min_ind,:],plevs[0,:],color='black')  
+            ax2 = self.appobj.axes1[self.pNum-1].twinx()
+            ax2.set_ylabel("Altitude [km]")
             diff = abs(plevs[:,0] - self.minpress)
-            ind = np.where(diff == diff.min())
-            if len(ind[0]) > 1:
-                ind = ind[0]
-            ax2.set_ylim(0., hgt[ind[0],0])
-            ax2.set_xlim(horiz[min_ind,:].min(),horiz[min_ind,:].max())
-            ax2.fill_between(horiz[min_ind,:],0, hgt[min_ind,:], facecolor='peru')
-            ax2.plot(horiz[min_ind,:],hgt[min_ind,:],color='black')
+            ind = np.argsort(diff)
+            ax2.set_ylim(hgt.min(), hgt[ind[0],0])
             fmt = matplotlib.ticker.FormatStrFormatter("%g")
             ax2.yaxis.set_major_formatter(fmt)
             axins = inset_axes(ax1,width="30%",height="30%",loc=1,borderpad=0)            
