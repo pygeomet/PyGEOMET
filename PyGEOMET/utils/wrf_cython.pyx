@@ -1,5 +1,6 @@
 import numpy as np
 from libc.math cimport exp, log
+from libc.stdlib cimport malloc, free
 
 ################  Begin function hypsometric  ###########################
 #This subroutine uses the hypsometric 
@@ -95,6 +96,7 @@ def loglinear_interpolate(float[:,:,:] var, float[:,:,:] pressure,
                         var_new[j,i] = np.nan
 
     return var_new
+    free(var_new)
 
 ###############################################################################
 ###################  End function loglinear_interpolate()  ####################

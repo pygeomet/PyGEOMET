@@ -152,7 +152,8 @@ class CanvasWidget(QWidget):
 
         #Difference Plot
         if self.plotObj.currentPType == 5:
-            self.plotObj.plotDifference()
+            #self.plotObj.plotDifference()
+            self.plotObj.plot()
             self.canvas.draw()
 
     def mouseMoveEvent(self, event):
@@ -596,12 +597,16 @@ class PlotSlab:
                 #Make sure the variable is 3D for vertical cross section
                 if (self.currentPType == 1):
                     self.error3DVar()
+                elif (self.currentPType == 5):
+                    pltfld = self.var - self.diffvar
                 else:
                     pltfld = self.var
             else:
                 #If vertical cross section take the whole array
                 if (self.currentPType == 1):
                     var = self.var
+                elif (self.currentPType == 5):
+                    pltfld = self.var[self.currentLevel] - self.diffvar[self.currentLevel]
                 else:
                     pltfld = self.var[self.currentLevel]
             
@@ -667,7 +672,10 @@ class PlotSlab:
                 self.ncontours = 41.
                 #Check for NAN
                 if self.colormin != self.colormin:
-                    self.colormin = 0.
+                    if (self.currentPType == 5):
+                        self.colormin = -1.
+                    else:
+                        self.colormin = 0.
                 if self.colormax != self.colormax:
                     self.colormax = 1.         
                 #Make sure max and min are not equal       
@@ -677,9 +685,21 @@ class PlotSlab:
                     else:
                         self.colormax = np.abs(self.colormax) * 2
             
+            #For difference plot to normalize colorscale
+            if (self.currentPType == 5):
+                if (self.colormin >= 0):
+                    self.colormin = -1.*self.colormax
+                if (self.colormax <= 0):
+                    self.colormax = -1.*self.colormin                            
+
             #Sets up user colorbar control   
             if self.colorbox is None:
                 self.controlColorBar()
+            else:
+                #Change colorbox control values dynamically
+                self.selectMin.setText(str(self.colormin))
+                self.selectMax.setText(str(self.colormax))
+                self.selectcontours.setText(str(self.ncontours))
 
             #Remove old items before creating new contour
             #Remove second control
@@ -705,6 +725,13 @@ class PlotSlab:
                 self.countries.remove()
                 self.states.remove()
 
+            #Colormap normalization for difference plot
+            if (self.currentPType == 5): 
+                midpoint = 1 - self.colormax/(self.colormax+abs(self.colormin))
+                self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
+                #self.cmap = self.newmap
+                self.cmap = 'shifted'
+                
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
             #Create plots - either contourf or pcolormesh
