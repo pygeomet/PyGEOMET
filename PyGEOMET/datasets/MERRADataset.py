@@ -662,7 +662,7 @@ class MERRAdataset:
         self.plothook.coasts = None
         self.plothook.countries = None
         self.plothook.states = None
-        self.plothook.domain_average = None
+        self.plothook.appobj.domain_average = None
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
@@ -680,7 +680,7 @@ class MERRAdataset:
         self.plothook.coasts = None
         self.plothook.countries = None
         self.plothook.states = None
-        self.plothook.domain_average = None
+        self.plothook.appobj.domain_average = None
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
@@ -698,7 +698,7 @@ class MERRAdataset:
         self.plothook.coasts = None
         self.plothook.countries = None
         self.plothook.states = None
-        self.plothook.domain_average = None
+        self.plothook.appobj.domain_average = None
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
