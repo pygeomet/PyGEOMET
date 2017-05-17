@@ -759,7 +759,6 @@ class PlotSlab:
                 # created in the Dataset object. Note:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
-                    print(self.dataSet.glats[self.currentGrid-1])
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].contourf(
                                       self.dataSet.glons[self.currentGrid-1],
                                       self.dataSet.glats[self.currentGrid-1],
@@ -818,7 +817,6 @@ class PlotSlab:
                 # created in the Dataset object. Note:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
-                    print(self.dataSet.glats[self.currentGrid-1])
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
                                       self.dataSet.glons[self.currentGrid-1],
                                       self.dataSet.glats[self.currentGrid-1],

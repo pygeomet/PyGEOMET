@@ -376,10 +376,11 @@ class WRFDerivedVar:
         if self.dataSet.ntimes == 1:
             prevind = self.dataSet.currentFileIndex-1
             currind = self.dataSet.currentFileIndex
-
+        else:
+            prevind = self.dataSet.currentTimeIndex-1
+            currind = self.dataSet.currentTimeIndex
         self.dataSet.setTimeIndex(currind)
-        tmp = self.dataSet.getTime()
-        currtime = datetime.datetime.strptime(tmp, "%d %b %Y, %H:%M:%S UTC")
+        currtime = self.dataSet.readNCVariable('XTIME')
         tmp1 = self.dataSet.readNCVariable('RAINC')
         tmp2 = self.dataSet.readNCVariable('RAINNC')
         tmp3 = self.dataSet.readNCVariable('RAINSH')
@@ -392,7 +393,7 @@ class WRFDerivedVar:
             prevtime = currtime
         else:
             tmp = self.dataSet.getTime()
-            prevtime = datetime.datetime.strptime(tmp,"%d %b %Y, %H:%M:%S UTC")
+            prevtime = self.dataSet.readNCVariable('XTIME')
             tmp1 = self.dataSet.readNCVariable('RAINC')
             tmp2 = self.dataSet.readNCVariable('RAINNC')
             tmp3 = self.dataSet.readNCVariable('RAINSH')
@@ -400,10 +401,10 @@ class WRFDerivedVar:
 
         self.dataSet.setTimeIndex(currind)
         dt = currtime - prevtime
-        if dt.seconds == 0:
+        if dt == 0:
             self.var = current - prev
         else:
-            self.var = (current - prev)/(dt.seconds/3600.)
+            self.var = (current - prev)/(dt/60.)
         self.var2 = self.var
         self.varTitle = "Rain Rate (mm hr$^{-1}$)\n" + self.dataSet.getTime() 
 

@@ -192,7 +192,7 @@ class WrfDataset:
                     self.twoDVars.append(varname)
             self.setGridDefinition()
 
-            self.dvarlist = wrf.getDvarList(self.variableList)
+            self.dvarlist = wrf.getDvarList(self.variableList,self.runType)
 
     def readNCVariable(self,vname,barbs=None, vectors=None, contour2=None,varonly=False):
         variable = self.dsets[vname][self.currentTimeIndex]
