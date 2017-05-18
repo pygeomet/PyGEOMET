@@ -2651,7 +2651,7 @@ class AppForm(QMainWindow):
         getEOM.triggered.connect(self.EOMget)
 
         #Color Palettes
-        self.colorlist = ['jet','brg','rainbow','bwr','YlOrRd','viridis','magma','gray','pyart_NWSRef']
+        self.colorlist = ['jet','brg','rainbow','bwr','RdBu','YlOrRd','viridis','magma','gray','pyart_NWSRef']
         jet = QAction("&Default (jet)",self)
         jet.triggered.connect(lambda: self.selectionChangeColorPallete(0))
         brg = QAction(QIcon('brg.png'),"&BlueRedGreen",self)
@@ -2660,16 +2660,18 @@ class AppForm(QMainWindow):
         rainbow.triggered.connect(lambda: self.selectionChangeColorPallete(2))
         bwr = QAction("&BlueWhiteRed",self)
         bwr.triggered.connect(lambda: self.selectionChangeColorPallete(3))
+        rdbu = QAction("&BlueWhiteRed",self)
+        rdbu.triggered.connect(lambda: self.selectionChangeColorPallete(4))
         ylorrd = QAction("&YellowOrangeRed",self)
-        ylorrd.triggered.connect(lambda: self.selectionChangeColorPallete(4))
+        ylorrd.triggered.connect(lambda: self.selectionChangeColorPallete(5))
         viridis = QAction("&Viridis",self)
-        viridis.triggered.connect(lambda: self.selectionChangeColorPallete(5))
+        viridis.triggered.connect(lambda: self.selectionChangeColorPallete(6))
         magma = QAction("&Magma",self)
-        magma.triggered.connect(lambda: self.selectionChangeColorPallete(6))
+        magma.triggered.connect(lambda: self.selectionChangeColorPallete(7))
         gray = QAction("&Gray",self)
-        gray.triggered.connect(lambda: self.selectionChangeColorPallete(7))
+        gray.triggered.connect(lambda: self.selectionChangeColorPallete(8))
         ref = QAction("&NWS Reflectivity",self)
-        ref.triggered.connect(lambda: self.selectionChangeColorPallete(8))
+        ref.triggered.connect(lambda: self.selectionChangeColorPallete(9))
 
         #Create map background menu bar
         defaultClear = QAction("&Default (Clear)", self)
