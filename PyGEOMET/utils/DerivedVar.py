@@ -274,10 +274,10 @@ class WRFDerivedVar:
         rainc = self.dataSet.readNCVariable('RAINC')
         rainnc = self.dataSet.readNCVariable('RAINNC')
         rainsh = self.dataSet.readNCVariable('RAINSH')
-        var1 = rainc + rainnc + rainsh
-        self.var = wrf.convertP_MMtoIN(var1)
-        self.var2 = var1
-        self.varTitle = "Total Accumulated Precipitation (in)\n" + self.dataSet.getTime()
+        self.var = rainc + rainnc + rainsh
+        #self.var = wrf.convertP_MMtoIN(var1)
+        self.var2 = self.var
+        self.varTitle = "Total Accumulated Precipitation (mm)\n" + self.dataSet.getTime()
 
     def clwp(self):
 

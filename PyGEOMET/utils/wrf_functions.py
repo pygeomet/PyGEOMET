@@ -1636,7 +1636,9 @@ def getDvarList(varlist,runtype):
 
     if ('RAINNC' in variables and 'RAINSH' in variables
         and 'RAINC' in variables):
-        dvarlist.extend(['acc_pcp','rainrate'])
+        dvarlist.extend(['acc_pcp'])
+        if ('XTIME' in variables):
+            dvarlist.extend(['rainrate'])
 
     if ('QCLOUD' in variables and 'QRAIN' in variables
         and 'QSNOW' in variables and 'QICE' in variables
