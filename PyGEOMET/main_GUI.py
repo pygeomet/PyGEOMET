@@ -2766,6 +2766,7 @@ class AppForm(QMainWindow):
         colorbarMenu.addAction(brg)
         colorbarMenu.addAction(rainbow)
         colorbarMenu.addAction(bwr)
+        colorbarMenu.addAction(rdbu)
         colorbarMenu.addAction(ylorrd)
         colorbarMenu.addAction(viridis)
         colorbarMenu.addAction(magma)
