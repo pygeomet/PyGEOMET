@@ -376,6 +376,10 @@ class WRFDerivedVar:
         if self.dataSet.ntimes == 1:
             prevind = self.dataSet.currentFileIndex-1
             currind = self.dataSet.currentFileIndex
+        elif len(self.dataSet.fileList) > 1:
+            prevind = self.dataSet.currentFileIndex*self.dataSet.ntimes + self.dataSet.currentTimeIndex-1
+            currind = self.dataSet.currentFileIndex*self.dataSet.ntimes + self.dataSet.currentTimeIndex
+            print(prevind,currind)
         else:
             prevind = self.dataSet.currentTimeIndex-1
             currind = self.dataSet.currentTimeIndex
