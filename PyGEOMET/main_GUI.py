@@ -2660,7 +2660,7 @@ class AppForm(QMainWindow):
         rainbow.triggered.connect(lambda: self.selectionChangeColorPallete(2))
         bwr = QAction("&BlueWhiteRed",self)
         bwr.triggered.connect(lambda: self.selectionChangeColorPallete(3))
-        rdbu = QAction("&BlueWhiteRed",self)
+        rdbu = QAction("&RedBlue",self)
         rdbu.triggered.connect(lambda: self.selectionChangeColorPallete(4))
         ylorrd = QAction("&YellowOrangeRed",self)
         ylorrd.triggered.connect(lambda: self.selectionChangeColorPallete(5))
