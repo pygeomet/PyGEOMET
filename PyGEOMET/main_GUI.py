@@ -419,24 +419,21 @@ class PlotSlab:
         self.colorbox = QGroupBox()
         self.colorbox.setStyleSheet(Layout.QGroupBox())
 
-        #font = QFont();
-        #font.setBold(True);
-        #self.colorbox.setFont(font);
         colorboxLayout = QVBoxLayout()
         self.colorbox.setLayout(colorboxLayout)
 
         radio = QWidget()
         radiolayout = QHBoxLayout()
         radio.setLayout(radiolayout)
-        selectLock = QRadioButton("Lock Color Range")
-        selectLock.setStyleSheet(Layout.QCheckBox())
-        selectLock.clicked.connect(lambda:self.lockColorBar())
-        unlock = QRadioButton("Unlock Color Range")
-        unlock.setStyleSheet(Layout.QCheckBox())
-        unlock.clicked.connect(lambda:self.unlockColorBar())
-        unlock.setChecked(True)
-        radiolayout.addWidget(selectLock)
-        radiolayout.addWidget(unlock)        
+        self.lock = QRadioButton("Lock Color Range")
+        self.lock.setStyleSheet(Layout.QCheckBox())
+        self.lock.clicked.connect(lambda:self.lockColorBar())
+        self.unlock = QRadioButton("Unlock Color Range")
+        self.unlock.setStyleSheet(Layout.QCheckBox())
+        self.unlock.clicked.connect(lambda:self.unlockColorBar())
+        self.unlock.setChecked(True)
+        radiolayout.addWidget(self.lock)
+        radiolayout.addWidget(self.unlock)        
 
         #Maximum
         maxLabel = QLabel()
@@ -2111,6 +2108,98 @@ class PlotSlab:
             self.currentPType = 0
             self.dataSet.selectPlotType.setCurrentIndex(self.currentPType)
 
+    #Changes the variable
+    def selectionChangeVar(self,i):
+        self.currentVar = i
+        self.derivedVar = False
+        self.readField()
+        #initialize an index for derived variable
+        # not used but needed in setPlotVars
+        self.currentdVar = 0
+        self.setPlotVars()
+
+    #Changes the derived variable
+    def selectionChangedVar(self,i):
+        self.currentdVar = i
+        self.derivedVar = True
+        self.readField()
+        #initialize an index for derived variable
+        # not used but needed in setPlotVars
+        self.currentVar = 0
+        self.setPlotVars()
+
+    #This function is called to set plotting variables
+    #  after a varaible (var or dvar) is changed.
+    #  Also sets selections after the plot type is changed
+    def setPlotVars(self):
+        #Must be a 3D variable if on vertical slice
+        if self.currentPType == 1 and len(self.var.shape) < 3:
+            self.error3DVar()
+        else:
+            #If color scale is locked - unlock it
+            if self.colorlock == True:
+                self.colorlock = False
+                self.unlock.setChecked(True) 
+            #Setting these to None will force a re-scale in plot
+            self.colormax = None
+            self.colormin = None
+            self.ncontours = None           
+            
+            #Force plotting of WRF radar reflectivity to pyART colors/scale
+            if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
+                (self.dataSet.dvarlist[self.currentdVar] == 'refl' and 
+                 self.derivedVar == True)):
+                self.extend = 'max'
+                self.colormin = 0
+                self.colormax = 80
+                self.ncontours = 41
+                #Lock the colorbar
+                self.colorlock = True
+                #Sets up user colorbar control if this is first variable
+                # Need the it to initialize self.lock
+                if self.colorbox is None:
+                    self.controlColorBar()
+                    self.lock.setChecked(True)
+                if self.cmap != 'pyart_NWSRef':
+                    self.appobj.cmap = self.cmap
+                self.cmap = 'pyart_NWSRef'
+            #Else is needed to change color back after being in reflectivity mode
+            else:
+                self.extend = 'both'
+                self.cmap = self.appobj.cmap 
+
+            #Get the dimensions of the new variable
+            ndim   = len(self.var.shape)
+            #Replot horizontal slice for skewT, vertical profile and 
+            #   time series plots 
+            if (self.currentPType == 3 or self.currentPType == 2 or
+                self.currentPType == 4):
+                self.replot2d = True
+                self.col = None
+                self.row = None
+                #If time series also signal a new var
+                if self.currentPType == 4:
+                    self.newvar = True
+            #Difference plot - read in difference data
+            if self.currentPType == 5:
+                self.readDiffField()
+            #Make sure at least a 2D variables was selected
+            if(ndim > 1) :
+                #Set levels to 1 is 2D only
+                # otherwise get 3D levels
+                if(len(self.var.shape) == 2):
+                    self.nz=1
+                else:
+                    self.nz=self.var.shape[0]
+                #Clear level list and get new list
+                self.selectLevel.clear()
+                self.updateListView = False
+                for j in range(0,self.nz):
+                    self.selectLevel.addItem(str(j+1))
+                self.updateListView = True
+                #Call the plot function
+                self.pltFxn(self.pNum)        
+
         
     def determineRadioSelection(self):
         for i in range(len(self.dsetlist)):
@@ -2145,113 +2234,6 @@ class PlotSlab:
             self.skewParcel = 'ML'
         else:
             self.skewParcel = 'MU'
-
-    def selectionChangeVar(self,i):
-        self.currentVar = i
-        self.derivedVar = False
-        self.readField()
-        if self.currentPType == 1 and len(self.var.shape) < 3:
-            self.error3DVar()
-        else:
-            if self.colorlock == False:
-                #Reset colorbar settings
-                self.colormax = None
-                self.colormin = None
-                self.ncontours = None
-            if self.colorbox is not None:
-                self.colorbox.setParent(None)
-                self.colorbox = None
-            if self.vslicebox is not None:
-                self.vslicebox.setParent(None)
-                self.vslicebox = None
-            #self.currentVar = i
-            #self.derivedVar = False
-            #self.readField()
-            if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM'):
-                self.extend = 'max'
-                self.colormin = 0
-                self.colormax = 80
-                if self.cmap != 'pyart_NWSRef':
-                    self.appobj.cmap = self.cmap
-                self.cmap = 'pyart_NWSRef'
-            else:
-                self.extend = 'both'
-                self.cmap = self.appobj.cmap
-            ndim   = len(self.var.shape)
-            if self.currentPType == 3 or self.currentPType == 2:
-                self.replot2d = True
-                self.col = None
-                self.row = None
-            if self.currentPType == 4:
-                self.replot2d = True
-                self.col = None
-                self.row = None
-                self.newvar = True
-            #Difference plot - read in difference data
-            if self.currentPType == 5:
-                self.readDiffField()
-            if(ndim > 1) :
-                if(len(self.var.shape) == 2):
-                    self.nz=1
-                else:
-                    self.nz=self.var.shape[0]
-                self.selectLevel.clear()
-                self.updateListView = False
-                for j in range(0,self.nz):
-                    self.selectLevel.addItem(str(j+1))
-                self.updateListView = True
-                self.pltFxn(self.pNum) 
-
-    def selectionChangedVar(self,i):
-        self.currentdVar = i
-        self.derivedVar = True
-        self.readField()
-        if self.currentPType == 1 and len(self.var.shape) < 3:
-            self.error3DVar()
-        else:
-            if self.colorlock == False:
-                #Reset colorbar settings
-                self.colormax = None
-                self.colormin = None
-                self.ncontours = None
-            if self.colorbox is not None:
-                self.colorbox.setParent(None)
-                self.colorbox = None
-            if (self.dataSet.dvarlist[self.currentdVar] == 'refl'):
-                self.extend = 'max'
-                self.colormin = 0
-                self.colormax = 80
-                if self.cmap != 'pyart_NWSRef':
-                    self.appobj.cmap = self.cmap
-                self.cmap = 'pyart_NWSRef'
-            else:
-                self.extend = 'both'
-                self.cmap = self.appobj.cmap
-
-            ndim = len(self.var.shape)
-            if self.currentPType == 3 or self.currentPType == 2:
-                self.replot2d = True
-                self.row = None
-                self.col = None
-            if self.currentPType == 4:
-                self.replot2d = True
-                self.col = None
-                self.row = None
-                self.newvar = True
-            #Difference plot - read in difference data
-            if self.currentPType == 5:
-                self.readDiffField()
-            if(ndim > 1) :
-                if(len(self.var.shape) == 2):
-                    self.nz=1
-                else:
-                    self.nz=self.var.shape[0]
-                self.selectLevel.clear()
-                self.updateListView = False
-                for j in range(0,self.nz):
-                    self.selectLevel.addItem(str(j+1))
-                self.updateListView = True
-                self.pltFxn(self.pNum)
 
     def selectionChangeGrid(self,i):
         self.ColorBar = None
