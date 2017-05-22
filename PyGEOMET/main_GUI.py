@@ -694,6 +694,12 @@ class PlotSlab:
                     self.colormin = -1.*self.colormax
                 if (self.colormax <= 0):
                     self.colormax = -1.*self.colormin                            
+                #Colormap normalization
+                midpoint = 1 - self.colormax/(self.colormax+abs(self.colormin))
+                self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
+                #self.cmap = self.newmap
+                self.cmap = 'shifted'
+
 
             #Sets up user colorbar control   
             if self.colorbox is None:
@@ -729,11 +735,11 @@ class PlotSlab:
                 self.states.remove()
 
             #Colormap normalization for difference plot
-            if (self.currentPType == 5): 
-                midpoint = 1 - self.colormax/(self.colormax+abs(self.colormin))
-                self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
-                #self.cmap = self.newmap
-                self.cmap = 'shifted'
+            #if (self.currentPType == 5): 
+            #    midpoint = 1 - self.colormax/(self.colormax+abs(self.colormin))
+            #    self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
+            #    #self.cmap = self.newmap
+            #    self.cmap = 'shifted'
                 
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
@@ -1908,24 +1914,39 @@ class PlotSlab:
         self.table.setModel(self.model)
         self.table.show()
 
+    #Function that handles the plot type changes
     def selectionChangePlot(self,i):
+        
+        #Save previous plot type
+        prev_plot = self.currentPType
+
+        #Reset clicked point values
         if self.cid is not None:
             self.cid = None
             self.row = None
             self.col = None
+       
+        #If changed from difference plot - get the old colormap back
         if (self.currentPType == 5):
             self.cmap = self.appobj.cmap
+
+        #Set the new plot type index
         self.currentPType = i
 		            
-        #Allow changing of plot type before plotting
+        #Don't allow changing of plot type before plotting
         if (self.currentVar != None or self.currentdVar != None):
+            #Make sure there is a 3D variable selected before allowing 
+            # a vertical slice plot to be made
             if self.currentPType == 1 and len(self.var.shape) < 3:
+                #Switch back to the previous plot
+                self.currentPType = prev_plot
+                self.dataSet.selectPlotType.setCurrentIndex(self.currentPType)
+                #Throw an error
                 self.error3DVar()
-                self.ColorBar = None
             else:
-                if self.vslicebox != None:
-                    self.vslicebox.setParent(None)
-                    self.vslicebox = None
+                #Remove all added items
+                #Necessary to prevent error in plot after
+                # clearing the figure below
                 self.appobj.cs = None
                 self.appobj.cs2 = None
                 self.appobj.cs2label = None
@@ -1933,11 +1954,14 @@ class PlotSlab:
                 self.appobj.vectors = None
                 self.appobj.vectorkey = None
                 self.appobj.domain_average = None
+                #Get the new projection
                 self.appobj.recallProjection = True
                 self.coasts = None
                 self.countries = None
                 self.states = None
+                #Removes the colorbar
                 self.ColorBar = None
+                #Reset the color scale unless plotting WRF reflectivity
                 if (self.currentVar != None):
                     if (self.dataSet.variableList[self.currentVar] != "REFL_10CM"):
                         self.colormax = None
@@ -1949,37 +1973,32 @@ class PlotSlab:
                         self.colormin = None
                         self.ncontours = None
             
+                #Remove the plotting axes and clear the figure
                 self.appobj.axes1[self.pNum-1] = None
                 self.figure.clear()
+
+                #Remove vertical slice controls if necessary
+                if self.vslicebox != None:
+                    self.vslicebox.setParent(None)
+                    self.vslicebox = None
  
-                #Destroy vertical plot control widget if plot type is changed
+                #Destroy vertical plot control widget if necessary 
                 if self.vertControl != None:
                     self.vertControl.setParent(None)
                     self.vertControl = None
 
-                #Destroy skew-T parcel control widget if plot type is changed
+                #Destroy skew-T parcel control widget if necessary
                 if self.pControl != None:
                     self.pControl.setParent(None)
                     self.pControl = None
 
-                #Destroy skew-T parcel control widget if plot type is changed
+                #Difference plot control widget if necessary
                 if self.diffControl != None:
                     self.diffControl.setParent(None)
                     self.diffControl = None        
 
                 #Skew-T
                 if self.currentPType == 2:
-                    #Change to mixed-layer CAPE plot
-                    #i = np.where(np.array(self.dataSet.dvarlist) == 'CAPE_ML')
-                    #if self.derivedVar == False:
-                    #    self.selectionChangedVar(i[0][0])
-                    #    self.replot2d = True
-                    #else:
-                    #    if self.currentdVar != i[0][0]:
-                    #       self.selectionChangedVar(i[0][0])
-                    #       self.replot2d = True
-                    #    else:
-                    #       self.replot2d = False
 
                     #Create tab to control parcel type
                     self.pControl = QGroupBox()
