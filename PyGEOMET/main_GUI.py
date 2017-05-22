@@ -631,11 +631,14 @@ class PlotSlab:
                 if self.vslicebox is None:
                     self.verticalSliceControl()
                 #Get variables
-                self.u10, self.v10, w, press, height = self.dataSet.getVertVars() 
-                #Set second contour variable to w
-                var2 = w
+                #CMAQ doesn't these variables so pass 
+                if (self.dataSet.dsetname != 'CMAQ'):
+                    self.u10, self.v10, w, press, height = self.dataSet.getVertVars() 
+                    #Set second contour variable to w
+                    var2 = w
                 #Get variable dimensions
                 dims = var.shape
+
                 #Get xz orientation values
                 if self.orientList[self.currentOrient] == 'xz':
                     diff = abs(self.dataSet.glats[self.dataSet.currentGrid-1][:,0] - self.ref_pt)
@@ -643,12 +646,15 @@ class PlotSlab:
                     horiz = np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     horiz2 = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     pltfld = np.squeeze(np.sum(var[:,ind[0:4],:],axis=1)/4.)
-                    if self.appobj.dname != 'MET':
-                        pvar2 = np.squeeze(np.sum(var2[:,ind[0:4],:],axis=1)/4.)
-                        wwind = np.squeeze(np.sum(w[:,ind[0:4],:],axis=1)/4.)
-                    hgt = np.squeeze(np.sum(height[:,ind[0:4],:],axis=1)/4.)
-                    plevs = np.squeeze(np.sum(press[:,ind[0:4],:],axis=1)/4.)
-                    hwind = np.squeeze(np.sum(self.u10[:,ind[0:4],:],axis=1)/4.)
+                    if (self.dataSet.dsetname != 'CMAQ'):
+                        plevs = np.squeeze(np.sum(press[:,ind[0:4],:],axis=1)/4.)
+                        if self.appobj.dname != 'MET':
+                            pvar2 = np.squeeze(np.sum(var2[:,ind[0:4],:],axis=1)/4.)
+                            wwind = np.squeeze(np.sum(w[:,ind[0:4],:],axis=1)/4.)
+                        hgt = np.squeeze(np.sum(height[:,ind[0:4],:],axis=1)/4.)
+                        hwind = np.squeeze(np.sum(self.u10[:,ind[0:4],:],axis=1)/4.)
+                    else:
+                        plevs = np.swapaxes(np.tile(np.linspace(1,dims[0],dims[0]),(dims[2],1)),0,1)
                     
                     xdim = self.dataSet.nx[self.currentGrid-1]-1
 
@@ -659,12 +665,15 @@ class PlotSlab:
                     horiz = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
                     horiz2 =np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
                     pltfld = np.squeeze(np.sum(var[:,:,ind[0:4]],axis=2)/4.)
-                    if self.appobj.dname != 'MET':
-                        pvar2 = np.squeeze(np.sum(var2[:,:,ind[0:4]],axis=2)/4.)
-                        wwind = np.squeeze(np.sum(w[:,:,ind[0:4]],axis=2)/4.)
-                    hgt = np.squeeze(np.sum(height[:,:,ind[0:4]],axis=2)/4.)
-                    plevs = np.squeeze(np.sum(press[:,:,ind[0:4]],axis=2)/4.)
-                    hwind = np.squeeze(np.sum(self.v10[:,:,ind[0:4]],axis=2)/4.)
+                    if (self.dataSet.dsetname != 'CMAQ'):
+                        plevs = np.squeeze(np.sum(press[:,:,ind[0:4]],axis=2)/4.)
+                        if self.appobj.dname != 'MET':
+                            pvar2 = np.squeeze(np.sum(var2[:,:,ind[0:4]],axis=2)/4.)
+                            wwind = np.squeeze(np.sum(w[:,:,ind[0:4]],axis=2)/4.)
+                        hgt = np.squeeze(np.sum(height[:,:,ind[0:4]],axis=2)/4.)
+                        hwind = np.squeeze(np.sum(self.v10[:,:,ind[0:4]],axis=2)/4.)
+                    else:
+                        plevs = np.swapaxes(np.tile(np.linspace(1,dims[0],dims[0]),(dims[1],1)),0,1)
                     
                     xdim = self.dataSet.ny[self.currentGrid-1]-1
 
@@ -699,7 +708,6 @@ class PlotSlab:
                 self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
                 #self.cmap = self.newmap
                 self.cmap = 'shifted'
-
 
             #Sets up user colorbar control   
             if self.colorbox is None:
@@ -878,10 +886,10 @@ class PlotSlab:
                  ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.appobj.axes1[self.pNum-1].transAxes,
-                 color='k',fontsize=10)
+                 color='k',fontsize=8)
 
             #Plot wind barbs or vectors
-            if (self.appobj.plotbarbs == True or self.appobj.plotvectors == True):
+            if ((self.appobj.plotbarbs == True or self.appobj.plotvectors == True) and self.dataSet.dsetname != 'CMAQ'):
                 #Create map coordinates for wind barbs and vectors
                 if (self.currentPType == 1 and self.appobj.dname != 'MET'):
                     xb = horiz
@@ -980,7 +988,7 @@ class PlotSlab:
                                                 int(maxspeed*.75), str(int(maxspeed*.75))+' $m s^{-1}$',labelpos='E')
 
             #Second contour
-            if self.appobj.plotcontour2 == True:
+            if (self.appobj.plotcontour2 == True and self.dataSet.dsetname != 'CMAQ'):
                 if (self.currentPType == 1):
                     if (self.appobj.dname != 'MET'):
                         self.appobj.cs2 = self.appobj.axes1[self.pNum-1].contour(horiz, plevs,
@@ -1045,34 +1053,44 @@ class PlotSlab:
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
         elif (self.currentPType == 1):
-            #Set up map insert
             ax1 = self.appobj.axes1[self.pNum-1]
-            ax1.set_ylabel("Pressure [hPa]")
-            ax1.set_yscale('log')
-            ax1.set_xlim(horiz[0,:].min(),horiz[0,:].max())
-            ax1.set_ylim(plevs.max(), self.minpress)
-            subs = [2,3,5,7,8.5]
-            loc2 = matplotlib.ticker.LogLocator(base=10., subs=subs)
-            ax1.yaxis.set_minor_locator(loc2)
-            ax1.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
-            ax1.yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
-            ax1.set_title(self.varTitle,fontsize = 10)
-            if self.dataSet.dsetname == "MERRA":
-                if self.dataSet.grid[5] == 'P':
-                    min_ind = 0
-                else:
-                    min_ind = -1
+            #Have to handle vertical slice of CMAQ differently because Pressure/height
+            #  isn't in the standard output
+            if (self.dataSet.dsetname == 'CMAQ'):
+                ax1.set_ylabel("Model Level")
+                #Set the x and y limits
+                ax1.set_ylim(1,dims[0])
+                ax1.set_xlim(np.amin(horiz),np.amax(horiz))
+                ax1.set_title(self.varTitle,fontsize = 10)                
             else:
-                min_ind = 0
-            ax1.fill_between(horiz[min_ind,:],1100., plevs[0,:], facecolor='peru')
-            ax1.plot(horiz[min_ind,:],plevs[0,:],color='black')  
-            ax2 = self.appobj.axes1[self.pNum-1].twinx()
-            ax2.set_ylabel("Altitude [km]")
-            diff = abs(plevs[:,0] - self.minpress)
-            ind = np.argsort(diff)
-            ax2.set_ylim(hgt.min(), hgt[ind[0],0])
-            fmt = matplotlib.ticker.FormatStrFormatter("%g")
-            ax2.yaxis.set_major_formatter(fmt)
+                #Set up map insert
+                ax1.set_ylabel("Pressure [hPa]")
+                ax1.set_yscale('log')
+                ax1.set_xlim(horiz[0,:].min(),horiz[0,:].max())
+                ax1.set_ylim(plevs.max(), self.minpress)
+                subs = [2,3,5,7,8.5]
+                loc2 = matplotlib.ticker.LogLocator(base=10., subs=subs)
+                ax1.yaxis.set_minor_locator(loc2)
+                ax1.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+                ax1.yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+                ax1.set_title(self.varTitle,fontsize = 10)
+                if self.dataSet.dsetname == "MERRA":
+                    if self.dataSet.grid[5] == 'P':
+                        min_ind = 0
+                    else:
+                        min_ind = -1
+                else:
+                    min_ind = 0
+                ax1.fill_between(horiz[min_ind,:],1100., plevs[0,:], facecolor='peru')
+                ax1.plot(horiz[min_ind,:],plevs[0,:],color='black')  
+                ax2 = self.appobj.axes1[self.pNum-1].twinx()
+                ax2.set_ylabel("Altitude [km]")
+                diff = abs(plevs[:,0] - self.minpress)
+                ind = np.argsort(diff)
+                ax2.set_ylim(hgt.min(), hgt[ind[0],0])
+                fmt = matplotlib.ticker.FormatStrFormatter("%g")
+                ax2.yaxis.set_major_formatter(fmt)
+            #Create map inset
             if (self.dataSet.map[self.currentGrid-1] != None):
                 axins = inset_axes(ax1,width="30%",height="30%",
                                    loc=1,borderpad=0)
@@ -1143,6 +1161,7 @@ class PlotSlab:
                     horiz2 = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     pvar = np.squeeze(np.sum(var[:,ind[0:4],:],axis=1)/4.)
                     plevs = np.swapaxes(np.tile(np.linspace(1,dims[0],dims[0]),(dims[2],1)),0,1)
+                    plevs = np.swapaxes(np.tile(np.linspace(1,dims[0],dims[0]),(dims[1],1)),0,1)
 
                 if self.orientList[self.currentOrient] == 'yz':
                     diff = abs(self.dataSet.glons[self.dataSet.currentGrid-1][0,:]-self.ref_pt)
@@ -1962,16 +1981,19 @@ class PlotSlab:
                 #Removes the colorbar
                 self.ColorBar = None
                 #Reset the color scale unless plotting WRF reflectivity
-                if (self.currentVar != None):
-                    if (self.dataSet.variableList[self.currentVar] != "REFL_10CM"):
-                        self.colormax = None
-                        self.colormin = None
-                        self.ncontours = None
-                if (self.currentdVar != None):
-                    if (self.dataSet.dvarlist[self.currentdVar] != "refl"):
-                        self.colormax = None
-                        self.colormin = None
-                        self.ncontours = None
+                #Not all datasets have a dvarlist so only check if WRF at the moment
+                #Revist this as additional datasets are added (if they have derived vars)
+                if (self.dataSet.dsetname == 'WRF'):
+                    if (self.currentVar != None):
+                        if (self.dataSet.variableList[self.currentVar] != "REFL_10CM"):
+                            self.colormax = None
+                            self.colormin = None
+                            self.ncontours = None
+                    if (self.currentdVar != None):
+                        if (self.dataSet.dvarlist[self.currentdVar] != "refl"):
+                            self.colormax = None
+                            self.colormin = None
+                            self.ncontours = None
             
                 #Remove the plotting axes and clear the figure
                 self.appobj.axes1[self.pNum-1] = None
@@ -2165,27 +2187,30 @@ class PlotSlab:
             self.ncontours = None           
             
             #Force plotting of WRF radar reflectivity to pyART colors/scale
-            if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
-                (self.dataSet.dvarlist[self.currentdVar] == 'refl' and 
-                 self.derivedVar == True)):
-                self.extend = 'max'
-                self.colormin = 0
-                self.colormax = 80
-                self.ncontours = 41
-                #Lock the colorbar
-                self.colorlock = True
-                #Sets up user colorbar control if this is first variable
-                # Need the it to initialize self.lock
-                if self.colorbox is None:
-                    self.controlColorBar()
-                    self.lock.setChecked(True)
-                if self.cmap != 'pyart_NWSRef':
-                    self.appobj.cmap = self.cmap
-                self.cmap = 'pyart_NWSRef'
-            #Else is needed to change color back after being in reflectivity mode
-            else:
-                self.extend = 'both'
-                self.cmap = self.appobj.cmap 
+            #Not all datasets have a dvarlist so only check if WRF at the moment
+            #Revist this as additional datasets are added (if they have derived vars)
+            if (self.dataSet.dsetname == 'WRF'):
+                if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
+                   (self.dataSet.dvarlist[self.currentdVar] == 'refl' and 
+                     self.derivedVar == True)):
+                    self.extend = 'max'
+                    self.colormin = 0
+                    self.colormax = 80
+                    self.ncontours = 41
+                    #Lock the colorbar
+                    self.colorlock = True
+                    #Sets up user colorbar control if this is first variable
+                    # Need the it to initialize self.lock
+                    if self.colorbox is None:
+                        self.controlColorBar()
+                        self.lock.setChecked(True)
+                    if self.cmap != 'pyart_NWSRef':
+                        self.appobj.cmap = self.cmap
+                    self.cmap = 'pyart_NWSRef'
+                #Else is needed to change color back after being in reflectivity mode
+                else:
+                    self.extend = 'both'
+                    self.cmap = self.appobj.cmap 
 
             #Get the dimensions of the new variable
             ndim   = len(self.var.shape)
