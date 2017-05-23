@@ -59,6 +59,7 @@ class Radardataset:
 
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['1-panel']#,'2-panel','4-panel']
+        self.setProjection()
 
     def setURL(self,update=None):
         #if no valid path, do nothing:
