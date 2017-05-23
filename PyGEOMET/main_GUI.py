@@ -886,7 +886,7 @@ class PlotSlab:
                  ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.appobj.axes1[self.pNum-1].transAxes,
-                 color='k',fontsize=8)
+                 color='k',fontsize=10)
 
             #Plot wind barbs or vectors
             if ((self.appobj.plotbarbs == True or self.appobj.plotvectors == True) and self.dataSet.dsetname != 'CMAQ'):
