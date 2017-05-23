@@ -41,6 +41,11 @@ class NCARdataset:
         self.resolution = "l"
         self.NCARgetDDlists()
 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
+                       'Vertical Profile', 'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
+
     def setURL(self,update=None):
         #if no valid path, do nothing:
         if self.path == None or self.grid == None or self.var == None or\
@@ -308,9 +313,7 @@ class NCARdataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
-                  'Time Series', 'Difference Plot', 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)

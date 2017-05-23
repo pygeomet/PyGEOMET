@@ -57,6 +57,12 @@ class CmaqDataset:
  
         self.varList = []
 
+        #Define plot type available for the dataset within the GUI
+        #Should make this file type dependent for CMAQ
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'Vertical Profile', 
+                       'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
+
     def name(self, path, prefix) :
 
         # If no valid path and prefix are specified, then do #
@@ -508,9 +514,7 @@ class CmaqDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
-                  'Time Series', 'Difference Plot', 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         self.selectPlotType.setMinimumContentsLength(2)

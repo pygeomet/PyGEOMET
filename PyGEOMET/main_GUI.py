@@ -57,8 +57,6 @@ class CanvasWidget(QWidget):
     def __init__(self, parent, plotNumber):
         QWidget.__init__(self)
         self.fig = Figure((4,1.5), dpi=100)
-        #self.fig = Figure((4,1.5), tight_layout())
-        #self.fig = plt.figure(figsize=(8,4))
         self.setMinimumSize(500,500)
         self.canvas = FigureCanvas(self.fig)
         self.setMouseTracking(False)
@@ -85,10 +83,9 @@ class CanvasWidget(QWidget):
     
     def drawPlot(self):
 
-        #self.plotObj.figure.subplots_adjust(left=0.05,right=0.95,
-        #                                    bottom=0.05,top=0.95)
         #Horizontal Plot
-        if self.plotObj.currentPType == 0:
+        if (self.plotObj.currentPType == 'Horizontal Slice' or 
+            self.plotObj.currentPType == '1-panel'):
             self.plotObj.plot()
             if self.plotObj.appobj.eom == True:
                 if self.plotObj.cid is None:
@@ -96,23 +93,17 @@ class CanvasWidget(QWidget):
                 if self.plotObj.col is not None and self.plotObj.row is not None:
                     self.plotObj.getTable(self.plotObj.col,self.plotObj.row)
             
-            #self.plotObj.figure.tight_layout()
-           # self.plotObj.figure.subplots_adjust(left=0.08,right=0.92,
-           #                                     bottom=0.08,top=0.92)
             self.canvas.draw()
         
         #Vertical Cross section
-        if self.plotObj.currentPType == 1:
-            #self.plotObj.plotCS()
+        if (self.plotObj.currentPType == 'Vertical Slice'):
             self.plotObj.plot()
-            #self.plotObj.figure.tight_layout()
             self.canvas.draw()
 
         #Skew T
-        if self.plotObj.currentPType == 2:
+        if (self.plotObj.currentPType == 'SkewT/Hodograph'):
             if self.plotObj.replot2d == True:
                 self.plotObj.plot()
-                #self.plotObj.figure.tight_layout()
                 self.canvas.draw()
             if self.plotObj.cid is None: 
                 self.plotObj.cid = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -122,10 +113,9 @@ class CanvasWidget(QWidget):
                 plt.show()  
 
         #Vertical Profile
-        if self.plotObj.currentPType == 3:
+        if (self.plotObj.currentPType == 'Vertical Profile'):
             if self.plotObj.replot2d == True:
                 self.plotObj.plot()
-                #self.plotObj.figure.tight_layout()
                 self.canvas.draw()
             if self.plotObj.cid is None:
                 self.plotObj.cid = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -135,10 +125,9 @@ class CanvasWidget(QWidget):
                 plt.show()
 
         #Time Series
-        if self.plotObj.currentPType == 4:
+        if (self.plotObj.currentPType == 'Time Series'):
             if self.plotObj.replot2d == True:
                 self.plotObj.plot()
-                #self.plotObj.figure.tight_layout()
                 self.canvas.draw() 
             if self.plotObj.cid is None:
                 self.plotObj.cid = self.canvas.mpl_connect('button_press_event', self.onclick)
@@ -151,8 +140,7 @@ class CanvasWidget(QWidget):
                 plt.show()
 
         #Difference Plot
-        if self.plotObj.currentPType == 5:
-            #self.plotObj.plotDifference()
+        if (self.plotObj.currentPType == 'Difference Plot'):
             self.plotObj.plot()
             self.canvas.draw()
 
@@ -226,7 +214,7 @@ class PlotSlab:
         self.currentGrid = 1
         self.currentLevel = 0
         self.currentTime = 0
-        self.currentPType = 0
+        self.currentPType = self.dataSet.ptypes[0]
         self.currentOrient = 0
         self.nz = None
         self.plotCount = 0
@@ -285,6 +273,7 @@ class PlotSlab:
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
             self.dataSet.runType = None
+
     def setFigure(self, fig):
         if(fig != None):
             self.figure = fig
@@ -368,10 +357,6 @@ class PlotSlab:
             self.diffvar = self.diffdata.readNCVariable(self.diffdata.variableList[self.currentVar],
                 barbs=self.appobj.plotbarbs, vectors = self.appobj.plotvectors,
                 contour2=self.appobj.plotcontour2)
-            #self.varTitle = self.dataSet.description +' ('+self.dataSet.units
-            #self.varTitle = self.varTitle +') \n'+self.dataSet.getTime()
-            #print(self.varTitle)
-            #print(self.var.shape)
             #account for unstaggering of the grids in 3-dimensional variables
             if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
                 if len(self.diffvar.shape) == 3:
@@ -381,16 +366,12 @@ class PlotSlab:
                         self.diffvar = wrf.unstaggerY(self.diffvar)
                     if self.diffvar.shape[2] == self. diffdata.nx[self.diffdata.currentGrid-1]:
                         self.diffvar = wrf.unstaggerX(self.diffvar)
-                    #self.varTitle = self.varTitle + ', Level=' + str(self.dataSet.levelList[self.currentLevel])
                 else:
                     if self.diffvar.shape[0] == self.diffdata.ny[self.diffdata.currentGrid-1]:
                         self.diffvar = wrf.unstaggerY(self.diffvar)
                     if self.diffvar.shape[1] == self.diffdata.nx[self.diffdata.currentGrid-1]:
                         self.diffvar = wrf.unstaggerX(self.diffvar)
         else:
-            #Call wrf_dvar class
-            #t0 = time.clock()
-            #t1 = time.time()
             dvar = wrf_dvar.WRFDerivedVar(dset = self.diffdata,
                                             var = self.dataSet.dvarlist[self.currentdVar],
                                             ptype = self.currentPType)
@@ -553,7 +534,7 @@ class PlotSlab:
         #Recall projection when grid/dataset is changed.
         if self.appobj.recallProjection == True:    
             if len(self.appobj.axes1) >= self.appobj.plotCount:
-                 if (self.currentPType == 1):
+                 if (self.currentPType == 'Vertical Slice'):
                      self.figure.clear()
                      #Set things to none so we don't try to remove them later
                      self.appobj.cs = None
@@ -568,7 +549,7 @@ class PlotSlab:
                  if self.dataSet.map[self.currentGrid-1] != None: 
                      self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
             else:
-                 if (self.currentPType == 1):
+                 if (self.currentPType == 'Vertical Slice'):
                      self.figure.clear()
                      #Set things to none so we don't try to remove them later
                      self.appobj.cs = None
@@ -598,17 +579,17 @@ class PlotSlab:
             #Determine if the passed variable is 3D
             if(self.nz == 1):
                 #Make sure the variable is 3D for vertical cross section
-                if (self.currentPType == 1):
+                if (self.currentPType == 'Vertical Slice'):
                     self.error3DVar()
-                elif (self.currentPType == 5):
+                elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var - self.diffvar
                 else:
                     pltfld = self.var
             else:
                 #If vertical cross section take the whole array
-                if (self.currentPType == 1):
+                if (self.currentPType == 'Vertical Slice'):
                     var = self.var
-                elif (self.currentPType == 5):
+                elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var[self.currentLevel] - self.diffvar[self.currentLevel]
                 else:
                     pltfld = self.var[self.currentLevel]
@@ -626,7 +607,7 @@ class PlotSlab:
             self.figure.canvas.get_default_filename = lambda: (varname + '_' + time_string + '.png')
 
             #Set up vslice variables 
-            if self.currentPType == 1:
+            if (self.currentPType == 'Vertical Slice'):
                 #Create user control box 
                 if self.vslicebox is None:
                     self.verticalSliceControl()
@@ -684,7 +665,7 @@ class PlotSlab:
                 self.ncontours = 41.
                 #Check for NAN
                 if self.colormin != self.colormin:
-                    if (self.currentPType == 5):
+                    if (self.currentPType == 'Difference Plot'):
                         self.colormin = -1.
                     else:
                         self.colormin = 0.
@@ -698,7 +679,7 @@ class PlotSlab:
                         self.colormax = np.abs(self.colormax) * 2
             
             #For difference plot to normalize colorscale
-            if (self.currentPType == 5):
+            if (self.currentPType == 'Difference Plot'):
                 if (self.colormin >= 0):
                     self.colormin = -1.*self.colormax
                 if (self.colormax <= 0):
@@ -752,7 +733,7 @@ class PlotSlab:
                         coll.remove()
                 #Create contour on a map
                 #Check if map exists to plot on
-                if (self.currentPType == 1):
+                if (self.currentPType == 'Vertical Slice'):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].contourf(
                                       horiz,
                                       plevs, pltfld,
@@ -811,7 +792,7 @@ class PlotSlab:
   
                 #Create pcolormesh on a map
                 #Check if map exists to plot on
-                if (self.currentPType == 1):
+                if (self.currentPType == 'Vertical Slice'):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
                                       horiz, 
                                       plevs, pltfld, 
@@ -850,7 +831,7 @@ class PlotSlab:
                 self.ColorBar.remove()
             
             #Create colorbar
-            if (self.currentPType ==  1):
+            if (self.currentPType ==  'Vertical Slice'):
                 self.ColorBar = self.figure.colorbar(self.appobj.cs, ax=self.appobj.axes1[self.pNum-1], 
                                                      orientation='horizontal', pad=0.1)  
             else:
@@ -884,7 +865,7 @@ class PlotSlab:
             #Plot wind barbs or vectors
             if ((self.appobj.plotbarbs == True or self.appobj.plotvectors == True) and self.dataSet.dsetname != 'CMAQ'):
                 #Create map coordinates for wind barbs and vectors
-                if (self.currentPType == 1 and self.appobj.dname != 'MET'):
+                if (self.currentPType == 'Vertical Slice' and self.appobj.dname != 'MET'):
                     xb = horiz
                     yb = plevs
                     self.u10 = hwind
@@ -899,7 +880,7 @@ class PlotSlab:
                         interval2 = 5
                     else:
                         interval2 = 10
-                elif (self.currentPType != 1):                    
+                elif (self.currentPType != 'Vertical Slice'):                    
                     xb, yb = self.dataSet.map[self.currentGrid-1](
                              self.dataSet.glons[self.currentGrid-1],
                              self.dataSet.glats[self.currentGrid-1])
@@ -982,7 +963,7 @@ class PlotSlab:
 
             #Second contour
             if (self.appobj.plotcontour2 == True and self.dataSet.dsetname != 'CMAQ'):
-                if (self.currentPType == 1):
+                if (self.currentPType == 'Vertical Slice'):
                     if (self.appobj.dname != 'MET'):
                         self.appobj.cs2 = self.appobj.axes1[self.pNum-1].contour(horiz, plevs,
                                           pvar2, colors='k', linewidths=1.5)
@@ -1014,7 +995,7 @@ class PlotSlab:
                                            font=10, fmt=fmt)
 
         #Create geography
-        if (self.currentPType != 1 and self.dataSet.map[self.currentGrid-1] != None):
+        if (self.currentPType != 'Vertical Slice' and self.dataSet.map[self.currentGrid-1] != None):
             self.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
             self.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.appobj.axes1[self.pNum-1])
             self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.appobj.axes1[self.pNum-1])
@@ -1045,7 +1026,7 @@ class PlotSlab:
                 self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
-        elif (self.currentPType == 1):
+        elif (self.currentPType == 'Vertical Slice'):
             ax1 = self.appobj.axes1[self.pNum-1]
             #Have to handle vertical slice of CMAQ differently because Pressure/height
             #  isn't in the standard output
@@ -1359,7 +1340,9 @@ class PlotSlab:
                     x1 = -360. + x1
                 z = var[row,col]
 
-            #if self.currentPType == 2 or self.currentPType == 3 or self.currentPType == 4:
+            #if (self.currentPType == 'SkewT/Hodograph' or 
+            #    self.currentPType == 'Vertical Profile' or 
+            #    self.currentPType == 'Time Series'):
             #   return 'i=%6.2f, j=%6.2f, value=%10.6f'%(col, row, z)
             #else:
             return 'lon=%6.2f, lat=%6.2f, i=%5i, j=%5i, value=%10.6f'%(x1, y1, col, row, z)
@@ -1410,20 +1393,22 @@ class PlotSlab:
             self.col = None
        
         #If changed from difference plot - get the old colormap back
-        if (self.currentPType == 5):
+        if (self.currentPType == 'Difference Plot'):
             self.cmap = self.appobj.cmap
 
-        #Set the new plot type index
-        self.currentPType = i
+        #Set the new plot type
+        self.currentPType = self.dataSet.ptypes[i]
 		            
         #Don't allow changing of plot type before plotting
         if (self.currentVar != None or self.currentdVar != None):
             #Make sure there is a 3D variable selected before allowing 
             # a vertical slice plot to be made
-            if self.currentPType == 1 and len(self.var.shape) < 3:
+            if (self.currentPType == 'Vertical Profile' and len(self.var.shape) < 3):
                 #Switch back to the previous plot
                 self.currentPType = prev_plot
-                self.dataSet.selectPlotType.setCurrentIndex(self.currentPType)
+                #Determine previous plot type index
+                ind = np.where(self.dataSet.ptypes == self.currentPType)[0]
+                self.dataSet.selectPlotType.setCurrentIndex(ind)
                 #Throw an error
                 self.error3DVar()
             else:
@@ -1484,7 +1469,7 @@ class PlotSlab:
                     self.diffControl = None        
 
                 #Skew-T
-                if self.currentPType == 2:
+                if (self.currentPType == 'SkewT/Hodograph'):
 
                     #Create tab to control parcel type
                     self.pControl = QGroupBox()
@@ -1514,7 +1499,7 @@ class PlotSlab:
                     self.pltFxn(self.pNum)
 
                 #Vertical Profiles
-                if self.currentPType == 3:
+                if (self.currentPType == 'Vertical Profile'):
                     #Create tab to control vertical plot variable
                     self.vertControl = QGroupBox()
                     vertTitle = 'Vertical Profile Control'
@@ -1541,11 +1526,11 @@ class PlotSlab:
                     self.tabbingLayout.addWidget(self.optionTabs)                  
 
                 #Time Series
-                if self.currentPType == 4:
+                if (self.currentPType == 'Time Series'):
                     pass     
 
                 #Difference Plot
-                if self.currentPType == 5:
+                if (self.currentPType == 'Difference Plot'):
                     #Reset colorbar settings
                     self.colormax = None
                     self.colormin = None
@@ -1610,8 +1595,8 @@ class PlotSlab:
                 self.pltFxn(self.pNum) 
         else:
             self.errorPlotChange()
-            self.currentPType = 0
-            self.dataSet.selectPlotType.setCurrentIndex(self.currentPType)
+            self.currentPType = self.dataSet.ptypes[0]
+            self.dataSet.selectPlotType.setCurrentIndex(0)
 
     #Changes the variable
     def selectionChangeVar(self,i):
@@ -1638,7 +1623,7 @@ class PlotSlab:
     #  Also sets selections after the plot type is changed
     def setPlotVars(self):
         #Must be a 3D variable if on vertical slice
-        if self.currentPType == 1 and len(self.var.shape) < 3:
+        if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
             self.error3DVar()
         else:
             #If color scale is locked - unlock it
@@ -1680,16 +1665,17 @@ class PlotSlab:
             ndim   = len(self.var.shape)
             #Replot horizontal slice for skewT, vertical profile and 
             #   time series plots 
-            if (self.currentPType == 3 or self.currentPType == 2 or
-                self.currentPType == 4):
+            if (self.currentPType == 'SkewT/Hodograph' or 
+                self.currentPType == 'Vertical Profile' or
+                self.currentPType == 'Time Series'):
                 self.replot2d = True
                 self.col = None
                 self.row = None
                 #If time series also signal a new var
-                if self.currentPType == 4:
+                if (self.currentPType == 'Time Series'):
                     self.newvar = True
             #Difference plot - read in difference data
-            if self.currentPType == 5:
+            if (self.currentPType == 'Difference Plot'):
                 self.readDiffField()
             #Make sure at least a 2D variables was selected
             if(ndim > 1) :
@@ -1796,13 +1782,13 @@ class PlotSlab:
                 self.currentdVar = None
         self.readField()
         #Difference plot - read in difference data
-        if self.currentPType == 5:
+        if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
             self.diffdata.setGrid(self.currentGrid)
             self.readDiffField()
         self.appobj.axes1[self.pNum-1] = None
         self.figure.clear()
-        if self.currentPType == 1 and len(self.var.shape) < 3:
+        if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
             self.error3DVar()
         else:
             self.pltFxn(self.pNum)
@@ -1818,7 +1804,7 @@ class PlotSlab:
             self.currentLevel = i
             self.readField()
             #Difference plot - read in difference data
-            if self.currentPType == 5:
+            if (self.currentPType == 'Difference Plot'):
                 self.readDiffField()
             self.pltFxn(self.pNum)
 
@@ -1830,11 +1816,11 @@ class PlotSlab:
             self.colormax = None
             self.colormin = None
             self.ncontours = None
-        if self.currentPType == 2:
+        if (self.currentPType == 'SkewT/Hodograph'):
             self.replot2d = True
             self.col = None
             self.row = None
-        if self.currentPType == 3:
+        if (self.currentPType == 'Vertical Profile'):
             self.replot2d = True
             self.col = None
             self.row = None
@@ -1842,7 +1828,7 @@ class PlotSlab:
         self.readField()
         #Difference plot - read in difference data
         
-        if self.currentPType == 5:
+        if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
             self.readDiffField()
         self.pltFxn(self.pNum)
@@ -1889,11 +1875,11 @@ class PlotSlab:
             self.currentTime = 0
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
-        if self.currentPType == 2:
+        if (self.currentPType == 'SkewT/Hodograph'):
             self.replot2d = True
             self.col = None
             self.row = None
-        if self.currentPType == 3:
+        if (self.currentPType == 'Vertical Profile'):
             self.replot2d = True
             self.col = None
             self.row = None
@@ -1905,7 +1891,7 @@ class PlotSlab:
             self.colormin = None
             self.ncontours = None
         #Difference plot - read in difference data
-        if self.currentPType == 5:
+        if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
             self.readDiffField()
         self.pltFxn(self.pNum)
@@ -1916,11 +1902,11 @@ class PlotSlab:
             self.currentTime = self.dataSet.getNumFiles()*self.dataSet.ntimes-1
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
-        if self.currentPType == 2:
+        if (self.currentPType == 'SkewT/Hodograph'):
             self.replot2d = True
             self.col = None
             self.row = None
-        if self.currentPType == 3:
+        if (self.currentPType == 'Vertical Profile'):
             self.replot2d = True
             self.col = None
             self.row = None
@@ -1932,7 +1918,7 @@ class PlotSlab:
             self.colormin = None
             self.ncontours = None
         #Difference plot - read in difference data
-        if self.currentPType == 5:
+        if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
             self.readDiffField()
         self.pltFxn(self.pNum)

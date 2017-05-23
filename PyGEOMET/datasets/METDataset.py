@@ -109,6 +109,10 @@ class METDataset:
 
         self.resolution = "l"
 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
+                       'Vertical Profile', 'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
 
     # name() is the function for specifying the WRF dataset. #
     # Based on the directory name and prefix for WRF output  #
@@ -548,8 +552,6 @@ class METDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
-                  'Time Series', 'Difference Plot']#, 'Hovmoller Diagram']
         self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.activated.connect(plotObj.selectionChangePlot)

@@ -57,6 +57,9 @@ class Radardataset:
         self.lat0 = [None]
         self.NEXRADfile(update=True)
 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['1-panel']#,'2-panel','4-panel']
+
     def setURL(self,update=None):
         #if no valid path, do nothing:
         if self.grid == None or self.year == None or \
@@ -302,8 +305,7 @@ class Radardataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['1-panel']#,'2-panel','4-panel']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 #       self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)

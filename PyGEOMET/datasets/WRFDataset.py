@@ -113,6 +113,11 @@ class WrfDataset:
         self.dsetname = "WRF"
 
         self.resolution = "l"
+ 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
+                       'Vertical Profile', 'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
 
 
     # name() is the function for specifying the WRF dataset. #
@@ -593,9 +598,7 @@ class WrfDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
-                  'Time Series', 'Difference Plot']#, 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.activated.connect(plotObj.selectionChangePlot)
         self.selectPlotType.setMinimumContentsLength(2)
