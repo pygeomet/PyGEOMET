@@ -1825,31 +1825,6 @@ class PlotSlab:
                 self.readDiffField()
             self.pltFxn(self.pNum)
 
-    def selectionChangeTime(self,i):
-        self.currentTime = i
-        self.dataSet.setTimeIndex(self.currentTime)
-        if self.colorlock == False:
-            #Reset colorbar settings
-            self.colormax = None
-            self.colormin = None
-            self.ncontours = None
-        if (self.currentPType == 'SkewT/Hodograph'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-        if (self.currentPType == 'Vertical Profile'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-            self.selectionChangeVerticalVar(self.selectedVvar)
-        self.readField()
-        #Difference plot - read in difference data
-        
-        if (self.currentPType == 'Difference Plot'):
-            self.diffdata.setTimeIndex(self.currentTime)
-            self.readDiffField()
-        self.pltFxn(self.pNum)
-
     def selectionChangeDset(self,i):
         self.currentDset = i+1
         if self.colorbox is not None:
@@ -1886,54 +1861,53 @@ class PlotSlab:
         self.figure.clear()
         self.pltFxn(self.pNum)
 
+    #Function connected to the time list combobox
+    def selectionChangeTime(self,i):
+        self.currentTime = i
+        self.dataSet.setTimeIndex(self.currentTime)
+        self.timeChangeSettings()
+
+    #Function connected to the next button
     def nxtButtonAction(self):
         self.currentTime+=1
         if self.currentTime == self.dataSet.ntimes*self.dataSet.getNumFiles():
             self.currentTime = 0
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
-        if (self.currentPType == 'SkewT/Hodograph'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-        if (self.currentPType == 'Vertical Profile'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-            self.selectionChangeVerticalVar(self.selectedVvar)        
-        self.readField()
-        if self.colorlock == False:
-            #Reset colorbar settings
-            self.colormax = None
-            self.colormin = None
-            self.ncontours = None
-        #Difference plot - read in difference data
-        if (self.currentPType == 'Difference Plot'):
-            self.diffdata.setTimeIndex(self.currentTime)
-            self.readDiffField()
-        self.pltFxn(self.pNum)
-	 
+        self.timeChangeSettings()	
+ 
+    #Function connected to the previous button
     def prevButtonAction(self):
         self.currentTime-=1
         if self.currentTime == -1:
             self.currentTime = self.dataSet.getNumFiles()*self.dataSet.ntimes-1
         self.selectTime.setCurrentIndex(self.currentTime)
         self.dataSet.setTimeIndex(self.currentTime)
-        if (self.currentPType == 'SkewT/Hodograph'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-        if (self.currentPType == 'Vertical Profile'):
-            self.replot2d = True
-            self.col = None
-            self.row = None
-            self.selectionChangeVerticalVar(self.selectedVvar)          
-        self.readField()
+        self.timeChangeSettings()
+
+    #All time change functions call this
+    # function to set all of necessary plot
+    # specific settings. Reduces redundancy.
+    def timeChangeSettings(self):
+        #Handle color scale settings
         if self.colorlock == False:
             #Reset colorbar settings
             self.colormax = None
             self.colormin = None
             self.ncontours = None
+        #Replot 2d plot, set col and row to None so
+        # a new window will not pop-up with changing time.
+        #If we want to change the pop with time remove setting
+        # self.col and self.row to None
+        if (self.currentPType == 'SkewT/Hodograph' or
+            self.currentPType == 'Vertical Profile'):
+            self.replot2d = True
+            self.col = None
+            self.row = None
+            if (self.currentPType == 'Vertical Profile'):
+                self.selectionChangeVerticalVar(self.selectedVvar)
+        self.readField()
+
         #Difference plot - read in difference data
         if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
@@ -1952,6 +1926,7 @@ class PlotSlab:
                 self.refboxLabel.setText('x-displacement:')
             else:
                 self.refboxLabel.setText('Lon:')
+
     def enterPress(self):
         self.ref_pt = np.float(self.refbox.text())
         self.minpress = np.float(self.pbox.text())
