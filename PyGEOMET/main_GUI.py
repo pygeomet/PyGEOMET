@@ -154,32 +154,45 @@ class CanvasWidget(QWidget):
 
     def onclick(self,event):
         ix, iy = event.xdata, event.ydata
-        lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                    self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
-                    self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
-        clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                    self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
-                    self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
-        tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
-        tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
-        row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
-        col  = np.argsort(np.abs(lon[row,:] - ix))[0]
-        
+        #Make sure the user clicks on the map
+        #If they don't, ix and iy will be None. 
+        #This will result in an error in the row/col calculations
+        if (ix != None and iy != None):
+            lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                        self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
+                        self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
+            clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                        self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
+                        self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
+            tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
+            tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
+            row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
+            col  = np.argsort(np.abs(lon[row,:] - ix))[0]
 
-
-        print( col, row )
-        coords = [ix, iy]
+            print( col, row )
+            coords = [ix, iy]
        
-        if len(coords) == 2:
-            self.plotObj.col = col
-            self.plotObj.row = row
-            self.plotObj.replot2d = False
-            self.plotObj.newvar = True
-            self.drawPlot()
+            if len(coords) == 2:
+                self.plotObj.col = col
+                self.plotObj.row = row
+                self.plotObj.replot2d = False
+                self.plotObj.newvar = True
+                self.drawPlot()
+            else:
+                self.plotObj.col = None
+                self.plotObj.row = None
         else:
-            self.plotObj.col = None
-            self.plotObj.row = None
-        
+            self.errorClick()
+
+    #Throw an error for a bad click
+    def errorClick(self):
+        msg = QMessageBox(self.plotObj.appobj)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('Make sure you clicked on a point within the map')
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+ 
 ###############################################################################
 ####                         End CanvasWidget() Object                     ####
 ###############################################################################
@@ -1403,7 +1416,7 @@ class PlotSlab:
         if (self.currentVar != None or self.currentdVar != None):
             #Make sure there is a 3D variable selected before allowing 
             # a vertical slice plot to be made
-            if (self.currentPType == 'Vertical Profile' and len(self.var.shape) < 3):
+            if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
                 #Switch back to the previous plot
                 self.currentPType = prev_plot
                 #Determine previous plot type index
@@ -1470,6 +1483,8 @@ class PlotSlab:
 
                 #Skew-T
                 if (self.currentPType == 'SkewT/Hodograph'):
+                    
+                    self.replot2d = True
 
                     #Create tab to control parcel type
                     self.pControl = QGroupBox()
@@ -1500,6 +1515,8 @@ class PlotSlab:
 
                 #Vertical Profiles
                 if (self.currentPType == 'Vertical Profile'):
+                    self.replot2d = True
+                  
                     #Create tab to control vertical plot variable
                     self.vertControl = QGroupBox()
                     vertTitle = 'Vertical Profile Control'
@@ -1527,7 +1544,7 @@ class PlotSlab:
 
                 #Time Series
                 if (self.currentPType == 'Time Series'):
-                    pass     
+                    self.replot2d = True
 
                 #Difference Plot
                 if (self.currentPType == 'Difference Plot'):
