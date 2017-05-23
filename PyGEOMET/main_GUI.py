@@ -158,16 +158,22 @@ class CanvasWidget(QWidget):
         #If they don't, ix and iy will be None. 
         #This will result in an error in the row/col calculations
         if (ix != None and iy != None):
-            lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                        self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
-                        self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
-            clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                        self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
-                        self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
-            tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
-            tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
-            row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
-            col  = np.argsort(np.abs(lon[row,:] - ix))[0]
+            if (self.plotObj.dataSet.runType != 'IDEAL'):
+                lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                            self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
+                            self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
+                clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                            self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
+                            self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
+                tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
+                tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
+                row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
+                col  = np.argsort(np.abs(lon[row,:] - ix))[0]
+            else:
+                row = int(iy*1000/self.plotObj.dataSet.dy[self.plotObj.currentGrid-1] + 
+                         (self.plotObj.dataSet.ny[self.plotObj.currentGrid-1]-1)/2)
+                col = int(ix*1000/self.plotObj.dataSet.dx[self.plotObj.currentGrid-1] + 
+                         (self.plotObj.dataSet.nx[self.plotObj.currentGrid-1]-1)/2) 
 
             print( col, row )
             coords = [ix, iy]
@@ -283,6 +289,7 @@ class PlotSlab:
         self.cmap = self.appobj.cmap
         self.appobj.eom = None
         self.colorlock = False
+        self.crtmbox = None
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
             self.dataSet.runType = None
@@ -1631,16 +1638,140 @@ class PlotSlab:
     def selectionChangedVar(self,i):
         self.currentdVar = i
         self.derivedVar = True
-        self.readField()
         #initialize an index for derived variable
         # not used but needed in setPlotVars
         self.currentVar = 0
-        self.setPlotVars()
+        #Check if selection is simulated brightness temp
+        #Wait until selections are made
+        if (self.dataSet.dvarlist[self.currentdVar] == 'Bright_Temp'):
+            #Create an initial sensor and channel selection box
+            self.crtmControl = QDialog(self.appobj)
+            self.crtmControl.resize(self.crtmControl.minimumSizeHint())
+            self.crtmControl.setMinimumHeight(self.appobj.screeny*.12)
+            self.crtmControl.setMinimumWidth(self.appobj.screenx*.15)
+            self.crtmControl.setWindowTitle("Select sensor and channel")
+            crtmControlLayout = QVBoxLayout(self.crtmControl)
+            
+            #Create sensor combo box
+            sensorBoxLabel = QLabel()
+            sensorBoxLabel.setText('Sensor Type:')
+            self.sensorBox = QComboBox()
+            self.sensorBox.setStyleSheet(Layout.QComboBox())
+            #Define sensor types
+            self.sensor_types = ['imgr_g12','imgr_g13','imgr_g14','imgr_g15']
+            self.sensorBox.addItems(self.sensor_types)
+            self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+                        
+            #Create channel combo box  
+            channelBoxLabel = QLabel()
+            channelBoxLabel.setText('Sensor Channel:')
+            self.channelBox = QComboBox()
+            self.channelBox.setStyleSheet(Layout.QComboBox())
+            #Define sensor types
+            self.channels = ['3','4']
+            self.channelBox.addItems(self.channels)
+            self.channelBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+             
+            #Create button to submit sensor and channel selections
+            subButton = QPushButton()
+            subButton.setStyleSheet(Layout.QPushButton3())
+            subButton.resize(subButton.minimumSizeHint())
+            subButton.setText('Submit')
+            subButton.clicked.connect(self.crtmOptionsControl)
+
+            #Add the Widgets to the layout
+            crtmControlLayout.addWidget(sensorBoxLabel)
+            crtmControlLayout.addWidget(self.sensorBox)
+            crtmControlLayout.addWidget(channelBoxLabel)
+            crtmControlLayout.addWidget(self.channelBox)
+            crtmControlLayout.addWidget(subButton)
+             
+            #Display the selection window
+            self.crtmControl.show()
+
+        else:        
+            self.readField()    
+            self.setPlotVars()
+
+    #This function creates the CRTM options tab
+    #Needed because pop window only shows when first
+    # switching to brightness temperature variable
+    def crtmOptionsControl(self):
+
+        #Close the pop window
+        self.crtmControl.close()
+        #Save selections
+        sens = self.sensorBox.currentIndex()  
+        chan = self.channelBox.currentIndex()
+
+        #Define group box and give it a name
+        boxTitleString = 'CRTM Control'
+        self.crtmbox = QGroupBox()
+        self.crtmbox.setStyleSheet(Layout.QGroupBox())
+
+        crtmLayout = QVBoxLayout()
+        self.crtmbox.setLayout(crtmLayout)
+
+        #Sensor Box 
+        sensorBoxLabel = QLabel()
+        sensorBoxLabel.setText('Sensor Type:')
+        self.sensorBox = QComboBox()
+        self.sensorBox.setStyleSheet(Layout.QComboBox())
+        self.sensorBox.addItems(self.sensor_types)
+        self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Set index based on first user selection
+        self.sensorBox.setCurrentIndex(sens)
+        
+        #Create channel combo box
+        channelBoxLabel = QLabel()
+        channelBoxLabel.setText('Sensor Channel:')
+        self.channelBox = QComboBox()
+        self.channelBox.setStyleSheet(Layout.QComboBox())
+        self.channelBox.addItems(self.channels)
+        self.channelBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Set index based on first user selection
+        self.channelBox.setCurrentIndex(chan)
+
+        #Replot button
+        self.crtmPlotButton = QPushButton('Replot')
+        self.crtmPlotButton.setStyleSheet(Layout.QPushButton3())
+        self.crtmPlotButton.resize(self.crtmPlotButton.minimumSizeHint())
+        self.crtmPlotButton.clicked.connect(self.selectionCRTM)
+
+        #Connect widgets
+        crtmLayout.addWidget(sensorBoxLabel)
+        crtmLayout.addWidget(self.sensorBox)
+        crtmLayout.addWidget(channelBoxLabel)
+        crtmLayout.addWidget(self.channelBox)
+        crtmLayout.addWidget(self.crtmPlotButton)
+
+        #Add to options tab
+        self.optionTabs.addTab(self.crtmbox,boxTitleString)
+        self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+        self.tabbingLayout.addWidget(self.optionTabs)
+
+    #This function controls the CRTM sensor and channel selections
+    def selectionCRTM(self):
+        
+        #Get the sensor selection
+        self.crtmSensor = self.sensor_types[self.sensorBox.currentIndex()]
+        
+        #Get the channel selection
+        self.crtmChannel = self.channels[self.channelBox.currentIndex()]
+
+        print(self.crtmSensor,self.crtmChannel)
+
 
     #This function is called to set plotting variables
     #  after a varaible (var or dvar) is changed.
     #  Also sets selections after the plot type is changed
     def setPlotVars(self):
+
+        #Clear CRTM controls if necessary
+        if self.crtmbox is not None:
+            self.crtmbox.setParent(None)
+            self.crtmbox = None
+
         #Must be a 3D variable if on vertical slice
         if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
             self.error3DVar()
@@ -1658,6 +1789,11 @@ class PlotSlab:
             #Not all datasets have a dvarlist so only check if WRF at the moment
             #Revist this as additional datasets are added (if they have derived vars)
             if (self.dataSet.dsetname == 'WRF'):
+                #Clear CRTM controls if necessary
+                if (self.crtmbox is not None and 
+                    self.dataSet.dvarlist[self.currentdVar] == 'Bright_Temp'):
+                    self.crtmbox.setParent(None)
+                    self.crtmbox = None
                 if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
                    (self.dataSet.dvarlist[self.currentdVar] == 'refl' and 
                      self.derivedVar == True)):
@@ -1712,7 +1848,6 @@ class PlotSlab:
                 self.updateListView = True
                 #Call the plot function
                 self.pltFxn(self.pNum)        
-
         
     def determineRadioSelection(self):
         for i in range(len(self.dsetlist)):

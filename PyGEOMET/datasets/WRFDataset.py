@@ -512,8 +512,8 @@ class WrfDataset:
                 self.setProjection(i+1)
 
             elif self.runType == 'IDEAL':
-                xx = np.arange(-1*((self.nx[i]-1)/2)*self.dx[i],((self.nx[i]-1)/2)*self.dx[i],self.dx[i])
-                yy = np.arange(-1*((self.ny[i]-1)/2)*self.dy[i],((self.ny[i]-1)/2)*self.dy[i],self.dy[i])
+                xx = np.arange(-1*((self.nx[i]-1)/2.)*self.dx[i],((self.nx[i]-1)/2.)*self.dx[i],self.dx[i])
+                yy = np.arange(-1*((self.ny[i]-1)/2.)*self.dy[i],((self.ny[i]-1)/2.)*self.dy[i],self.dy[i])
                 self.glons[i],self.glats[i] = np.meshgrid(xx/1000.,yy/1000.)
 
             else:

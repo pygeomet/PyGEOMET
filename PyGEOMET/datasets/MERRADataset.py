@@ -53,9 +53,7 @@ class MERRAdataset:
         self.setURL(update=True)
 
         #Define plot type available for the dataset within the GUI
-        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
-                       'Vertical Profile', 'Time Series', 'Difference Plot']
-                       #, 'Hovmoller Diagram']
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice']
 
     def setURL(self,update=None):
         #if no valid path, do nothing:

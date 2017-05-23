@@ -602,6 +602,7 @@ class Radardataset:
             self.getTimeIndex()
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
+            self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
             self.plothook.readField()
             self.plothook.pltFxn(self.plothook.pNum)
 #            self.plotRadarData()
@@ -632,6 +633,7 @@ class Radardataset:
             self.getTimeIndex()
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
+            self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
             self.plothook.readField()
             self.plothook.pltFxn(self.plothook.pNum)
 #            self.plotRadarData()
