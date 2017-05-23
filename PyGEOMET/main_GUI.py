@@ -585,6 +585,7 @@ class PlotSlab:
             self.cmap = self.dataSet.cmap
             self.colormin = self.dataSet.range[0]
             self.colormax = self.dataSet.range[1]
+            self.ncontours = 41.
 
         #Determine if a variable was passed - plots grid if not
         if(self.currentVar != None or self.currentdVar != None):
@@ -607,17 +608,18 @@ class PlotSlab:
                 else:
                     pltfld = self.var[self.currentLevel]
             
-            #Set time string
-            time_string = self.dataSet.timeObj.strftime("%Y%m%d_%H%M%S")
+            #Set time string for saving the figure
+            # timeObj is None in the NEXRAD dataset
+            if (self.dataSet.dsetname != 'NEXRAD Radar'):
+                time_string = self.dataSet.timeObj.strftime("%Y%m%d_%H%M%S")
+                #Get variable name
+                if not self.derivedVar:
+                    varname = self.dataSet.variableList[self.currentVar]
+                else:
+                    varname = self.dataSet.dvarlist[self.currentdVar]
 
-            #Get variable name
-            if not self.derivedVar:
-                varname = self.dataSet.variableList[self.currentVar]
-            else:
-                varname = self.dataSet.dvarlist[self.currentdVar]
-
-            #change the default plot name - for saving figure
-            self.figure.canvas.get_default_filename = lambda: (varname + '_' + time_string + '.png')
+                #change the default plot name - for saving figure
+                self.figure.canvas.get_default_filename = lambda: (varname + '_' + time_string + '.png')
 
             #Set up vslice variables 
             if (self.currentPType == 'Vertical Slice'):
@@ -1830,6 +1832,14 @@ class PlotSlab:
         if self.colorbox is not None:
             self.colorbox.setParent(None)
             self.colorbox = None
+            #If a colorbox exist, these will also exist
+            #If color scale is locked - unlock it
+            if self.colorlock == True:
+                self.colorlock = False
+            #Setting these to None will force a re-scale in plot
+            self.colormax = None
+            self.colormin = None
+            self.ncontours = None
         if self.vslicebox is not None:
             self.vslicebox.setParent(None)
             self.vslicebox = None
