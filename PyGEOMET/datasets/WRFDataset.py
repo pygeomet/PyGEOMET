@@ -517,7 +517,7 @@ class WrfDataset:
                 self.glons[i],self.glats[i] = np.meshgrid(xx/1000.,yy/1000.)
 
             else:
-                print('This does seem to be a REAL or IDEAL WRF Simulation.' +
+                print('This does not seem to be a REAL or IDEAL WRF Simulation.' +
                       ' PyGEOMET has not been configured to work with this file' +
                        '. Exiting Now')
                 exit()
