@@ -274,10 +274,10 @@ class WRFDerivedVar:
         rainc = self.dataSet.readNCVariable('RAINC')
         rainnc = self.dataSet.readNCVariable('RAINNC')
         rainsh = self.dataSet.readNCVariable('RAINSH')
-        var1 = rainc + rainnc + rainsh
-        self.var = wrf.convertP_MMtoIN(var1)
-        self.var2 = var1
-        self.varTitle = "Total Accumulated Precipitation (in)\n" + self.dataSet.getTime()
+        self.var = rainc + rainnc + rainsh
+        #self.var = wrf.convertP_MMtoIN(var1)
+        self.var2 = self.var
+        self.varTitle = "Total Accumulated Precipitation (mm)\n" + self.dataSet.getTime()
 
     def clwp(self):
 
@@ -376,10 +376,15 @@ class WRFDerivedVar:
         if self.dataSet.ntimes == 1:
             prevind = self.dataSet.currentFileIndex-1
             currind = self.dataSet.currentFileIndex
-
+        elif len(self.dataSet.fileList) > 1:
+            prevind = self.dataSet.currentFileIndex*self.dataSet.ntimes + self.dataSet.currentTimeIndex-1
+            currind = self.dataSet.currentFileIndex*self.dataSet.ntimes + self.dataSet.currentTimeIndex
+            print(prevind,currind)
+        else:
+            prevind = self.dataSet.currentTimeIndex-1
+            currind = self.dataSet.currentTimeIndex
         self.dataSet.setTimeIndex(currind)
-        tmp = self.dataSet.getTime()
-        currtime = datetime.datetime.strptime(tmp, "%d %b %Y, %H:%M:%S UTC")
+        currtime = self.dataSet.readNCVariable('XTIME')
         tmp1 = self.dataSet.readNCVariable('RAINC')
         tmp2 = self.dataSet.readNCVariable('RAINNC')
         tmp3 = self.dataSet.readNCVariable('RAINSH')
@@ -392,7 +397,7 @@ class WRFDerivedVar:
             prevtime = currtime
         else:
             tmp = self.dataSet.getTime()
-            prevtime = datetime.datetime.strptime(tmp,"%d %b %Y, %H:%M:%S UTC")
+            prevtime = self.dataSet.readNCVariable('XTIME')
             tmp1 = self.dataSet.readNCVariable('RAINC')
             tmp2 = self.dataSet.readNCVariable('RAINNC')
             tmp3 = self.dataSet.readNCVariable('RAINSH')
@@ -400,10 +405,10 @@ class WRFDerivedVar:
 
         self.dataSet.setTimeIndex(currind)
         dt = currtime - prevtime
-        if dt.seconds == 0:
+        if dt == 0:
             self.var = current - prev
         else:
-            self.var = (current - prev)/(dt.seconds/3600.)
+            self.var = (current - prev)/(dt/60.)
         self.var2 = self.var
         self.varTitle = "Rain Rate (mm hr$^{-1}$)\n" + self.dataSet.getTime() 
 

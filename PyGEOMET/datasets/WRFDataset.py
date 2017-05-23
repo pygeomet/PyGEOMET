@@ -4,7 +4,7 @@ import glob
 import netCDF4
 import multiprocessing
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from mpl_toolkits.basemap import Basemap
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -30,7 +30,9 @@ def read_nctime(infile):
             hour   = tm[11]+tm[12]
             minute = tm[14]+tm[15]
             second = tm[17]+tm[18]
-
+            #if ideal, python2 does not accept year=1, so we force it
+            if int(year) < 1900:
+                year = '1901'
             timeObj  = datetime(
                                 int(year),
                                 int(month),
@@ -50,7 +52,9 @@ def read_nctime(infile):
         hour   = tm[11]+tm[12]
         minute = tm[14]+tm[15]
         second = tm[17]+tm[18]
-
+        #if ideal, python2 does not accept year=1, so we force it
+        if int(year) < 1900:
+            year = '1901'
         timeObj  = datetime(
                             int(year),
                             int(month),
@@ -98,6 +102,8 @@ class WrfDataset:
 
         self.ntimes = None
 
+        self.runType = None
+
         self.currentTimeIndex = 0
 
         self.currentFileIndex = 0
@@ -107,6 +113,11 @@ class WrfDataset:
         self.dsetname = "WRF"
 
         self.resolution = "l"
+ 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
+                       'Vertical Profile', 'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
 
 
     # name() is the function for specifying the WRF dataset. #
@@ -186,7 +197,7 @@ class WrfDataset:
                     self.twoDVars.append(varname)
             self.setGridDefinition()
 
-            self.dvarlist = wrf.getDvarList(self.variableList)
+            self.dvarlist = wrf.getDvarList(self.variableList,self.runType)
 
     def readNCVariable(self,vname,barbs=None, vectors=None, contour2=None,varonly=False):
         variable = self.dsets[vname][self.currentTimeIndex]
@@ -228,7 +239,7 @@ class WrfDataset:
         pb = np.squeeze(self.readNCVariable('PB'))
         press = (p + pb)/100.
         height = wrf.unstaggerZ((ph + phb)/9.81)/1000.
-
+        
         return u, v, w, press, height
 
     def getVariable(self,vname):
@@ -242,7 +253,6 @@ class WrfDataset:
         return self.ncId.__dict__[attname]
 
     def setGridDefinition(self):
-
         self.gridRatio = []
         self.pID = []
         self.nx  = []
@@ -348,16 +358,31 @@ class WrfDataset:
         hour   = tm[11]+tm[12]
         minute = tm[14]+tm[15]
         second = tm[17]+tm[18]
-
+        #if ideal, python2 does not accept year=1, so we force it
+        if int(year) < 1900:
+            year = '1901'
         self.timeObj  = datetime(
-                                    int(year),
-                                    int(month),
-                                    int(day),
-                                    int(hour),
-                                    int(minute),
-                                    int(second)
-                                    )
-        self.timeString = self.timeObj.strftime("%d %b %Y, %H:%M:%S UTC")
+                                     int(year),
+                                     int(month),
+                                     int(day),
+                                     int(hour),
+                                     int(minute),
+                                     int(second)
+                                     )
+        if self.runType == 'REAL':
+            self.timeString = self.timeObj.strftime("%d %b %Y, %H:%M:%S UTC")
+        else:
+            tmp=timedelta(days=int(day),hours=int(hour),
+                                   minutes=int(minute),seconds=int(second))
+            #stupid datetime timedelta stuff
+            tmp1 = tmp.days*24-24
+            tmp2 = (tmp.seconds - np.mod(tmp.seconds,3600))/3600.
+            tmp3 = (tmp.seconds-(tmp2*3600)-np.mod(tmp.seconds-(tmp2*3600),60))/60.
+            tmp4 = tmp.seconds-(tmp2*3600)-(tmp3*60)
+            self.timeString = ('Forecast Hour ' +
+                              "{0:0>3}".format(int(tmp1+tmp2)) + 
+                              ':' + "{0:0>2}".format(int(tmp3)) +
+                              ':' + "{0:0>2}".format(int(tmp4)))
         return self.timeString
 
     def variableExist(self,varname):
@@ -453,6 +478,15 @@ class WrfDataset:
         cg = self.currentGrid
         indx = self.currentTimeIndex
 
+        if (self.ncId.variables['XLONG'][:].min() ==
+            self.ncId.variables['XLONG'][:].max() and
+            self.ncId.variables['XLAT'][:].min() ==
+            self.ncId.variables['XLAT'][:].max()):
+            self.runType = 'IDEAL'
+        else:
+            self.runType = 'REAL'
+
+
         for i in range(0,self.numGrids):
 
             if i == 0:
@@ -461,20 +495,32 @@ class WrfDataset:
             else:
                 self.setGrid(i+1,update=False)
                 self.setTimeIndex(indx)
+            
+            if self.runType == 'REAL':
+                self.glons[i] = self.readNCVariable('XLONG')
+                dims = self.glons[i].shape
+                self.ll_lon[i] = self.glons[i][0,0]
+                self.ur_lon[i] = self.glons[i][dims[0]-1,dims[1]-1]
 
-            self.glons[i] = self.readNCVariable('XLONG')
-            dims = self.glons[i].shape
-            self.ll_lon[i] = self.glons[i][0,0]
-            self.ur_lon[i] = self.glons[i][dims[0]-1,dims[1]-1]
+                self.glats[i] = self.readNCVariable('XLAT')
+                dims = self.glats[i].shape
+                self.ll_lat[i] = self.glats[i][0,0]
+                self.ur_lat[i] = self.glats[i][dims[0]-1,dims[1]-1]
 
-            self.glats[i] = self.readNCVariable('XLAT')
-            dims = self.glats[i].shape
-            self.ll_lat[i] = self.glats[i][0,0]
-            self.ur_lat[i] = self.glats[i][dims[0]-1,dims[1]-1]
+                self.wd[i] = (self.nx[i]-2)*self.dx[i]
+                self.ht[i] = (self.ny[i]-2)*self.dy[i]
+                self.setProjection(i+1)
 
-            self.wd[i] = (self.nx[i]-2)*self.dx[i]
-            self.ht[i] = (self.ny[i]-2)*self.dy[i]
-            self.setProjection(i+1)
+            elif self.runType == 'IDEAL':
+                xx = np.arange(-1*((self.nx[i]-1)/2)*self.dx[i],((self.nx[i]-1)/2)*self.dx[i],self.dx[i])
+                yy = np.arange(-1*((self.ny[i]-1)/2)*self.dy[i],((self.ny[i]-1)/2)*self.dy[i],self.dy[i])
+                self.glons[i],self.glats[i] = np.meshgrid(xx/1000.,yy/1000.)
+
+            else:
+                print('This does not seem to be a REAL or IDEAL WRF Simulation.' +
+                      ' PyGEOMET has not been configured to work with this file' +
+                       '. Exiting Now')
+                exit()
 
         self.setGrid(cg,update=False)
         self.setTimeIndex(indx)
@@ -552,9 +598,7 @@ class WrfDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
-                  'Time Series', 'Difference Plot']#, 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.activated.connect(plotObj.selectionChangePlot)
         self.selectPlotType.setMinimumContentsLength(2)
@@ -680,6 +724,6 @@ class WrfDataset:
         return self.qscroll
 
 ###############################################################################
-####                          End GGataset() Object                      ####
+####                          End WRFDataset() Object                      ####
 ###############################################################################
 

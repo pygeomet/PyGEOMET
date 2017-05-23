@@ -1615,15 +1615,17 @@ def unstaggerZ(var):
 ##                                                                            #
 ###############################################################################
 
-def getDvarList(varlist):
+def getDvarList(varlist,runtype):
     dvarlist = []
     variables = varlist
 
     dvarlist.extend(['CAPE_SB','CAPE_ML','CAPE_MU',
                      'CIN_SB','CIN_ML','CIN_MU',
-                     'mslp','lcl_hgt','pwat', 't2m','td2m',
-                     'temp-3d','temp_ML','theta','theta-e-3d',
-                     'wind10m'])
+                     'mslp','pwat','temp-3d',
+                     'theta','theta-e-3d'])
+    if runtype == 'REAL':
+        dvarlist.extend(['lcl_hgt','temp_ML','t2m',
+                         'td2m','wind10m'])
 
     if ('U' in variables and 'V' in variables):
         dvarlist.extend(['300mb_winds','500mb_hgt','500mb_temp',
@@ -1634,7 +1636,9 @@ def getDvarList(varlist):
 
     if ('RAINNC' in variables and 'RAINSH' in variables
         and 'RAINC' in variables):
-        dvarlist.extend(['acc_pcp','rainrate'])
+        dvarlist.extend(['acc_pcp'])
+        if ('XTIME' in variables):
+            dvarlist.extend(['rainrate'])
 
     if ('QCLOUD' in variables and 'QRAIN' in variables
         and 'QSNOW' in variables and 'QICE' in variables

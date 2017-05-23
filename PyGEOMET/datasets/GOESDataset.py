@@ -55,6 +55,9 @@ class GOESDataset:
 
         self.resolution = "l"
 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Time Series']
+
     # name() is the function for specifying the GOES dataset. #
     # Based on the directory name and prefix for WRF output  #
     # files, this function will compile a list of file names #

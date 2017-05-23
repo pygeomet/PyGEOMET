@@ -57,6 +57,12 @@ class CmaqDataset:
  
         self.varList = []
 
+        #Define plot type available for the dataset within the GUI
+        #Should make this file type dependent for CMAQ
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'Vertical Profile', 
+                       'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
+
     def name(self, path, prefix) :
 
         # If no valid path and prefix are specified, then do #
@@ -416,16 +422,20 @@ class CmaqDataset:
         self.pObj.appobj.vectorkey = None
         self.pObj.appobj.cs2label = None
         self.pObj.ColorBar = None
+        self.pObj.appobj.domain_average = None
         #self.pObj.derivedVar = False
         self.pObj.appobj.recallProjection = True
         #Plus 1 is needed because None is technically the first index
         #self.dataSet = self.dSet[self.currentDset]
         self.pObj.getControlBar()
+        self.selectFType.setCurrentIndex(self.currentFType)
         #self.currentGrid = 1
         self.currentTime = 0
         self.setTimeIndex(self.currentTime)
         #self.dataSet.setGrid(self.currentGrid, update=None)
+        #Make sure all variables are none type
         self.pObj.currentVar = None
+        self.pObj.currentdVar = None
         #self.currentdVar = None
         self.pObj.selectVar.clear()
         self.pObj.selectVar.addItems(self.pObj.dataSet.variableList)
@@ -486,7 +496,7 @@ class CmaqDataset:
         #self.ftypes = ['ACONC','CONC','B3GTS_S']
         self.selectFType.addItems(self.ftypes)
         self.selectFType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.selectFType.currentIndexChanged.connect(self.selectionChangeFType)
+        self.selectFType.activated.connect(self.selectionChangeFType)
         self.selectFType.setMaximumWidth(plotObj.appobj.screenx*.15*.8)
         selectFTypeWidgetLayout.addWidget(selectFTypeLabel)
         selectFTypeWidgetLayout.addWidget(self.selectFType)
@@ -504,9 +514,7 @@ class CmaqDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT','Vertical Profile',
-                  'Time Series', 'Difference Plot', 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         self.selectPlotType.setMinimumContentsLength(2)

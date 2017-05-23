@@ -52,6 +52,11 @@ class MERRAdataset:
         self.resolution = "l"
         self.setURL(update=True)
 
+        #Define plot type available for the dataset within the GUI
+        self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
+                       'Vertical Profile', 'Time Series', 'Difference Plot']
+                       #, 'Hovmoller Diagram']
+
     def setURL(self,update=None):
         #if no valid path, do nothing:
         if self.path == None or self.grid == None:
@@ -353,9 +358,7 @@ class MERRAdataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph','Vertical Profile',
-                  'Time Series', 'Difference Plot', 'Hovmoller Diagram']
-        self.selectPlotType.addItems(ptypes)
+        self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
@@ -666,6 +669,7 @@ class MERRAdataset:
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
+        self.setProjection()
         self.plothook.pltFxn(self.plothook.pNum)
 
     def NHProj(self):
@@ -684,6 +688,7 @@ class MERRAdataset:
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
+        self.setProjection()
         self.plothook.pltFxn(self.plothook.pNum)
     
     def SHProj(self):
@@ -702,6 +707,7 @@ class MERRAdataset:
         self.plothook.appobj.recallProjection = True
         self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.figure.clear()
+        self.setProjection()
         self.plothook.pltFxn(self.plothook.pNum)
 
     def errorInvalidYear(self):
