@@ -347,7 +347,8 @@ class PlotSlab:
                 dvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet, 
                                               var = self.dataSet.dvarlist[self.currentdVar],
                                               ptype = self.currentPType, sensor = self.crtmSensor,
-                                              channel = self.crtmChannel)
+                                              channel = self.crtmChannel, 
+                                              path = self.appobj.main_path)
                 print( time.clock() - t0,"seconds process time plots")
                 print( time.time() - t1,"seconds wall time plots")
 
@@ -2443,6 +2444,9 @@ class AppForm(QMainWindow):
         self.vectorkey = None
         self.resolution = 'l'
         self.clear = False
+
+        #Path is needed to define CRTM coefficient data location
+        self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
  
     #Select the directory
     def wrfOpen(self):

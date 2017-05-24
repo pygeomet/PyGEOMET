@@ -7,7 +7,8 @@ import datetime
 class WRFDerivedVar:
 
     def __init__(self, dset = None, var = None, ptype = None, 
-                       sensor = None, channel = None):
+                       sensor = None, channel = None, 
+                       path = None):
         
         #If input variable is not defined return
         if var == None:
@@ -22,6 +23,7 @@ class WRFDerivedVar:
             #Set sensor and channel for CRTM
             self.sensor = sensor
             self.channel = channel
+            self.main_path = path
 
             #Set common constants
             self.g = 9.81
@@ -756,6 +758,9 @@ class WRFDerivedVar:
 
     def bright_temp(self):
          
+        #Create full path to crtm coefficient data
+        full_path = self.main_path + "utils/crtm_coeff/"        
+
         #Get all necessary variables - put in fortran order
         qcloud = np.array(self.dataSet.readNCVariable('QCLOUD'),order='F')
         qice = np.array(self.dataSet.readNCVariable('QICE'),order='F')
@@ -786,7 +791,7 @@ class WRFDerivedVar:
                   qrain,qsnow,qgraupel,qhail,lai,self.u10,
                   self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
                   ivegtyp,xland,landuse,mp_physics,lat,lon,self.sensor,
-                  int(self.channel),bright_temp,dims[2],dims[1],dims[0])
+                  int(self.channel),full_path,bright_temp,dims[2],dims[1],dims[0])
 
         #Define variable for output and plot title
         self.var = bright_temp
