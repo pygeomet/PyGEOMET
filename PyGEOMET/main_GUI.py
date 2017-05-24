@@ -290,6 +290,8 @@ class PlotSlab:
         self.appobj.eom = None
         self.colorlock = False
         self.crtmbox = None
+        self.crtmSensor = None
+        self.crtmChannel = None
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
             self.dataSet.runType = None

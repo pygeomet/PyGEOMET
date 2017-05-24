@@ -43,6 +43,8 @@ type(crtm_surface_type)    :: sfc(1)
 type(crtm_rtsolution_type),  allocatable :: rts(:,:) !multiple channels    
 
 ! Local variables
+integer :: usgs_to_npoess(24), igbp_to_npoess(20)
+integer :: vegtyp
 real :: o3, veg_coverage
 real :: lvl_pressure(kk+1), lay_pressure(kk), temp(kk)
 real :: rad(jj,ii), tb(jj,ii)
@@ -60,16 +62,27 @@ real, parameter :: r2d = 180./3.141592654
 real :: mass_lay
 
 !<<<<<<<<<<<<<<< Start Program >>>>>>>>>>>>>>>!
+!Land use conversions
+!USGS to NPOESS
+usgs_to_npoess = (/15,  1,  5, 11,  6,  6,  6,  7, 13, &
+                    6,  8,  9,  8,  9, 12,  1, 18, 18, &
+                    5, 10, 10, 10, 10,  1 /)
+
+!IGBP (MODIS)
+igbp_to_npoess = (/15,  1,  5, 11,  6,  6,  6,  7, 13, &
+                    6,  8,  9,  8,  9,  8,  9, 12,  1, &
+                   18, 18  /)
+
 sensor_id(1) = sensor
 
 !Initializae CRTM
 err_stat = crtm_init(sensor_id, chinfo, &
                      Load_CloudCoeff = .TRUE., &
                      Load_AerosolCoeff = .TRUE., &
-                     IRlandCoeff_File = 'USGS.IRland.EmisCoeff.bin', &
+                     IRlandCoeff_File = 'NPOESS.IRland.EmisCoeff.bin', &
                      IRwaterCoeff_File = 'WuSmith.IRwater.EmisCoeff.bin', &
                      !MWwaterCoeff_File = 'FASTEM4.MWwater.EmisCoeff.bin', &
-                     VISlandCoeff_File = 'USGS.VISland.EmisCoeff.bin', &
+                     VISlandCoeff_File = 'NPOESS.VISland.EmisCoeff.bin', &
                      File_Path = trim(coeff_path), &
                      Quiet = .False.)
 !Check error
@@ -336,7 +349,13 @@ iloop: do i = 1, ii
        sfc(1)%Ice_Coverage = ice_coverage
 
        !Assign a land classification
-       sfc(1)%Land_Type = ivegtyp(j,i)
+       if (trim(landuse) .eq. 'USGS') then
+           vegtyp = usgs_to_npoess(min(max(1.,ivegtyp(j,i)),24.))
+       else !MODIS for now
+           vegtyp = igbp_to_npoess(min(max(1.,ivegtyp(j,i)),20.))
+       endif      
+ 
+       sfc(1)%Land_Type = vegtyp
 
        !Assign more surface parameters
        sfc(1)%Wind_Speed = sqrt(u10(j,i)*u10(j,i)+v10(j,i)*v10(j,i))
