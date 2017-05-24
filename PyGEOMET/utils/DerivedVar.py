@@ -762,7 +762,6 @@ class WRFDerivedVar:
         qrain = np.array(self.dataSet.readNCVariable('QRAIN'),order='F')
         qsnow = np.array(self.dataSet.readNCVariable('QSNOW'),order='F')
         qgraupel = np.array(self.dataSet.readNCVariable('QGRAUP'),order='F')
-        landusef = np.array(self.dataSet.readNCVariable('LANDUSEF'),order='F')
         lai = np.array(self.dataSet.readNCVariable('LAI'),order='F')
         seaice = np.array(self.dataSet.readNCVariable('SEAICE'),order='F')
         snowh = np.array(self.dataSet.readNCVariable('SNOWH'),order='F')
@@ -781,14 +780,13 @@ class WRFDerivedVar:
         #self.sensor, self.channel
         #Create dummy array for qhail
         dims = self.press.shape
-        num_land = landusef.shape[0]
         qhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
         bright_temp = np.zeros((dims[1],dims[2]),order='F',dtype='float32')
         CRTM.crtm(self.press/100.,self.theta,self.qvapor,qcloud,qice,
-                  qrain,qsnow,qgraupel,qhail,landusef,lai,self.u10,
+                  qrain,qsnow,qgraupel,qhail,lai,self.u10,
                   self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
                   ivegtyp,xland,landuse,mp_physics,lat,lon,self.sensor,
-                  int(self.channel),bright_temp,dims[2],dims[1],dims[0],num_land)
+                  int(self.channel),bright_temp,dims[2],dims[1],dims[0])
 
         #Define variable for output and plot title
         self.var = bright_temp

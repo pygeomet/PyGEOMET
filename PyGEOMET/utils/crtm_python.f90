@@ -1,7 +1,7 @@
 SUBROUTINE CRTM(press, theta, qv, qcloud, qice, qrain, qsnow, qgraupel, &
-                qhail, landusef, lai, u10, v10, seaice, snowh, coszen, &
+                qhail, lai, u10, v10, seaice, snowh, coszen, &
                 vegfrac, ptop, tsk, ivegtyp, xland, landuse, mp_physics, &
-                lat, lon, sensor, channel, bright_temp, ii, jj, kk, num_land) 
+                lat, lon, sensor, channel, bright_temp, ii, jj, kk) 
 
 use crtm_module
 
@@ -9,11 +9,11 @@ implicit none
 
 !Define Variables
 !Input Variables
-integer, intent(in) :: ii, jj, kk, num_land
+integer, intent(in) :: ii, jj, kk
 real, intent(in) :: press(kk,jj,ii), theta(kk,jj,ii), qv(kk,jj,ii)
 real, intent(in) :: qcloud(kk,jj,ii), qice(kk,jj,ii), qrain(kk,jj,ii)
 real, intent(in) :: qsnow(kk,jj,ii), qgraupel(kk,jj,ii), qhail(kk,jj,ii)
-real, intent(in) :: landusef(num_land,jj,ii), lai(jj,ii), u10(jj,ii)
+real, intent(in) :: lai(jj,ii), u10(jj,ii)
 real, intent(in) :: v10(jj,ii), seaice(jj,ii), snowh(jj,ii)
 real, intent(in) :: coszen(jj,ii), vegfrac(jj,ii), tsk(jj,ii), lon(jj,ii)
 real, intent(in) :: ptop, ivegtyp(jj,ii), xland(jj,ii), lat(jj,ii)
@@ -69,7 +69,7 @@ err_stat = crtm_init(sensor_id, chinfo, &
                      IRwaterCoeff_File = 'WuSmith.IRwater.EmisCoeff.bin', &
                      !MWwaterCoeff_File = 'FASTEM4.MWwater.EmisCoeff.bin', &
                      VISlandCoeff_File = 'USGS.VISland.EmisCoeff.bin', &
-                     File_Path = '/rhome/whiteat/CRTM/REL-2.1.3/workdir/coeff_data/', &
+                     File_Path = '/rhome/freitagb/PyGEOMET/REL-2.1.3/coeff_data/', &
                      Quiet = .False.)
 !Check error
 if (err_stat /= SUCCESS) then
