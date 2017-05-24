@@ -1,1 +1,1 @@
-__all__ = ['datasets', 'utils']
+__all__ = ['datasets', 'icons', 'utils']
