@@ -1,11 +1,13 @@
 import numpy as np
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.wrf_cython as wrf_cython
+import PyGEOMET.utils.crtm_python as CRTM
 import datetime
 
 class WRFDerivedVar:
 
-    def __init__(self, dset = None, var = None, ptype = None):
+    def __init__(self, dset = None, var = None, ptype = None, 
+                       sensor = None, channel = None):
         
         #If input variable is not defined return
         if var == None:
@@ -16,6 +18,10 @@ class WRFDerivedVar:
         else:
             self.dataSet = dset
             self.ptype = ptype            
+
+            #Set sensor and channel for CRTM
+            self.sensor = sensor
+            self.channel = channel
 
             #Set common constants
             self.g = 9.81
@@ -130,6 +136,8 @@ class WRFDerivedVar:
                 self.cloud_albedo()
             elif var == "temp_ML":
                 self.mean_layer_temp()
+            elif var == "Bright_Temp":
+                self.bright_temp()
             else:
                 print("Cannot find input variable")
                 self.var = None
@@ -745,4 +753,48 @@ class WRFDerivedVar:
         self.var = wrf_cython.mean_layer(self.temp,height,ref1,pblh)
         self.var2 = self.var
         self.varTitle = "Mean Layer Temperature (K) \n"+ self.dataSet.getTime()
+
+    def bright_temp(self):
+         
+        #Get all necessary variables - put in fortran order
+        qcloud = np.array(self.dataSet.readNCVariable('QCLOUD'),order='F')
+        qice = np.array(self.dataSet.readNCVariable('QICE'),order='F')
+        qrain = np.array(self.dataSet.readNCVariable('QRAIN'),order='F')
+        qsnow = np.array(self.dataSet.readNCVariable('QSNOW'),order='F')
+        qgraupel = np.array(self.dataSet.readNCVariable('QGRAUP'),order='F')
+        landusef = np.array(self.dataSet.readNCVariable('LANDUSEF'),order='F')
+        lai = np.array(self.dataSet.readNCVariable('LAI'),order='F')
+        seaice = np.array(self.dataSet.readNCVariable('SEAICE'),order='F')
+        snowh = np.array(self.dataSet.readNCVariable('SNOWH'),order='F')
+        coszen = np.array(self.dataSet.readNCVariable('COSZEN'),order='F')
+        vegfrac = np.array(self.dataSet.readNCVariable('VEGFRA'),order='F')
+        ptop = np.array(self.dataSet.readNCVariable('P_TOP'),order='F')
+        tsk = np.array(self.dataSet.readNCVariable('TSK'),order='F')
+        ivegtyp = np.array(self.dataSet.readNCVariable('IVGTYP'),order='F')
+        xland = np.array(self.dataSet.readNCVariable('XLAND'),order='F')
+        landuse = 'USGS'
+        mp_physics = 2
+        lon = np.array(self.dataSet.readNCVariable('XLONG'),order='F')
+        lat = np.array(self.dataSet.readNCVariable('XLAT'),order='F')
+        #Use global variables
+        #self.press, self.theta, self.qvapor, self.u10, self.v10, 
+        #self.sensor, self.channel
+        #Create dummy array for qhail
+        dims = self.press.shape
+        num_land = landusef.shape[0]
+        qhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        bright_temp = np.zeros((dims[1],dims[2]),order='F',dtype='float32')
+        CRTM.crtm(self.press/100.,self.theta,self.qvapor,qcloud,qice,
+                  qrain,qsnow,qgraupel,qhail,landusef,lai,self.u10,
+                  self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
+                  ivegtyp,xland,landuse,mp_physics,lat,lon,self.sensor,
+                  int(self.channel),bright_temp,dims[2],dims[1],dims[0],num_land)
+
+        #Define variable for output and plot title
+        self.var = bright_temp
+        self.var2 = self.var
+        self.varTitle = "Simulated Brightness Temperature \n"
+        self.varTitle = self.varTitle + "(Sensor : "+self.sensor+"    Channel : "+self.channel+")\n"
+        self.varTitle = self.varTitle + self.dataSet.getTime()        
+          
 

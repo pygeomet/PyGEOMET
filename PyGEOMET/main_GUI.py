@@ -346,7 +346,8 @@ class PlotSlab:
                 t1 = time.time()
                 dvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet, 
                                               var = self.dataSet.dvarlist[self.currentdVar],
-                                              ptype = self.currentPType)
+                                              ptype = self.currentPType, sensor = self.crtmSensor,
+                                              channel = self.crtmChannel)
                 print( time.clock() - t0,"seconds process time plots")
                 print( time.time() - t1,"seconds wall time plots")
 
@@ -1750,6 +1751,9 @@ class PlotSlab:
         self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
         self.tabbingLayout.addWidget(self.optionTabs)
 
+        #Pass the initial selections on to complete plotting
+        self.selectionCRTM()
+
     #This function controls the CRTM sensor and channel selections
     def selectionCRTM(self):
         
@@ -1761,16 +1765,13 @@ class PlotSlab:
 
         print(self.crtmSensor,self.crtmChannel)
 
+        self.readField()
+        self.setPlotVars()
 
     #This function is called to set plotting variables
     #  after a varaible (var or dvar) is changed.
     #  Also sets selections after the plot type is changed
     def setPlotVars(self):
-
-        #Clear CRTM controls if necessary
-        if self.crtmbox is not None:
-            self.crtmbox.setParent(None)
-            self.crtmbox = None
 
         #Must be a 3D variable if on vertical slice
         if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
@@ -1791,7 +1792,7 @@ class PlotSlab:
             if (self.dataSet.dsetname == 'WRF'):
                 #Clear CRTM controls if necessary
                 if (self.crtmbox is not None and 
-                    self.dataSet.dvarlist[self.currentdVar] == 'Bright_Temp'):
+                    self.dataSet.dvarlist[self.currentdVar] != 'Bright_Temp'):
                     self.crtmbox.setParent(None)
                     self.crtmbox = None
                 if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
