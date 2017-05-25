@@ -47,14 +47,13 @@ integer :: usgs_to_npoess(24), igbp_to_npoess(20)
 integer :: vegtyp
 real :: o3, veg_coverage
 real :: lvl_pressure(kk+1), lay_pressure(kk), temp(kk)
-real :: rad(jj,ii), tb(jj,ii)
+!real :: rad(jj,ii), tb(jj,ii)
 real, allocatable :: r_eff(:)
 integer :: alloc_stat
 integer :: err_stat
 integer :: i, j, k, n, jday
 real :: sat_lat, sat_lon, sat_zenith
 real :: hour, sun_zenith, sun_azimuth
-integer :: vegtype
 real :: land_coverage, water_coverage, snow_coverage, ice_coverage
 real, parameter :: rd = 287.05
 real, parameter :: cp = 1005.
@@ -69,13 +68,15 @@ usgs_to_npoess = (/15,  1,  5, 11,  6,  6,  6,  7, 13, &
                     5, 10, 10, 10, 10,  1 /)
 
 !IGBP (MODIS)
-igbp_to_npoess = (/15,  1,  5, 11,  6,  6,  6,  7, 13, &
-                    6,  8,  9,  8,  9,  8,  9, 12,  1, &
-                   18, 18  /)
+igbp_to_npoess = (/ 9,  8,  9,  8, 12,  7, 19, 17, 17, &
+                    7, 17,  2, 15,  2,  1,  1,  1, 10, &
+                   10, 10  /)
 
 sensor_id(1) = sensor
 
 !Initializae CRTM
+!Load default NPOESS coefficient file
+!Convert input to land classification to NPOESS
 err_stat = crtm_init(sensor_id, chinfo, &
                      Load_CloudCoeff = .TRUE., &
                      Load_AerosolCoeff = .TRUE., &
