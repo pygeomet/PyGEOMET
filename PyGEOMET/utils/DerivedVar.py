@@ -776,7 +776,8 @@ class WRFDerivedVar:
         tsk = np.array(self.dataSet.readNCVariable('TSK'),order='F')
         ivegtyp = np.array(self.dataSet.readNCVariable('IVGTYP'),order='F')
         xland = np.array(self.dataSet.readNCVariable('XLAND'),order='F')
-        landuse = 'USGS'
+        landuse = self.dataSet.readNCGlobalAttr('MMINLU')
+        #mp_physics = dataSet.readNCGlobalAttr('MP_PHYSICS')
         mp_physics = 2
         lon = np.array(self.dataSet.readNCVariable('XLONG'),order='F')
         lat = np.array(self.dataSet.readNCVariable('XLAT'),order='F')
