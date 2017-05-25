@@ -229,6 +229,14 @@ class WrfDataset:
 
         return variable
 
+    #This function is used to pull Global netCDF attributes from the file
+    # by name
+    def readNCGlobalAttr(self, vname):
+
+        attribute = self.attributes[vname]
+
+        return attribute
+
     def getVertVars(self):
         u = wrf.unstaggerX(np.squeeze(self.readNCVariable('U')))
         v = wrf.unstaggerY(np.squeeze(self.readNCVariable('V')))
