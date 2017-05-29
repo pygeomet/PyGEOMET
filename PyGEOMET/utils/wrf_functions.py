@@ -1665,7 +1665,7 @@ def getDvarList(varlist,runtype):
         and 'SEAICE' in variables and 'SNOWH' in variables
         and 'COSZEN' in variables and 'VEGFRAC' in variables
         and 'TSK' in variables and 'IVGTYP' in variables
-        and 'XLAND' in variables 'XLONG' in variables
+        and 'XLAND' in variables and 'XLONG' in variables
         and 'XLAT' in variables):
         dvarlist.append('Bright_Temp')
 
