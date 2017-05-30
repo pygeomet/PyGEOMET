@@ -134,7 +134,8 @@ if USE_CRTM:
         for f in spc_ir_files:
             os.symlink(f,os.path.join(outdir,os.path.basename(f)))
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','SpcCoeff',endian_type,'abi_gr.SpcCoeff.bin'),                         os.path.join(outdir,'abi_gr.SpcCoeff.bin'))
+        os.symlink(os.path.join(crtm_path,'fix','SpcCoeff',endian_type,'abi_gr.SpcCoeff.bin'),
+                                os.path.join(outdir,'abi_gr.SpcCoeff.bin'))
        
         #Link in transmittance coefficients
         tau_ir = os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian_type,'imgr_g')     
@@ -142,7 +143,8 @@ if USE_CRTM:
         for f in tau_ir_files:
             os.symlink(f,os.path.join(outdir,os.path.basename(f)))        
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian_type,'abi_gr.TauCoeff.bin')                   ,os.path.join(outdir,'abi_gr.TauCoeff.bin'))
+        os.symlink(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian_type,'abi_gr.TauCoeff.bin')
+                   ,os.path.join(outdir,'abi_gr.TauCoeff.bin'))
 
     else:
         print("****Specified CRTM path does not exist****")
