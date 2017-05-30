@@ -1,8 +1,10 @@
 import numpy as np
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.wrf_cython as wrf_cython
-import PyGEOMET.utils.crtm_python as CRTM
-import datetime
+try:
+    import PyGEOMET.utils.crtm_python as CRTM
+except ImportError:
+    pass
 
 class WRFDerivedVar:
 
