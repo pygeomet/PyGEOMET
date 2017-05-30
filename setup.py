@@ -1,13 +1,16 @@
 #PyGEOMET setup.py file
 import sys
 import os
+#numpy.distutils is used over setuptools due to f2py support
+from numpy.distutils.core import setup
+from numpy.distutils.extension import Extension
 from Cython.Build import cythonize
 
 #Switch to True to compile with CRTM
 #CRTM can be downloaded at: http://ftp.emc.ncep.noaa.gov/jcsda/CRTM/
-USE_CRTM = False
+USE_CRTM = True
 #Set the crtm_path once CRTM has been compiled
-crtm_path = "/home/usr/CRTM"
+crtm_path = "/rhome/whiteat/CRTM/REL-2.1.3"
 crtm_include = crtm_path+"/include"
 crtm_lib = "-L"+crtm_path+"/lib -lCRTM"
 #Must specify the fortran compiler to be the same one used to 
@@ -36,53 +39,33 @@ classifiers = ["Development Status :: 3 - Alpha",
 if USE_CRTM:
     #Check to make sure the user has provided correct paths to CRTM
     if (os.path.isdir(crtm_path)):
-        #numpy.distutils is used over setuptools due to f2py support
-        from numpy.distutils.core import setup
-        from numpy.distutils.extension import Extension
         extensions = [Extension("PyGEOMET.utils.wrf_cython",["PyGEOMET/utils/wrf_cython.pyx"],
                                 extra_compile_args = ["-ffast-math"]), 
                       Extension("PyGEOMET.utils.crtm_python",["PyGEOMET/utils/crtm_python.f90"],
                                 include_dirs=[crtm_include],
                                 extra_link_args = [crtm_lib])]
-        setup(
-              name = name,
-              version = version,
-              author = author,
-              author_email = author_email,
-              description = description,
-              long_description = long_description,
-              license = license,
-              keywords = keywords,
-              url = url,
-              packages = packages,
-              package_data = package_data,
-              ext_modules = cythonize(extensions),                       
-              classifiers = classifiers
-             )
     else:
         print("****Specified CRTM path does not exist****")
         print("****Please set the path within the setup.py file and try again****")
         sys.exit()
 else: 
-    #Use setuptools if not compiling with f2py 
-    #Seems to work better with Windows
-    from setuptools import setup
-    from setuptools.extension import Extension    
     extensions = [Extension("PyGEOMET.utils.wrf_cython",["PyGEOMET/utils/wrf_cython.pyx"],
                             extra_compile_args = ["-ffast-math"])]
-    setup(
-          name = name,
-          version = version,
-          author = author,
-          author_email = author_email,
-          description = description,
-          long_description = long_description,
-          license = license,
-          keywords = keywords,
-          url = url,
-          packages = packages,
-          package_data = package_data,
-          include_package_data=True,
-          ext_modules = cythonize(extensions),                       
-          classifiers = classifiers
-         )
+
+
+setup(
+      name = name,
+      version = version,
+      author = author,
+      author_email = author_email,
+      description = description,
+      long_description = long_description,
+      license = license,
+      keywords = keywords,
+      url = url,
+      packages = packages,
+      package_data = package_data,
+      include_package_data=True,
+      ext_modules = cythonize(extensions),                       
+      classifiers = classifiers
+      )
