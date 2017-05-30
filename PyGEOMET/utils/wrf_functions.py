@@ -6,6 +6,8 @@ from ftplib import FTP
 from scipy.special import gamma
 import os
 import PyGEOMET.utils.wrf_cython as wrf_cython
+import glob
+import PyGEOMET.utils
 
 ###############################################################################
 #                                                                             #
@@ -1663,11 +1665,15 @@ def getDvarList(varlist,runtype):
         and 'QSNOW' in variables and 'QICE' in variables
         and 'QGRAUP' in variables and 'LAI' in variables
         and 'SEAICE' in variables and 'SNOWH' in variables
-        and 'COSZEN' in variables and 'VEGFRAC' in variables
+        and 'COSZEN' in variables and 'VEGFRA' in variables
         and 'TSK' in variables and 'IVGTYP' in variables
-        and 'XLAND' in variables and 'XLONG' in variables
-        and 'XLAT' in variables):
-        dvarlist.append('Bright_Temp')
+        and 'XLAND' in variables):
+        #Make sure the crtm wrapper was compiled
+        path = os.path.dirname(PyGEOMET.utils.__file__)
+        npath = os.path.join(path,'crtm_python')
+        crtm_file = glob.glob(npath+'*')
+        if (len(crtm_file) > 0):
+            dvarlist.append('Bright_Temp')
 
     dvars = np.asarray(dvarlist)
     dvars.flatten()
