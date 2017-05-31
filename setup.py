@@ -30,8 +30,8 @@ endian = 'Little_Endian'
 #>>>>>>>>>>>>>>>>>>>>>End User Settings<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 #Define include and lib paths for compiling
-crtm_include = crtm_path+"/include"
-crtm_lib = "-L"+crtm_path+"/lib -lCRTM"
+crtm_include = os.path.join(crtm_path,"include")
+crtm_lib = os.path.join("-L"+crtm_path,"lib -lCRTM")
 
 ### ACTUAL SETUP VALUES ###
 name = "PyGEOMET"
@@ -79,90 +79,90 @@ if USE_CRTM:
             for f in bin_files:
                 os.remove(f)
         #AerosolCoeff
-        os.symlink(os.path.join(crtm_path,'fix','AerosolCoeff',endian,'AerosolCoeff.bin'),
-                   os.path.join(outdir,'AerosolCoeff.bin'))
+        shutil.copy(os.path.join(crtm_path,'fix','AerosolCoeff',endian,'AerosolCoeff.bin'),
+                    os.path.join(outdir,'AerosolCoeff.bin'))
 
         #CloudCoeff
-        os.symlink(os.path.join(crtm_path,'fix','CloudCoeff',endian,'CloudCoeff.bin'),
-                   os.path.join(outdir,'CloudCoeff.bin'))   
+        shutil.copy(os.path.join(crtm_path,'fix','CloudCoeff',endian,'CloudCoeff.bin'),
+                    os.path.join(outdir,'CloudCoeff.bin'))   
 
         #EmisCoeff
         #Water - microwave
         mw_water = os.path.join(crtm_path,'fix','EmisCoeff','MW_Water',endian)
-        os.symlink(os.path.join(mw_water,'FASTEM4.MWwater.EmisCoeff.bin'),
-                   os.path.join(outdir,'FASTEM4.MWwater.EmisCoeff.bin'))
-        os.symlink(os.path.join(mw_water,'FASTEM5.MWwater.EmisCoeff.bin'),
-                   os.path.join(outdir,'FASTEM5.MWwater.EmisCoeff.bin'))
+        shutil.copy(os.path.join(mw_water,'FASTEM4.MWwater.EmisCoeff.bin'),
+                    os.path.join(outdir,'FASTEM4.MWwater.EmisCoeff.bin'))
+        shutil.copy(os.path.join(mw_water,'FASTEM5.MWwater.EmisCoeff.bin'),
+                    os.path.join(outdir,'FASTEM5.MWwater.EmisCoeff.bin'))
         #Infrared
         #Land
         ir_land = os.path.join(crtm_path,'fix','EmisCoeff','IR_Land','SEcategory',endian)
-        os.symlink(os.path.join(ir_land,'NPOESS.IRland.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.IRland.EmisCoeff.bin'))
+        shutil.copy(os.path.join(ir_land,'NPOESS.IRland.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.IRland.EmisCoeff.bin'))
         #Ice
         ir_ice = os.path.join(crtm_path,'fix','EmisCoeff','IR_Ice','SEcategory',endian)
-        os.symlink(os.path.join(ir_ice,'NPOESS.IRice.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.IRice.EmisCoeff.bin'))
+        shutil.copy(os.path.join(ir_ice,'NPOESS.IRice.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.IRice.EmisCoeff.bin'))
         #Water
         wu_water = os.path.join(crtm_path,'fix','EmisCoeff','IR_Water',endian)
-        os.symlink(os.path.join(wu_water,'WuSmith.IRwater.EmisCoeff.bin'),
-                   os.path.join(outdir,'WuSmith.IRwater.EmisCoeff.bin'))
+        shutil.copy(os.path.join(wu_water,'WuSmith.IRwater.EmisCoeff.bin'),
+                    os.path.join(outdir,'WuSmith.IRwater.EmisCoeff.bin'))
         #Snow
         ir_snow = os.path.join(crtm_path,'fix','EmisCoeff','IR_Snow','SEcategory',endian)
-        os.symlink(os.path.join(ir_snow,'NPOESS.IRsnow.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.IRsnow.EmisCoeff.bin'))
+        shutil.copy(os.path.join(ir_snow,'NPOESS.IRsnow.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.IRsnow.EmisCoeff.bin'))
         #Visible
         #Land
         vis_land = os.path.join(crtm_path,'fix','EmisCoeff','VIS_Land','SEcategory',endian)
-        os.symlink(os.path.join(vis_land,'NPOESS.VISland.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.VISland.EmisCoeff.bin'))
+        shutil.copy(os.path.join(vis_land,'NPOESS.VISland.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.VISland.EmisCoeff.bin'))
         #Ice
         vis_ice = os.path.join(crtm_path,'fix','EmisCoeff','VIS_Ice','SEcategory',endian)
-        os.symlink(os.path.join(vis_ice,'NPOESS.VISice.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.VISice.EmisCoeff.bin'))
+        shutil.copy(os.path.join(vis_ice,'NPOESS.VISice.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.VISice.EmisCoeff.bin'))
         #Water
         vis_water = os.path.join(crtm_path,'fix','EmisCoeff','VIS_Water','SEcategory',endian)
-        os.symlink(os.path.join(vis_water,'NPOESS.VISwater.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.VISwater.EmisCoeff.bin'))
+        shutil.copy(os.path.join(vis_water,'NPOESS.VISwater.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.VISwater.EmisCoeff.bin'))
         #Snow
         vis_snow = os.path.join(crtm_path,'fix','EmisCoeff','VIS_Snow','SEcategory',endian)
-        os.symlink(os.path.join(vis_snow,'NPOESS.VISsnow.EmisCoeff.bin'),
-                   os.path.join(outdir,'NPOESS.VISsnow.EmisCoeff.bin'))
+        shutil.copy(os.path.join(vis_snow,'NPOESS.VISsnow.EmisCoeff.bin'),
+                    os.path.join(outdir,'NPOESS.VISsnow.EmisCoeff.bin'))
 
         #Link in GOES 12-15 spectral coefficients
         #IR
         spc_ir = os.path.join(crtm_path,'fix','SpcCoeff',endian,'imgr_g')
         spc_ir_files = glob.glob(spc_ir+'*')
         for f in spc_ir_files:
-            os.symlink(f,os.path.join(outdir,os.path.basename(f)))
+            shutil.copy(f,os.path.join(outdir,os.path.basename(f)))
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','SpcCoeff',endian,'abi_gr.SpcCoeff.bin'),
-                                os.path.join(outdir,'abi_gr.SpcCoeff.bin'))
+        shutil.copy(os.path.join(crtm_path,'fix','SpcCoeff',endian,'abi_gr.SpcCoeff.bin'),
+                    os.path.join(outdir,'abi_gr.SpcCoeff.bin'))
         #VIS
         spc_vis = os.path.join(crtm_path,'fix','SpcCoeff',endian,'v.imgr_g')
         spc_vis_files = glob.glob(spc_vis+'*')
         for f in spc_vis_files:
-            os.symlink(f,os.path.join(outdir,os.path.basename(f)))
+            shutil.copy(f,os.path.join(outdir,os.path.basename(f)))
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','SpcCoeff',endian,'v.abi_gr.SpcCoeff.bin'),
-                                os.path.join(outdir,'v.abi_gr.SpcCoeff.bin'))       
+        shutil.copy(os.path.join(crtm_path,'fix','SpcCoeff',endian,'v.abi_gr.SpcCoeff.bin'),
+                    os.path.join(outdir,'v.abi_gr.SpcCoeff.bin'))       
 
         #Link in transmittance coefficients
         #IR
         tau_ir = os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'imgr_g')     
         tau_ir_files = glob.glob(tau_ir+'*')
         for f in tau_ir_files:
-            os.symlink(f,os.path.join(outdir,os.path.basename(f)))        
+            shutil.copy(f,os.path.join(outdir,os.path.basename(f)))        
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'abi_gr.TauCoeff.bin')
-                   ,os.path.join(outdir,'abi_gr.TauCoeff.bin'))
+        shutil.copy(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'abi_gr.TauCoeff.bin')
+                    ,os.path.join(outdir,'abi_gr.TauCoeff.bin'))
         #VIS
         tau_vis = os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'v.imgr_g')
         tau_vis_files = glob.glob(tau_vis+'*')
         for f in tau_vis_files:
-            os.symlink(f,os.path.join(outdir,os.path.basename(f)))
+            shutil.copy(f,os.path.join(outdir,os.path.basename(f)))
         #GOES 16
-        os.symlink(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'v.abi_gr.TauCoeff.bin')
-                   ,os.path.join(outdir,'v.abi_gr.TauCoeff.bin'))
+        shutil.copy(os.path.join(crtm_path,'fix','TauCoeff','ODAS',endian,'v.abi_gr.TauCoeff.bin')
+                    ,os.path.join(outdir,'v.abi_gr.TauCoeff.bin'))
 
     else:
         print("****Specified CRTM path does not exist****")
