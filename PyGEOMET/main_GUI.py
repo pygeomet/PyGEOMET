@@ -42,6 +42,7 @@ import PyGEOMET.datasets.RadarDataset as NEXRAD
 import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.utils.LayoutFormat as Layout
+import PyGEOMET.utils.sensor_channels as CRTMChannels
 import time
 import os
 import warnings
@@ -1651,7 +1652,7 @@ class PlotSlab:
             #Create an initial sensor and channel selection box
             self.crtmControl = QDialog(self.appobj)
             self.crtmControl.resize(self.crtmControl.minimumSizeHint())
-            self.crtmControl.setMinimumHeight(self.appobj.screeny*.12)
+            self.crtmControl.setMinimumHeight(self.appobj.screeny*.20)
             self.crtmControl.setMinimumWidth(self.appobj.screenx*.15)
             self.crtmControl.setWindowTitle("Select sensor and channel")
             crtmControlLayout = QVBoxLayout(self.crtmControl)
@@ -1662,7 +1663,7 @@ class PlotSlab:
             self.sensorBox = QComboBox()
             self.sensorBox.setStyleSheet(Layout.QComboBox())
             #Define sensor types
-            self.sensor_types = ['imgr_g12','imgr_g13','imgr_g14','imgr_g15']
+            self.sensor_types = ['abi_gr', 'imgr_g12','imgr_g13','imgr_g14','imgr_g15']
             self.sensorBox.addItems(self.sensor_types)
             self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
                         
@@ -1672,8 +1673,8 @@ class PlotSlab:
             self.channelBox = QComboBox()
             self.channelBox.setStyleSheet(Layout.QComboBox())
             #Define sensor types
-            self.channels = ['3','4']
-            self.channelBox.addItems(self.channels)
+            self.channels, self.names = CRTMChannels.getSensorChannels(self.sensor_types[0])
+            self.channelBox.addItems(self.names)
             self.channelBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
              
             #Create button to submit sensor and channel selections
