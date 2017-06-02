@@ -281,8 +281,12 @@ iloop: do i = 1, ii
     sfc(1)%sensordata%sensor_id = chinfo(1)%sensor_id
     sfc(1)%sensordata%WMO_sensor_id = chinfo(1)%WMO_sensor_id
     sfc(1)%sensordata%WMO_Satellite_id = chinfo(1)%WMO_Satellite_id
-    !sfc(1)%sensordata%WMO_sensor_id = 615
-    !sfc(1)%sensordata%WMO_Satellite_id = 257 
+    !CRTM needs each sensor to have a WMO ID, GOES-16 doesn't have one
+    ! therefore, set it
+    if (sensor_id(1) == 'abi_gr' .or. sensor_id(1) == 'v.abi_gr') then 
+        sfc(1)%sensordata%WMO_sensor_id = 615
+        sfc(1)%sensordata%WMO_Satellite_id = 257 
+    endif
     sfc(1)%sensordata%sensor_channel = chinfo(1)%sensor_channel
 
     !write(6,*) " "
