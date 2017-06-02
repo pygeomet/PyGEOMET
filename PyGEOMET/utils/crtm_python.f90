@@ -447,7 +447,7 @@ iloop: do i = 1, ii
    
        enddo kloop
 
-       
+       !if (j == jj .and. i == ii) write(6,*) chinfo(1)%Sensor_Channel 
        !Call radiative transfer code
        err_stat = CRTM_Forward( atm         , & ! Input
                                 sfc         , & ! Input

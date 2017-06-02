@@ -1663,7 +1663,9 @@ class PlotSlab:
             self.sensorBox = QComboBox()
             self.sensorBox.setStyleSheet(Layout.QComboBox())
             #Define sensor types
-            self.sensor_types = ['abi_gr', 'imgr_g12','imgr_g13','imgr_g14','imgr_g15']
+            self.sensor_types = ['abi_gr', 'v.abi_gr', 'imgr_g12','v.imgr_g12',
+                                 'imgr_g13','v.imgr_g13','imgr_g14','v.imgr_g13',
+                                 'imgr_g14','v.imgr_g14', 'imgr_g15','v.imgr_g13']
             self.sensorBox.addItems(self.sensor_types)
             self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
             #Connect to function to change the channel list
