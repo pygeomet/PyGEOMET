@@ -1666,6 +1666,8 @@ class PlotSlab:
             self.sensor_types = ['abi_gr', 'imgr_g12','imgr_g13','imgr_g14','imgr_g15']
             self.sensorBox.addItems(self.sensor_types)
             self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            #Connect to function to change the channel list
+            self.sensorBox.currentIndexChanged.connect(self.getNewSensorChannels)
                         
             #Create channel combo box  
             channelBoxLabel = QLabel()
@@ -1726,13 +1728,15 @@ class PlotSlab:
         self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         #Set index based on first user selection
         self.sensorBox.setCurrentIndex(sens)
+        #Connect to function to change the channel list
+        self.sensorBox.currentIndexChanged.connect(self.getNewSensorChannels)
         
         #Create channel combo box
         channelBoxLabel = QLabel()
         channelBoxLabel.setText('Sensor Channel:')
         self.channelBox = QComboBox()
         self.channelBox.setStyleSheet(Layout.QComboBox())
-        self.channelBox.addItems(self.channels)
+        self.channelBox.addItems(self.names)
         self.channelBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         #Set index based on first user selection
         self.channelBox.setCurrentIndex(chan)
@@ -1757,6 +1761,21 @@ class PlotSlab:
 
         #Pass the initial selections on to complete plotting
         self.selectionCRTM()
+
+    #This function sets the channels corresponding to the selected
+    # sensor
+    def getNewSensorChannels(self):
+        
+        #Determine the sensor index
+        sindex = self.sensorBox.currentIndex()
+
+        #Clear the current channel list
+        self.channelBox.clear()
+        
+        #Add the new channel list
+        #Get the new channels and names
+        self.channels, self.names = CRTMChannels.getSensorChannels(self.sensor_types[sindex])
+        self.channelBox.addItems(self.names)
 
     #This function controls the CRTM sensor and channel selections
     def selectionCRTM(self):
