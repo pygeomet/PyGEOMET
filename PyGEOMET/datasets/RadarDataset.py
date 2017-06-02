@@ -44,7 +44,7 @@ class Radardataset:
         self.currentMinuteIndex = -1
         self.currentTimeIndex = -1
         self.currentSweep = 0
-        self.currentGridIndex = 68 #69 is KHTX
+        self.currentGridIndex = 69 #69 is KHTX
         self.description = None
         self.dsetname = "NEXRAD Radar"
         self.gridList, latitudes, longitudes = NEXRADsites.get_sites()
@@ -74,7 +74,7 @@ class Radardataset:
 
         if not hasattr(self,'yearList'):
             self.now = datetime.datetime.now()
-            tmp = np.arange(self.now.year,2010-1,-1)
+            tmp = np.arange(self.now.year,1991-1,-1)
             self.yearList = ["%04d" % x for x in tmp]
             if self.year == None:
                 self.year = self.yearList[self.currentYearIndex]
@@ -152,9 +152,9 @@ class Radardataset:
             self.var = 'reflectivity'
             ind = np.where(np.asarray(self.variableList) == 'reflectivity')[0][0]
             self.currentVarIndex = ind
-     
-        self.lon0 = [self.radar.longitude['data'][0]]
-        self.lat0 = [self.radar.latitude['data'][0]]
+        loc = pyart.io.nexrad_common.get_nexrad_location(self.grid)
+        self.lon0 = [loc[1]]
+        self.lat0 = [loc[0]]
 
     def getTime(self):
         utc = self.hourList[self.currentHourIndex] + ":" +\
