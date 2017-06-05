@@ -1673,7 +1673,7 @@ def getDvarList(varlist,runtype):
         npath = os.path.join(path,'crtm_python')
         crtm_file = glob.glob(npath+'*')
         if (len(crtm_file) > 0):
-            dvarlist.append('Bright_Temp')
+            dvarlist.append('BrightTemp/Radiance')
 
     dvars = np.asarray(dvarlist)
     dvars.flatten()

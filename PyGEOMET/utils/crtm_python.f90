@@ -1,7 +1,7 @@
 SUBROUTINE CRTM(press, theta, qv, qcloud, qice, qrain, qsnow, qgraupel, &
                 qhail, lai, u10, v10, seaice, snowh, coszen, &
                 vegfrac, ptop, tsk, ivegtyp, xland, landuse, mp_physics, &
-                lat, lon, sensor, channel, coeff_path, bright_temp, ii, jj, kk) 
+                lat, lon, sensor, channel, coeff_path, request_var, crtm_out, ii, jj, kk) 
 
 use crtm_module
 
@@ -19,8 +19,9 @@ real, intent(in) :: coszen(jj,ii), vegfrac(jj,ii), tsk(jj,ii), lon(jj,ii)
 real, intent(in) :: ptop, ivegtyp(jj,ii), xland(jj,ii), lat(jj,ii)
 character(len=10), intent(in) :: landuse, sensor
 character(len=250), intent(in) :: coeff_path
+character(len=50), intent(in) :: request_var
 integer, intent(in) :: mp_physics, channel
-real, intent(inout) :: bright_temp(jj,ii)
+real, intent(inout) :: crtm_out(jj,ii)
 
 !Profile variables - CRTM
 integer :: n_channels   
@@ -461,7 +462,11 @@ iloop: do i = 1, ii
        endif
          
        !Set the brightness temperature and radiance values from the output
-       bright_temp(j,i) = rts(1,1)%Brightness_Temperature
+       if (trim(request_var) == 'Radiance') then
+         crtm_out(j,i) = rts(1,1)%Radiance
+       else
+         crtm_out(j,i) = rts(1,1)%Brightness_Temperature
+       endif
        !rad(i,j,n) = rts(n,1)%Radiance
 
        ! Deallocate channel-dependent arrays

@@ -293,6 +293,7 @@ class PlotSlab:
         self.crtmbox = None
         self.crtmSensor = None
         self.crtmChannel = None
+        self.crtmVar = None
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
             self.dataSet.runType = None
@@ -352,7 +353,8 @@ class PlotSlab:
                                               var = self.dataSet.dvarlist[self.currentdVar],
                                               ptype = self.currentPType, sensor = self.crtmSensor,
                                               channel = self.crtmChannel, 
-                                              path = self.appobj.main_path)
+                                              path = self.appobj.main_path,
+                                              req_var = self.crtmVar)
                 QApplication.restoreOverrideCursor()
                 print( time.clock() - t0,"seconds process time plots")
                 print( time.time() - t1,"seconds wall time plots")
@@ -1650,11 +1652,11 @@ class PlotSlab:
         self.currentVar = 0
         #Check if selection is simulated brightness temp
         #Wait until selections are made
-        if (self.dataSet.dvarlist[self.currentdVar] == 'Bright_Temp'):
+        if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
             #Create an initial sensor and channel selection box
             self.crtmControl = QDialog(self.appobj)
             self.crtmControl.resize(self.crtmControl.minimumSizeHint())
-            self.crtmControl.setMinimumHeight(self.appobj.screeny*.20)
+            self.crtmControl.setMinimumHeight(self.appobj.screeny*.22)
             self.crtmControl.setMinimumWidth(self.appobj.screenx*.15)
             self.crtmControl.setWindowTitle("Select sensor and channel")
             crtmControlLayout = QVBoxLayout(self.crtmControl)
@@ -1674,7 +1676,18 @@ class PlotSlab:
             self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
             #Connect to function to change the channel list
             self.sensorBox.currentIndexChanged.connect(self.getNewSensorInfo)
-                        
+
+            #Create Variable Selection combo box
+            # Brightness Temperature or Radiance
+            varBoxLabel = QLabel()
+            varBoxLabel.setText('Output Variable:')
+            self.varBox = QComboBox()
+            self.varBox.setStyleSheet(Layout.QComboBox())
+            #Define Variable Options
+            self.crtmVarList = ['Brightness Temperature', 'Radiance']                       
+            self.varBox.addItems(self.crtmVarList)
+            self.varBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
             #Create channel combo box  
             channelBoxLabel = QLabel()
             channelBoxLabel.setText('Sensor Channel:')
@@ -1695,6 +1708,8 @@ class PlotSlab:
             #Add the Widgets to the layout
             crtmControlLayout.addWidget(sensorBoxLabel)
             crtmControlLayout.addWidget(self.sensorBox)
+            crtmControlLayout.addWidget(varBoxLabel)
+            crtmControlLayout.addWidget(self.varBox)
             crtmControlLayout.addWidget(channelBoxLabel)
             crtmControlLayout.addWidget(self.channelBox)
             crtmControlLayout.addWidget(subButton)
@@ -1716,6 +1731,7 @@ class PlotSlab:
         #Save selections
         sens = self.sensorBox.currentIndex()  
         chan = self.channelBox.currentIndex()
+        var = self.varBox.currentIndex()
 
         #Define group box and give it a name
         boxTitleString = 'CRTM Control'
@@ -1736,6 +1752,18 @@ class PlotSlab:
         self.sensorBox.setCurrentIndex(sens)
         #Connect to function to change the channel list
         self.sensorBox.currentIndexChanged.connect(self.getNewSensorInfo)
+
+        #Create Variable Selection combo box
+        # Brightness Temperature or Radiance
+        varBoxLabel = QLabel()
+        varBoxLabel.setText('Output Variable:')
+        self.varBox = QComboBox()
+        self.varBox.setStyleSheet(Layout.QComboBox())
+        #Define Variable Options
+        self.varBox.addItems(self.crtmVarList)
+        #Set index based on first user selection
+        self.varBox.setCurrentIndex(var)
+        self.varBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         
         #Create channel combo box
         channelBoxLabel = QLabel()
@@ -1756,6 +1784,8 @@ class PlotSlab:
         #Connect widgets
         crtmLayout.addWidget(sensorBoxLabel)
         crtmLayout.addWidget(self.sensorBox)
+        crtmLayout.addWidget(varBoxLabel)
+        crtmLayout.addWidget(self.varBox)
         crtmLayout.addWidget(channelBoxLabel)
         crtmLayout.addWidget(self.channelBox)
         crtmLayout.addWidget(self.crtmPlotButton)
@@ -1793,6 +1823,9 @@ class PlotSlab:
         #Get the channel selection
         self.crtmChannel = self.channels[self.channelBox.currentIndex()]
 
+        #Get the variable selection
+        self.crtmVar = self.crtmVarList[self.varBox.currentIndex()]
+
         self.readField()
         self.setPlotVars()
 
@@ -1820,7 +1853,7 @@ class PlotSlab:
             if (self.dataSet.dsetname == 'WRF'):
                 #Clear CRTM controls if necessary
                 if (self.crtmbox is not None and 
-                    self.dataSet.dvarlist[self.currentdVar] != 'Bright_Temp'):
+                    self.dataSet.dvarlist[self.currentdVar] != 'BrightTemp/Radiance'):
                     self.crtmbox.setParent(None)
                     self.crtmbox = None
                 if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 

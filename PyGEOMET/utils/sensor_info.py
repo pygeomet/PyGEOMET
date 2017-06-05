@@ -34,7 +34,7 @@ def getSensorInfo(sname):
             sensor = 'v.imgr_g15'
         elif (sname == 'GOES-14 Imager (Vis)'):
             sensor = 'v.imgr_g14'
-        elif (sname == 'GOES-14 Imager (Vis)'):
+        elif (sname == 'GOES-13 Imager (Vis)'):
             sensor = 'v.imgr_g13'
         elif (sname == 'GOES-12 Imager (Vis)'):
             sensor = 'v.imgr_g12'

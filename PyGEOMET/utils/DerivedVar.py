@@ -10,7 +10,7 @@ class WRFDerivedVar:
 
     def __init__(self, dset = None, var = None, ptype = None, 
                        sensor = None, channel = None, 
-                       path = None):
+                       path = None, req_var = None):
         
         #If input variable is not defined return
         if var == None:
@@ -140,8 +140,8 @@ class WRFDerivedVar:
                 self.cloud_albedo()
             elif var == "temp_ML":
                 self.mean_layer_temp()
-            elif var == "Bright_Temp":
-                self.bright_temp()
+            elif var == "BrightTemp/Radiance":
+                self.crtm_wrapper(req_var)
             else:
                 print("Cannot find input variable")
                 self.var = None
@@ -758,7 +758,8 @@ class WRFDerivedVar:
         self.var2 = self.var
         self.varTitle = "Mean Layer Temperature (K) \n"+ self.dataSet.getTime()
 
-    def bright_temp(self):
+    #Function to determine the brightness temperature or radiance
+    def crtm_wrapper(self,request_var):
          
         #Create full path to crtm coefficient data
         full_path = self.main_path + "utils/crtm_coeff/"        
@@ -789,17 +790,20 @@ class WRFDerivedVar:
         #Create dummy array for qhail
         dims = self.press.shape
         qhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
-        bright_temp = np.zeros((dims[1],dims[2]),order='F',dtype='float32')
+        crtm_out = np.zeros((dims[1],dims[2]),order='F',dtype='float32')
         CRTM.crtm(self.press/100.,self.theta,self.qvapor,qcloud,qice,
                   qrain,qsnow,qgraupel,qhail,lai,self.u10,
                   self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
                   ivegtyp,xland,landuse,mp_physics,lat,lon,self.sensor,
-                  int(self.channel),full_path,bright_temp,dims[2],dims[1],dims[0])
+                  int(self.channel),full_path,request_var,crtm_out,dims[2],dims[1],dims[0])
 
         #Define variable for output and plot title
-        self.var = bright_temp
+        self.var = crtm_out
         self.var2 = self.var
-        self.varTitle = "Simulated Brightness Temperature \n"
+        if (request_var == "Radiance"):
+            self.varTitle = "Simulated Radiance [mW $m^{-2}$ $sr^{-1}$ cm] \n"
+        else:
+            self.varTitle = "Simulated Brightness Temperature [K]\n"
         self.varTitle = self.varTitle + "(Sensor : "+self.sensor+"    Channel : "+self.channel+")\n"
         self.varTitle = self.varTitle + self.dataSet.getTime()        
           
