@@ -196,7 +196,6 @@ class Radardataset:
             tmp.append(key.name.split('/')[-2])
         
         self.gridList = tmp
-        print(self.gridList)
         if(self.grid not in self.gridList):
             print("The site selected is not available for " + year 
              + ' ' + month + '/' + day + '. The site has defaulted to : ' +
@@ -205,7 +204,8 @@ class Radardataset:
             self.selectionChangeHour(0)
             self.selectionChangeMMSS(0)
             self.selectionChangeGrid(0)
-            
+        else:
+            self.currentGridIndex = np.where(np.array(self.gridList) == self.grid)[0][0]
 
     def readNCVariable(self,vname, barbs=None, vectors=None,contour2=None):
         #if vname == 'velocity' and self.currentSweep == 0:
@@ -519,11 +519,12 @@ class Radardataset:
         tmp = np.arange(1,maxday+1,1)
         self.dayList = ["%02d" % x for x in tmp]
         self.day = self.dayList[self.currentDayIndex]
+        self.setGridList(self.year,self.month,self.day)
         self.plothook.selectGrid.addItems(self.gridList)
+        #Set current grid index
+        self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
         self.plothook.selectMonth.addItems(self.monList)
         self.plothook.selectDay.addItems(self.dayList)
-        self.setGridList(self.year,self.month,self.day)
-
 
     def selectionChangeMonth(self,i):
         self.currentMonthIndex = i
@@ -547,6 +548,8 @@ class Radardataset:
         self.plothook.selectGrid.clear()
         self.plothook.selectDay.addItems(self.dayList)
         self.plothook.selectGrid.addItems(self.gridList)
+        #Set current grid index
+        self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
 
     def selectionChangeDay(self,i,update=True):
         self.currentDayIndex = i
@@ -559,6 +562,8 @@ class Radardataset:
         self.plothook.selectHour.clear()
         self.plothook.selectMMSS.clear()
         self.plothook.selectGrid.addItems(self.gridList)
+        #Set current grid index
+        self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
         self.plothook.selectVar.addItems(self.variableList)
         self.plothook.selectHour.addItems(self.hourList)
         self.plothook.selectMMSS.addItems(self.mmssList[self.currentHourIndex])
@@ -641,6 +646,10 @@ class Radardataset:
                 self.currentYearIndex -=1
             if self.currentYearIndex < 0:
                 errorflag = True
+                self.currentYearIndex += 1
+                self.currentMonthIndex -= 1
+                self.currentDayIndex -= 1
+                self.currentTimeIndex = self.ntimes - 1
                 self.errorInvalidYear()
             else:
                 self.selectionChangeYear(self.currentYearIndex)
@@ -700,7 +709,7 @@ class Radardataset:
             pass
 
     def errorInvalidYear(self):
-        msg = QMessageBox()
+        msg = QMessageBox(self.plothook.appobj)
         msg.setIcon(QMessageBox.Information)
         msg.setText('The AWS NEXRAD GUI is only set up from ' +\
                      self.yearList[-1] + '-' + self.yearList[0])
