@@ -42,7 +42,7 @@ import PyGEOMET.datasets.RadarDataset as NEXRAD
 import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.utils.LayoutFormat as Layout
-import PyGEOMET.utils.sensor_channels as CRTMChannels
+import PyGEOMET.utils.sensor_info as CRTMInfo
 import time
 import os
 import warnings
@@ -347,11 +347,13 @@ class PlotSlab:
             if self.currentdVar != None:
                 t0 = time.clock()
                 t1 = time.time()
+                QApplication.setOverrideCursor(Qt.WaitCursor)
                 dvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet, 
                                               var = self.dataSet.dvarlist[self.currentdVar],
                                               ptype = self.currentPType, sensor = self.crtmSensor,
                                               channel = self.crtmChannel, 
                                               path = self.appobj.main_path)
+                QApplication.restoreOverrideCursor()
                 print( time.clock() - t0,"seconds process time plots")
                 print( time.time() - t1,"seconds wall time plots")
 
@@ -1659,17 +1661,19 @@ class PlotSlab:
             
             #Create sensor combo box
             sensorBoxLabel = QLabel()
-            sensorBoxLabel.setText('Sensor Type:')
+            sensorBoxLabel.setText('Sensor Type: \n (Note: Visible channel calculations \n take longer than IR)')
             self.sensorBox = QComboBox()
             self.sensorBox.setStyleSheet(Layout.QComboBox())
             #Define sensor types
-            self.sensor_types = ['abi_gr', 'v.abi_gr', 'imgr_g12','v.imgr_g12',
-                                 'imgr_g13','v.imgr_g13','imgr_g14','v.imgr_g13',
-                                 'imgr_g14','v.imgr_g14', 'imgr_g15','v.imgr_g13']
-            self.sensorBox.addItems(self.sensor_types)
+            self.sensor_names = ['GOES-16 ABI (IR)', 'GOES-16 ABI (Vis)',
+                                 'GOES-15 Imager (IR)', 'GOES-15 Imager (Vis)',
+                                 'GOES-14 Imager (IR)', 'GOES-14 Imager (Vis)',
+                                 'GOES-13 Imager (IR)', 'GOES-13 Imager (Vis)',
+                                 'GOES-12 Imager (IR)', 'GOES-12 Imager (Vis)'] 
+            self.sensorBox.addItems(self.sensor_names)
             self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
             #Connect to function to change the channel list
-            self.sensorBox.currentIndexChanged.connect(self.getNewSensorChannels)
+            self.sensorBox.currentIndexChanged.connect(self.getNewSensorInfo)
                         
             #Create channel combo box  
             channelBoxLabel = QLabel()
@@ -1677,7 +1681,7 @@ class PlotSlab:
             self.channelBox = QComboBox()
             self.channelBox.setStyleSheet(Layout.QComboBox())
             #Define sensor types
-            self.channels, self.names = CRTMChannels.getSensorChannels(self.sensor_types[0])
+            self.sensor, self.channels, self.names = CRTMInfo.getSensorInfo(self.sensor_names[0])
             self.channelBox.addItems(self.names)
             self.channelBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
              
@@ -1723,15 +1727,15 @@ class PlotSlab:
 
         #Sensor Box 
         sensorBoxLabel = QLabel()
-        sensorBoxLabel.setText('Sensor Type:')
+        sensorBoxLabel.setText('Sensor Type: \n (Note: Visible channel calculations \n take longer than IR)')
         self.sensorBox = QComboBox()
         self.sensorBox.setStyleSheet(Layout.QComboBox())
-        self.sensorBox.addItems(self.sensor_types)
+        self.sensorBox.addItems(self.sensor_names)
         self.sensorBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         #Set index based on first user selection
         self.sensorBox.setCurrentIndex(sens)
         #Connect to function to change the channel list
-        self.sensorBox.currentIndexChanged.connect(self.getNewSensorChannels)
+        self.sensorBox.currentIndexChanged.connect(self.getNewSensorInfo)
         
         #Create channel combo box
         channelBoxLabel = QLabel()
@@ -1766,7 +1770,7 @@ class PlotSlab:
 
     #This function sets the channels corresponding to the selected
     # sensor
-    def getNewSensorChannels(self):
+    def getNewSensorInfo(self):
         
         #Determine the sensor index
         sindex = self.sensorBox.currentIndex()
@@ -1776,19 +1780,18 @@ class PlotSlab:
         
         #Add the new channel list
         #Get the new channels and names
-        self.channels, self.names = CRTMChannels.getSensorChannels(self.sensor_types[sindex])
+        self.sensor, self.channels, self.names = CRTMInfo.getSensorInfo(self.sensor_names[sindex])
         self.channelBox.addItems(self.names)
 
     #This function controls the CRTM sensor and channel selections
     def selectionCRTM(self):
         
         #Get the sensor selection
-        self.crtmSensor = self.sensor_types[self.sensorBox.currentIndex()]
-        
+        #self.crtmSensor = self.sensor[self.sensorBox.currentIndex()]
+        self.crtmSensor = self.sensor        
+
         #Get the channel selection
         self.crtmChannel = self.channels[self.channelBox.currentIndex()]
-
-        print(self.crtmSensor,self.crtmChannel)
 
         self.readField()
         self.setPlotVars()
