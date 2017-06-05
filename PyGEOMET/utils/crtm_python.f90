@@ -85,7 +85,7 @@ err_stat = crtm_init(sensor_id, chinfo, &
                      MWwaterCoeff_File = 'FASTEM4.MWwater.EmisCoeff.bin', &
                      VISlandCoeff_File = 'NPOESS.VISland.EmisCoeff.bin', &
                      File_Path = trim(coeff_path), &
-                     Quiet = .False.)
+                     Quiet = .True.)
 !Check error
 if (err_stat /= SUCCESS) then
    write(6,*) 'Failed to initialize crtm = ', err_stat
