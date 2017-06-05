@@ -152,9 +152,11 @@ class Radardataset:
             self.var = 'reflectivity'
             ind = np.where(np.asarray(self.variableList) == 'reflectivity')[0][0]
             self.currentVarIndex = ind
-        loc = pyart.io.nexrad_common.get_nexrad_location(self.grid)
-        self.lon0 = [loc[1]]
-        self.lat0 = [loc[0]]
+        if update == True:
+            self.getTimeIndex()
+            loc = pyart.io.nexrad_common.get_nexrad_location(self.grid)
+            self.lon0 = [loc[1]]
+            self.lat0 = [loc[0]]
 
     def getTime(self):
         utc = self.hourList[self.currentHourIndex] + ":" +\
@@ -165,6 +167,12 @@ class Radardataset:
         return self.timeString
 
     def getTimeIndex(self):
+        ind = np.where(np.array(self.yearList).astype(int) == int(self.year))
+        self.currentYearIndex = ind[0][0]
+        ind = np.where(np.array(self.monList).astype(int) == int(self.month))
+        self.currentMonthIndex = ind[0][0]
+        ind = np.where(np.array(self.dayList).astype(int) == int(self.day))
+        self.currentDayIndex = ind[0][0]
         ind = np.where(np.array(self.hourList).astype(int) == int(self.farr[self.currentTimeIndex][0:2]))
         self.currentHourIndex = ind[0][0]
         self.hour = self.hourList[self.currentHourIndex]
@@ -178,9 +186,26 @@ class Radardataset:
         self.currentTimeIndex = np.where(np.array(self.farr).astype(int) == np.array(hr+ms).astype(int))[0][0]
         self.getTime()
 
-    def setGrid(self, Indx):
-        self.currentGridIndex = Indx
-        self.grid = self.gridList[self.currentGridIndex]
+    def setGridList(self, year,month,day):
+        s3conn = boto.connect_s3()
+        bucket = s3conn.get_bucket('noaa-nexrad-level2')
+        keys = bucket.list(prefix= year + '/' + month + '/' + day + '/',
+                           delimiter='/')
+        tmp = []
+        for key in keys:
+            tmp.append(key.name.split('/')[-2])
+        
+        self.gridList = tmp
+        print(self.gridList)
+        if(self.grid not in self.gridList):
+            print("The site selected is not available for " + year 
+             + ' ' + month + '/' + day + '. The site has defaulted to : ' +
+             self.gridList[0] + 
+             '. Please re-select the site you would like to view')
+            self.selectionChangeHour(0)
+            self.selectionChangeMMSS(0)
+            self.selectionChangeGrid(0)
+            
 
     def readNCVariable(self,vname, barbs=None, vectors=None,contour2=None):
         #if vname == 'velocity' and self.currentSweep == 0:
@@ -308,7 +333,6 @@ class Radardataset:
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
         self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-#       self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
         selectPlotWidgetLayout.addWidget(self.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)
@@ -328,6 +352,7 @@ class Radardataset:
         plotObj.selectYear.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectYear.addItems(self.yearList)
         plotObj.selectYear.activated.connect(self.selectionChangeYear)
+        plotObj.selectYear.setCurrentIndex(self.currentYearIndex)
         yearbarLayout.addWidget(yearWidgetLabel)
         yearbarLayout.addWidget(plotObj.selectYear)
         self.gboxLayout.addWidget(yearbar)
@@ -342,6 +367,7 @@ class Radardataset:
         plotObj.selectMonth.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectMonth.addItems(self.monList)
         plotObj.selectMonth.activated.connect(self.selectionChangeMonth)
+        plotObj.selectMonth.setCurrentIndex(self.currentMonthIndex)
         selectMDbarLayout.addWidget(monthWidgetLabel)
         selectMDbarLayout.addWidget(plotObj.selectMonth)
 
@@ -352,6 +378,8 @@ class Radardataset:
         plotObj.selectDay.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectDay.addItems(self.dayList)
         plotObj.selectDay.activated.connect(self.selectionChangeDay)
+        plotObj.selectDay.setCurrentIndex(self.currentDayIndex)
+
         selectMDbarLayout.addWidget(dayWidgetLabel)
         selectMDbarLayout.addWidget(plotObj.selectDay)
         self.gboxLayout.addWidget(selectMDbar)
@@ -366,6 +394,7 @@ class Radardataset:
         plotObj.selectHour.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectHour.addItems(self.hourList)
         plotObj.selectHour.activated.connect(self.selectionChangeHour)
+        plotObj.selectHour.setCurrentIndex(self.currentHourIndex)
         selectMSbarLayout.addWidget(hourWidgetLabel)
         selectMSbarLayout.addWidget(plotObj.selectHour)
 
@@ -376,6 +405,7 @@ class Radardataset:
         plotObj.selectMMSS.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectMMSS.addItems(self.mmssList[self.currentHourIndex])
         plotObj.selectMMSS.activated.connect(self.selectionChangeMMSS)
+        plotObj.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
         selectMSbarLayout.addWidget(minuteWidgetLabel)
         selectMSbarLayout.addWidget(plotObj.selectMMSS)
         self.gboxLayout.addWidget(selectMSbar)
@@ -391,6 +421,7 @@ class Radardataset:
         plotObj.selectGrid.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectGrid.addItems(self.gridList)
         plotObj.selectGrid.activated.connect(self.selectionChangeGrid)
+        plotObj.selectGrid.setCurrentIndex(self.currentGridIndex)
         gridbarLayout.addWidget(gridWidgetLabel)
         gridbarLayout.addWidget(plotObj.selectGrid)
         self.gboxLayout.addWidget(gridbar)
@@ -405,6 +436,7 @@ class Radardataset:
         plotObj.selectSweep.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectSweep.addItems(self.swpList)
         plotObj.selectSweep.activated.connect(self.selectionChangeSweep)
+        plotObj.selectSweep.setCurrentIndex(self.currentSweep)
         swpbarLayout.addWidget(swpWidgetLabel)
         swpbarLayout.addWidget(plotObj.selectSweep)
         self.gboxLayout.addWidget(swpbar)
@@ -420,6 +452,7 @@ class Radardataset:
         plotObj.selectVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectVar.addItems(self.variableList)
         plotObj.selectVar.activated.connect(self.selectionChangeVar)
+        plotObj.selectVar.setCurrentIndex(self.currentVarIndex)
         varbarLayout.addWidget(varWidgetLabel)
         varbarLayout.addWidget(plotObj.selectVar)
         self.gboxLayout.addWidget(varbar)
@@ -459,17 +492,11 @@ class Radardataset:
     def selectionChangeYear(self,i):
         self.currentYearIndex = i
         self.year = self.yearList[self.currentYearIndex]
-        if self.year == self.yearList[0]:
-            self.currentYearIndex = 0
-            self.currentMonthIndex = -1
-            self.currentDayIndex = -1
-            self.month = self.monList[self.currentMonthIndex]
-            self.day = self.dayList[self.currentDayIndex]
+        self.plothook.selectGrid.clear()
         self.plothook.selectMonth.clear()
         self.plothook.selectDay.clear()
         self.plothook.selectHour.clear()
         self.plothook.selectMMSS.clear()
-
         if int(self.year) == int(self.now.year):
             maxmon = self.now.month
         else:
@@ -477,24 +504,29 @@ class Radardataset:
         tmp = np.arange(1,maxmon+1,1)
         self.monList = ["%02d" % x for x in tmp]
         self.month = self.monList[self.currentMonthIndex]
-        if int(self.month) == int(self.now.month):
+        if (int(self.month) == int(self.now.month) and 
+           int(self.year) == int(self.now.year)):
             maxday = self.now.day
         elif self.month == '02' and (((int(self.year)-1900) % 4) == 0):
             maxday = 29
         elif self.month == '02':
             maxday = 28
         elif self.month == '04' or self.month == '06' or \
-             self.month == '09' or self.month == 'self.11':
+             self.month == '09' or self.month == '11':
             maxday = 30
         else:
             maxday = 31
         tmp = np.arange(1,maxday+1,1)
         self.dayList = ["%02d" % x for x in tmp]
         self.day = self.dayList[self.currentDayIndex]
+        self.plothook.selectGrid.addItems(self.gridList)
         self.plothook.selectMonth.addItems(self.monList)
         self.plothook.selectDay.addItems(self.dayList)
+        self.setGridList(self.year,self.month,self.day)
+
 
     def selectionChangeMonth(self,i):
+        self.currentMonthIndex = i
         self.month = self.monList[i]
         if int(self.month) == int(self.now.month) and int(self.year) == int(self.now.year):
             maxday = self.now.day
@@ -503,22 +535,30 @@ class Radardataset:
         elif self.month == '02':
             maxday = 28
         elif self.month == '04' or self.month == '06' or \
-             self.month == '09' or self.month == 'self.11':
+             self.month == '09' or self.month == '11':
             maxday = 30
         else:
             maxday = 31
         tmp = np.arange(1,maxday+1,1)
         self.dayList = ["%02d" % x for x in tmp]
         self.day = self.dayList[self.currentDayIndex]
+        self.setGridList(self.year,self.month,self.day)
         self.plothook.selectDay.clear()
+        self.plothook.selectGrid.clear()
         self.plothook.selectDay.addItems(self.dayList)
+        self.plothook.selectGrid.addItems(self.gridList)
 
-    def selectionChangeDay(self,i):
+    def selectionChangeDay(self,i,update=True):
+        self.currentDayIndex = i
         self.day = self.dayList[i]
-        self.NEXRADfile(update=True)
+        self.setGridList(self.year,self.month,self.day)
+
+        self.NEXRADfile(update=update)
+        self.plothook.selectGrid.clear()
         self.plothook.selectVar.clear()
         self.plothook.selectHour.clear()
         self.plothook.selectMMSS.clear()
+        self.plothook.selectGrid.addItems(self.gridList)
         self.plothook.selectVar.addItems(self.variableList)
         self.plothook.selectHour.addItems(self.hourList)
         self.plothook.selectMMSS.addItems(self.mmssList[self.currentHourIndex])
@@ -566,6 +606,11 @@ class Radardataset:
         self.plothook.colormin = None
 
     def plotButtonAction(self):
+        self.plothook.selectYear.setCurrentIndex(self.currentYearIndex)
+        self.plothook.selectMonth.setCurrentIndex(self.currentMonthIndex)
+        self.plothook.selectDay.setCurrentIndex(self.currentDayIndex)
+        self.plothook.selectHour.setCurrentIndex(self.currentHourIndex)
+        self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
         self.NEXRADfile(update=True)
         self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
         self.plothook.nz = 1
@@ -583,29 +628,38 @@ class Radardataset:
         errorflag = False
         if self.currentTimeIndex == self.ntimes:
             self.currentTimeIndex = 0
-            self.currentYearIndex -= 1
-            if self.currentYearIndex == -1:
+            self.currentDayIndex += 1
+            if (self.currentDayIndex == len(self.dayList) or 
+                self.currentDayIndex == 0):
+                self.currentDayIndex = 0
+                self.currentHourIndex = 0
+                self.currentMinuteIndex = 0
+                self.currentMonthIndex += 1
+            if (self.currentMonthIndex == len(self.monList) or
+               self.currentMonthIndex == 0):
+                self.currentMonthIndex = 0
+                self.currentYearIndex -=1
+            if self.currentYearIndex < 0:
                 errorflag = True
                 self.errorInvalidYear()
             else:
-                self.year = self.yearList[self.currentYearIndex]
                 self.selectionChangeYear(self.currentYearIndex)
-                self.setURL(update=True)
-                self.currentMonthIndex = 0
-                self.month = self.monList[self.currentMonthIndex]
-                self.currentDayIndex = 0
-                self.day = self.dayList[self.currentDayIndex]
-                self.currentHourIndex = 0
-                self.hour = self.hourList[self.currentHourIndex]
-                self.setTimeIndex()
+                self.selectionChangeMonth(self.currentMonthIndex)
+                self.selectionChangeDay(self.currentDayIndex,update=False)
         if not errorflag:
             self.getTimeIndex()
+            self.selectionChangeHour(self.currentHourIndex)
+            self.selectionChangeMMSS(self.currentMinuteIndex)
+            self.plothook.selectYear.setCurrentIndex(self.currentYearIndex)
+            self.plothook.selectMonth.setCurrentIndex(self.currentMonthIndex)
+            self.plothook.selectDay.setCurrentIndex(self.currentDayIndex)
+            self.plothook.selectHour.setCurrentIndex(self.currentHourIndex)
+            self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
             self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
             self.plothook.readField()
             self.plothook.pltFxn(self.plothook.pNum)
-#            self.plotRadarData()
         else:
             pass
 
@@ -613,24 +667,29 @@ class Radardataset:
         self.currentTimeIndex-=1
         errorflag = False
         if self.currentTimeIndex == -1:
-            self.currentTimeIndex = -1
-            self.currentYearIndex += 1
+            self.currentDayIndex -= 1
+            self.currentHourIndex = -1
+            self.currentMinuteIndex = -1
+            if (self.currentDayIndex <= -1):
+                self.currentMonthIndex -= 1
+            if (self.currentMonthIndex <= -1):
+                self.currentYearIndex += 1
             if self.currentYearIndex == len(self.yearList):
                 errorflag = True
                 self.errorInvalidYear()
             else:
-                self.year = self.yearList[self.currentYearIndex]
                 self.selectionChangeYear(self.currentYearIndex)
-                self.setURL(update=True)
-                self.currentMonthIndex = -1
-                self.month = self.monList[self.currentMonthIndex]
-                self.currentDayIndex = -1
-                self.day = self.dayList[self.currentDayIndex]
-                self.currentHourIndex = -1
-                self.hour = self.hourList[self.currentHourIndex]
-                self.setTimeIndex()
+                self.selectionChangeMonth(self.currentMonthIndex)
+                self.selectionChangeDay(self.currentDayIndex,update=False)
         if not errorflag:
             self.getTimeIndex()
+            self.selectionChangeHour(self.currentHourIndex)
+            self.selectionChangeMMSS(self.currentMinuteIndex)
+            self.plothook.selectYear.setCurrentIndex(self.currentYearIndex)
+            self.plothook.selectMonth.setCurrentIndex(self.currentMonthIndex)
+            self.plothook.selectDay.setCurrentIndex(self.currentDayIndex)
+            self.plothook.selectHour.setCurrentIndex(self.currentHourIndex)
+            self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
             self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
