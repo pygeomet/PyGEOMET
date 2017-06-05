@@ -464,8 +464,14 @@ iloop: do i = 1, ii
        !Set the brightness temperature and radiance values from the output
        if (trim(request_var) == 'Radiance') then
          crtm_out(j,i) = rts(1,1)%Radiance
-       else
+       else if (trim(request_var) == 'Brightness Temperature') then
          crtm_out(j,i) = rts(1,1)%Brightness_Temperature
+       else if (trim(request_var) == 'Up Radiance') then
+         crtm_out(j,i) = rts(1,1)%Up_Radiance
+       else if (trim(request_var) == 'Down Radiance') then
+         crtm_out(j,i) = rts(1,1)%Down_Radiance
+       else if (trim(request_var) == 'Down Solar Radiance') then
+         crtm_out(j,i) = rts(1,1)%Down_Solar_Radiance
        endif
        !rad(i,j,n) = rts(n,1)%Radiance
 

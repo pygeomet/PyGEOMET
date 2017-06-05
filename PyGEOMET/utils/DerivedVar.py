@@ -802,8 +802,14 @@ class WRFDerivedVar:
         self.var2 = self.var
         if (request_var == "Radiance"):
             self.varTitle = "Simulated Radiance [mW $m^{-2}$ $sr^{-1}$ cm] \n"
-        else:
+        elif (request_var == "Brightness Temperature"):
             self.varTitle = "Simulated Brightness Temperature [K]\n"
+        elif (request_var == "Up Radiance"):
+            self.varTitle = "Simulated Atm Upward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"
+        elif (request_var == "Down Radiance"):
+            self.varTitle = "Simulated Atm Downward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"
+        else:
+            self.varTitle = "Simulated Downward Solar Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"        
         self.varTitle = self.varTitle + "(Sensor : "+self.sensor+"    Channel : "+self.channel+")\n"
         self.varTitle = self.varTitle + self.dataSet.getTime()        
           

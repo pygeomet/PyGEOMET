@@ -1684,7 +1684,9 @@ class PlotSlab:
             self.varBox = QComboBox()
             self.varBox.setStyleSheet(Layout.QComboBox())
             #Define Variable Options
-            self.crtmVarList = ['Brightness Temperature', 'Radiance']                       
+            self.crtmVarList = ['Brightness Temperature', 'Radiance',
+                                'Up Radiance', 'Down Radiance',
+                                'Solar Downwelling Radiance']                       
             self.varBox.addItems(self.crtmVarList)
             self.varBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)
 
