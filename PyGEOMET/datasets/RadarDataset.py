@@ -595,6 +595,8 @@ class Radardataset:
         self.currentGridIndex = i
         self.grid = self.gridList[i]
         self.currentTimeIndex = 0
+        self.currentHourIndex = -1
+        self.currentMinuteIndex = -1
         self.currentVarIndex = 0
         self.var = None
         self.plothook.currentLevel = 0
