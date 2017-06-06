@@ -73,7 +73,7 @@ class Radardataset:
     def NEXRADfile(self, update=None):
 
         if not hasattr(self,'yearList'):
-            self.now = datetime.datetime.now()
+            self.now = datetime.datetime.utcnow()
             tmp = np.arange(self.now.year,1991-1,-1)
             self.yearList = ["%04d" % x for x in tmp]
             if self.year == None:

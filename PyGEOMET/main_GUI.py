@@ -276,17 +276,23 @@ class PlotSlab:
         self.appobj.changeColor = False
         self.ColorBar = None
         self.extend = 'both'
+        self.appobj.plotcoasts = True
+        self.appobj.plotcountries = True
+        self.appobj.plotstates = True
+        self.appobj.plotcounties = False
+        self.appobj.plotlatlon = True
         self.appobj.cs = None
         self.appobj.cs2 = None
         self.appobj.cs2label = None
         self.appobj.barbs = None
         self.appobj.vectors = None
         self.appobj.vectorkey = None
-        self.appobj.resolution = 'l'
+        self.appobj.resolution = self.dataSet.resolution
         self.appobj.domain_average = None
-        self.coasts = None
-        self.countries = None
-        self.states = None
+        self.appobj.coasts = None
+        self.appobj.countries = None
+        self.appobj.states = None
+        self.appobj.counties = None
         self.cmap = self.appobj.cmap
         self.appobj.eom = None
         self.colorlock = False
@@ -545,9 +551,10 @@ class PlotSlab:
             self.figure.clear()
             self.appobj.clear = False
             self.appobj.cs = None
-            self.coasts = None
-            self.states = None
-            self.countries = None
+            self.appobj.coasts = None
+            self.appobj.states = None
+            self.appobj.countries = None
+            self.appobj.counties = None
             self.ColorBar = None
             self.appobj.domain_average = None
 
@@ -749,10 +756,14 @@ class PlotSlab:
                 self.appobj.vectorkey.remove()
             #Remove Geography - have to do it before contouring otherwise it 
             #                   won't be visible
-            if self.coasts != None and self.countries != None and self.states != None:
-                self.coasts.remove()
-                self.countries.remove()
-                self.states.remove()
+            if self.appobj.coasts != None :
+                self.appobj.coasts.remove()
+            if self.appobj.countries != None:
+                self.appobj.countries.remove()
+            if self.appobj.states != None:
+                self.appobj.states.remove()
+            if self.appobj.counties != None:
+                self.appobj.counties.remove()
                 
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
@@ -1027,9 +1038,14 @@ class PlotSlab:
 
         #Create geography
         if (self.currentPType != 'Vertical Slice' and self.dataSet.map[self.currentGrid-1] != None):
-            self.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
-            self.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.appobj.axes1[self.pNum-1])
-            self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.appobj.axes1[self.pNum-1])
+            if self.appobj.plotcoasts:
+                self.appobj.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
+            if self.appobj.plotcountries:
+                self.appobj.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.appobj.axes1[self.pNum-1])
+            if self.appobj.plotstates:
+                self.appobj.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.appobj.axes1[self.pNum-1])
+            if self.appobj.plotcounties:
+                self.appobj.counties = self.dataSet.map[self.currentGrid-1].drawcounties(ax=self.appobj.axes1[self.pNum-1],linewidth=0.5)
             # draw parallels
             if self.dataSet.projectionType == "robin" or self.dataSet.projectionType == "geos" or \
                self.dataSet.projectionType == "ortho" or self.dataSet.projectionType == "aeqd":
@@ -1046,15 +1062,23 @@ class PlotSlab:
 
             #Can't put labels on Geostationary, Orthographic or Azimuthal Equidistant basemaps 	
             if self.dataSet.projectionType == "ortho" and self.dataSet.projectionType == "aeqd" and self.dataSet.projectionType == "geos":
+                if self.appobj.plotlatlon:
+                    linewidth=0.5
+                else:
+                    linewidth=0
                 # draw parallels
                 self.dataSet.map[self.currentGrid-1].drawparallels(parallels,ax=self.appobj.axes1[self.pNum-1])
                 # draw meridians
                 self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.appobj.axes1[self.pNum-1])
             else:	
+                if self.appobj.plotlatlon:
+                    linewidth=0.5
+                else:
+                    linewidth=0
                 # draw parallels
-                self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
+                self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
                 # draw meridians
-                self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1])
+                self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
         elif (self.currentPType == 'Vertical Slice'):
@@ -1455,9 +1479,10 @@ class PlotSlab:
                 self.appobj.domain_average = None
                 #Get the new projection
                 self.appobj.recallProjection = True
-                self.coasts = None
-                self.countries = None
-                self.states = None
+                self.appobj.coasts = None
+                self.appobj.countries = None
+                self.appobj.states = None
+                self.appobj.counties = None
                 #Removes the colorbar
                 self.ColorBar = None
                 #Reset the color scale unless plotting WRF reflectivity
@@ -1956,9 +1981,10 @@ class PlotSlab:
         self.appobj.vectorkey = None
         self.appobj.cs2label = None
         self.appobj.domain_average=None
-        self.coasts = None
-        self.countries = None
-        self.states = None
+        self.appobj.coasts = None
+        self.appobj.countries = None
+        self.appobj.states = None
+        self.appobj.counties = None
         self.appobj.recallProjection = True
         self.currentGrid = i+1
         self.currentTime = 0
@@ -2463,6 +2489,23 @@ class AppForm(QMainWindow):
         #Overlay options
         overlayMenu = plotMenu.addMenu('&Overlays')
         overlayMenu.setStyleSheet(Layout.QMenu())
+        geogMenu = overlayMenu.addMenu('&Geography')
+        geogMenu.setStyleSheet(Layout.QMenu())
+        coast = QAction("Coastlines",self)
+        coast.triggered.connect(lambda: self.plotCoastlines())
+        coast.setStatusTip('Overlay Coastlines')
+        ctries = QAction("Countries",self)
+        ctries.triggered.connect(lambda: self.plotCountries())
+        ctries.setStatusTip('Overlay Country Boundaries')
+        states = QAction("States",self)
+        states.triggered.connect(lambda: self.plotStates())
+        states.setStatusTip('Overlay State Boundaries')
+        county = QAction("Counties",self)
+        county.triggered.connect(lambda: self.plotCounties())
+        county.setStatusTip('Overlay County Boundaries')
+        llgrid = QAction("Lat/Lon Grid",self)
+        llgrid.triggered.connect(lambda: self.plotLatlonGrid())
+        llgrid.setStatusTip('Overlay Lat/Lon Grid')
         wb = QAction("Wind Barbs",self)
         wb.triggered.connect(lambda: self.plotWindBarbs())
         wb.setShortcut("Ctrl+B")
@@ -2475,6 +2518,12 @@ class AppForm(QMainWindow):
         c2.triggered.connect(lambda: self.plotContour2())
         c2.setShortcut("Ctrl+C")
         c2.setStatusTip('Overlay 2nd Contour')
+        geogMenu.addAction(coast)
+        geogMenu.addAction(ctries)
+        geogMenu.addAction(states)
+        geogMenu.addAction(county)
+        geogMenu.addAction(llgrid)
+        
         overlayMenu.addAction(c2)
         overlayMenu.addAction(wb)
         overlayMenu.addAction(wv)
@@ -2686,6 +2735,53 @@ class AppForm(QMainWindow):
            self.domain_average.remove()
         self.domain_average = None
         self.filltype = "contourf"
+        self.on_draw(self.plotCount)
+
+    def plotCoastlines(self):
+        if self.plotcoasts == False:
+            self.plotcoasts = True
+        else:
+            self.plotcoasts = False
+            if self.coasts != None:
+                self.coasts.remove()
+                self.coasts = None
+        self.on_draw(self.plotCount)
+
+    def plotCountries(self):
+        if self.plotcountries == False:
+            self.plotcountries = True
+        else:
+            self.plotcountries = False
+            if self.countries != None:
+                self.countries.remove()
+                self.countries = None
+        self.on_draw(self.plotCount)
+
+    def plotStates(self):
+        if self.plotstates == False:
+            self.plotstates = True
+        else:
+            self.plotstates = False
+            if self.states != None:
+                self.states.remove()
+                self.states = None
+        self.on_draw(self.plotCount)
+
+    def plotCounties(self):
+        if self.plotcounties == False:
+            self.plotcounties = True
+        else:
+            self.plotcounties = False
+            if self.counties != None:
+                self.counties.remove()
+                self.counties = None
+        self.on_draw(self.plotCount)
+
+    def plotLatlonGrid(self):
+        if self.plotlatlon == False:
+            self.plotlatlon = True
+        else:
+            self.plotlatlon = False
         self.on_draw(self.plotCount)
 
     def plotWindBarbs(self):
