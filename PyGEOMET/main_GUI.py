@@ -303,6 +303,12 @@ class PlotSlab:
         self.crtmSensor = None
         self.crtmChannel = None
         self.crtmVar = None
+        self.appobj.userGrid = False
+        self.appobj.llcrnrlat = None
+        self.appobj.urcrnrlat = None
+        self.appobj.llcrnrlon = None
+        self.appobj.urcrnrlon = None
+
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
             self.dataSet.runType = None
@@ -543,6 +549,15 @@ class PlotSlab:
         t0 = time.clock()
         t1 = time.time()        
 
+        #Check if the user has set the lat/lon bounds of the map
+        if (self.appobj.userGrid):
+            print('setting user grid')
+            self.dataSet.ll_lat[self.currentGrid-1] = self.appobj.llcrnrlat
+            self.dataSet.ll_lon[self.currentGrid-1] = self.appobj.llcrnrlon
+            self.dataSet.ur_lat[self.currentGrid-1] = self.appobj.urcrnrlat
+            self.dataSet.ur_lon[self.currentGrid-1] = self.appobj.urcrnrlon
+        print(self.dataSet.map[self.currentGrid-1].llcrnrlat,self.dataSet.map[self.currentGrid-1].llcrnrlon)
+
         #Check if colormap was changed
         if self.appobj.changeColor == True:
             self.cmap = self.appobj.cmap      
@@ -608,7 +623,10 @@ class PlotSlab:
         #Set/Force NEXRAD settings
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.nz = 1
-            self.appobj.filltype = 'pcolormesh'
+            self.appobj.filltype = 'pcolormesh' 
+            #plot the parallels and meridians each time
+            self.appobj.parallels = None
+            self.appobj.meridians = None       
             #Based on called variable color and range from pyART
             self.cmap = self.dataSet.cmap
             self.colormin = self.dataSet.range[0]
@@ -825,6 +843,8 @@ class PlotSlab:
                     self.appobj.axes1[self.pNum-1] = None
                     self.appobj.domain_average = None
                     self.ColorBar = None
+                    self.meridians = None
+                    self.parallels = None
                     self.figure.clear()
                     if len(self.appobj.axes1) >= self.pNum:
                         self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
@@ -1158,7 +1178,6 @@ class PlotSlab:
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
-
                
         #Keep the same colormap
         self.appobj.changeColor = False
@@ -2464,16 +2483,19 @@ class AppForm(QMainWindow):
         calcMenu.setStyleSheet(Layout.QMenu())
         menuEOM = calcMenu.addAction(getEOM)
 
+        #Map settings
+        mapMenu = plotMenu.addMenu('&Map Settings')
+
         #Map background options
-        mapMenu = plotMenu.addMenu('&Change Map Background')
-        mapMenu.setStyleSheet(Layout.QMenu())
-        mapMenu.addAction(defaultClear)
-        mapMenu.addAction(blueMarble)
-        mapMenu.addAction(shadedRelief)
-        mapMenu.addAction(topo)
+        bckMenu = mapMenu.addMenu('&Change Map Background')
+        bckMenu.setStyleSheet(Layout.QMenu())
+        bckMenu.addAction(defaultClear)
+        bckMenu.addAction(blueMarble)
+        bckMenu.addAction(shadedRelief)
+        bckMenu.addAction(topo)
 
         #Map Resolution options
-        resMenu = plotMenu.addMenu('&Change Map Resolution')
+        resMenu = mapMenu.addMenu('&Change Map Resolution')
         resMenu.setStyleSheet(Layout.QMenu())
         resMenu.addAction(coarse)
         resMenu.addAction(low)
@@ -2481,8 +2503,15 @@ class AppForm(QMainWindow):
         resMenu.addAction(high)
         resMenu.addAction(full)
 
+        #User-defined Map Boundaries
+        mc = QAction("Map Boundaries",self)
+        mc.triggered.connect(lambda: self.setMapBoundaries())
+        mc.setStatusTip("Set the Lat/Lon boundaries for the Basemap")
+        mapMenu.addAction(mc)
+
+        pMenu  = plotMenu.addMenu('&Plot Settings')
         #Colorbar options
-        colorbarMenu = plotMenu.addMenu('&Change Colorbar')
+        colorbarMenu = pMenu.addMenu('&Change Colorbar')
         colorbarMenu.setStyleSheet(Layout.QMenu())
         colorbarMenu.addAction(jet)
         colorbarMenu.addAction(brg)
@@ -2499,7 +2528,7 @@ class AppForm(QMainWindow):
         satMenu.addAction(satIR)
  
         #Contour Fill options
-        contourMenu = plotMenu.addMenu('&Contour Fill Type')
+        contourMenu = pMenu.addMenu('&Contour Fill Type')
         contourMenu.setStyleSheet(Layout.QMenu())
         cf = QAction("ContourF",self)
         cf.triggered.connect(lambda: self.ContourFPlot())
@@ -2507,7 +2536,7 @@ class AppForm(QMainWindow):
         pc.triggered.connect(lambda: self.PColorMeshPlot())
         contourMenu.addAction(cf)
         contourMenu.addAction(pc)
-
+         
         #Overlay options
         overlayMenu = plotMenu.addMenu('&Overlays')
         overlayMenu.setStyleSheet(Layout.QMenu())
@@ -2545,7 +2574,6 @@ class AppForm(QMainWindow):
         geogMenu.addAction(states)
         geogMenu.addAction(county)
         geogMenu.addAction(llgrid)
-        
         overlayMenu.addAction(c2)
         overlayMenu.addAction(wb)
         overlayMenu.addAction(wv)
@@ -2844,6 +2872,19 @@ class AppForm(QMainWindow):
                     self.meridians[mer][1][0].remove()
         self.parallels = None
         self.meridians = None
+        self.on_draw(self.plotCount)
+
+    def setMapBoundaries(self):
+        if self.userGrid == False:
+            self.userGrid = True
+            self.llcrnrlat = 35
+            self.llcrnrlon = -110
+            self.urcrnrlat = 50
+            self.urcrnrlon = -95
+            self.recallProjection = True
+
+        else:
+            self.userGrid = False
         self.on_draw(self.plotCount)
 
     def plotWindBarbs(self):
