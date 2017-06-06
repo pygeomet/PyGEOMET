@@ -17,9 +17,9 @@ from Cython.Build import cythonize
 #  compile CRTM. This is done during the install.
 # example : python setup.py config --fcompiler=pg install
 # where pg is a pgi fortran compiler. Default is gfortran
-USE_CRTM = True
+USE_CRTM = False
 #Set the crtm_path once CRTM has been compiled
-crtm_path = "/rhome/whiteat/CRTM/REL-2.1.3"
+crtm_path = "/home/user/CRTM/REL-2.1.3"
 #Set the endian type for CRTM
 #Options are Little_Endian or Big_Endian
 #Depends on your system or compiler options (byte swapping)
