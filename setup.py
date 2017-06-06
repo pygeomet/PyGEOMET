@@ -17,9 +17,9 @@ from Cython.Build import cythonize
 #  compile CRTM. This is done during the install.
 # example : python setup.py config --fcompiler=pg install
 # where pg is a pgi fortran compiler. Default is gfortran
-USE_CRTM = False
+USE_CRTM = True
 #Set the crtm_path once CRTM has been compiled
-crtm_path = "/home/user/CRTM/REL-2.1.3"
+crtm_path = "/rhome/whiteat/CRTM/REL-2.1.3"
 #Set the endian type for CRTM
 #Options are Little_Endian or Big_Endian
 #Depends on your system or compiler options (byte swapping)
@@ -44,7 +44,8 @@ license = "GPL"
 keywords = "numerical modeling, atmospheric science"
 url = "https://github.com/pygeomet/PyGEOMET"
 packages = ['PyGEOMET','PyGEOMET.datasets', 'PyGEOMET.icons', 'PyGEOMET.utils']
-package_data = {"PyGEOMET.icons": ["down.png"],"PyGEOMET.utils":["radar_sites.csv"]}
+package_data = {"PyGEOMET.icons": ["down.png"],"PyGEOMET.utils":["radar_sites.csv"],
+                "PyGEOMET.utils":["sounding_locations.txt"]}
 classifiers = ["Development Status :: 3 - Alpha",
                "Programming Language :: Python :: 3.6,3.5,2.7",]
 

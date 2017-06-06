@@ -41,6 +41,7 @@ import PyGEOMET.datasets.GOESClassDataset as GOESClass
 import PyGEOMET.datasets.RadarDataset as NEXRAD
 import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
+import PyGEOMET.datasets.SoundingDataset as SoundDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import PyGEOMET.utils.sensor_info as CRTMInfo
 import PyGEOMET.utils.create_colormap as create_colormap
@@ -160,7 +161,23 @@ class CanvasWidget(QWidget):
         #If they don't, ix and iy will be None. 
         #This will result in an error in the row/col calculations
         if (ix != None and iy != None):
-            if (self.plotObj.dataSet.runType != 'IDEAL'):
+            if (self.plotObj.dataSet.runType == 'IDEAL'):
+                row = int(iy*1000/self.plotObj.dataSet.dy[self.plotObj.currentGrid-1] +
+                         (self.plotObj.dataSet.ny[self.plotObj.currentGrid-1]-1)/2)
+                col = int(ix*1000/self.plotObj.dataSet.dx[self.plotObj.currentGrid-1] +
+                         (self.plotObj.dataSet.nx[self.plotObj.currentGrid-1]-1)/2)
+            elif (self.plotObj.appobj.dname == 'SOUNDING'):
+                a = np.vstack((lat,lon)).T
+                pt = [iy, ix]
+                distance, index = spatial.KDTree(a).query(pt)
+                #print(distance)
+                #print(index)
+                #print(a[index])
+                #print(iy,ix)
+                col = index
+                row = index
+                print(self.plotObj.dataSet.stat_id[index])
+            else:
                 lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
                             self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
                             self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
@@ -171,11 +188,6 @@ class CanvasWidget(QWidget):
                 tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
                 row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
                 col  = np.argsort(np.abs(lon[row,:] - ix))[0]
-            else:
-                row = int(iy*1000/self.plotObj.dataSet.dy[self.plotObj.currentGrid-1] + 
-                         (self.plotObj.dataSet.ny[self.plotObj.currentGrid-1]-1)/2)
-                col = int(ix*1000/self.plotObj.dataSet.dx[self.plotObj.currentGrid-1] + 
-                         (self.plotObj.dataSet.nx[self.plotObj.currentGrid-1]-1)/2) 
 
             print( col, row )
             coords = [ix, iy]
@@ -1178,7 +1190,13 @@ class PlotSlab:
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
-               
+
+        #Plot sounding locations on the map
+        if self.appobj.dname == 'SOUNDING':
+            self.dataSet.map[self.currentGrid-1].plot(self.dataSet.glons[self.currentGrid-1],
+                                                      self.dataSet.glats[self.currentGrid-1],
+                                                      'bo',markersize=6,latlon=True)
+
         #Keep the same colormap
         self.appobj.changeColor = False
         
@@ -1192,8 +1210,16 @@ class PlotSlab:
 
     def plotSkewT(self,i,j):
 
-        #The WRF MET files have different pressure, temp and humidity variables      
-        if self.appobj.dname == 'MET':
+        #Determine the Dataset Type     
+        if (self.appobj.dname == 'SOUNDING'):
+            self.dataSet.getObsFile(i)
+            self.skewt = SkewT.SkewTobj(temp = self.dataSet.t, pressure = self.dataSet.p,
+                                        Z = self.dataSet.h, qv = self.dataSet.q,
+                                        td = self.dataSet.dew, parcel = self.skewParcel,
+                                        u = self.dataSet.u, v = self.dataSet.v )
+
+        #The WRF MET files have different pressure, temp and humidity variables
+        elif (self.appobj.dname == 'MET'):
             #Get Variables
             p = np.squeeze(self.dataSet.readNCVariable('PRES'))/100. #Convert from pascal
             t = np.squeeze(self.dataSet.readNCVariable('TT'))-273.15 #Convert from K
@@ -2378,6 +2404,12 @@ class AppForm(QMainWindow):
         openMET.setStatusTip('Open MET')
         openMET.triggered.connect(self.metOpen)
 
+        #Soundings
+        openSound = QAction("&Sounding",self)
+        openSound.setShortcut("Ctrl+S")
+        openSound.setStatusTip('Open Sounding')
+        openSound.triggered.connect(self.soundingOpen)
+
         ####End Dataset menu bar ##############################
 
         # Get EOM
@@ -2475,6 +2507,7 @@ class AppForm(QMainWindow):
         dataSetMenu.addAction(openNCEPNCAR)
         dataSetMenu.addAction(openMERRA)
         dataSetMenu.addAction(openNEXRAD)
+        dataSetMenu.addAction(openSound)
 
         #set up the plot settings menu
         plotMenu = mainMenu.addMenu('&Plot Settings')
@@ -2724,6 +2757,15 @@ class AppForm(QMainWindow):
                 QApplication.restoreOverrideCursor()
             else:
                 self.errorNoFilesFound()
+
+    #Open the sounding dataset
+    def soundingOpen(self):
+        self.dname = 'SOUNDING'
+        #self.selectdataset.close()
+        self.numDset += 1
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.dataSet.append(SoundDataset.SoundingDataset())
+        QApplication.restoreOverrideCursor()
 
     def EOMget(self):
         if self.dataSet[self.numDset].dsetname == "MERRA":
