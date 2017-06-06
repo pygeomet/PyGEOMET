@@ -107,7 +107,7 @@ class GOESClassDataset:
                     self.setGrid(self.numGrids+1)
                     if i == 1:
                         dvar = ['Radiance', 'Effective Albedo']
-                    elif i == 4:
+                    else:
                         dvar = ['Radiance', 'Temperature']
                     self.dvarlist.append(dvar)
                     for ii in range(len(files)*self.ntimes):
@@ -331,8 +331,9 @@ class GOESClassDataset:
 
 
     def calculateVariables(self,vaname):
+        print(self.band_num[self.currentGrid],vaname)
         if self.band_num[self.currentGrid] == 1:
-            #Radiance is need for all calculations so calculate it first            
+            #Radiance is needed for all calculations so calculate it first            
             m1 = 0.6120196  #[W/(m2 sr um count)]
             b1 = -17.749    #[W/(m2 sr um)]
             radiance = abs(m1*self.data + b1)  #[W/(m2 sr um)]
@@ -349,8 +350,62 @@ class GOESClassDataset:
                 varTitle = varTitle + "\n"+self.getTime()
                 varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
 
+        elif self.band_num[self.currentGrid] == 2:
+            #Radiance is needed for all calculations so calculate it first
+            m2 = 227.3889
+            b2 = 68.2167
+            radiance = (self.data - b2)/m2 * 10.  #[W/(m2 sr um)]
+            if vaname == "Radiance":
+                pltvar = radiance
+                varTitle = "Radiance (W/(m$^2$ sr $\mu$m))"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+            elif vaname == "Temperature":
+                c1 = 1.19100e-5      #[mW/m2 sr cm-4]
+                c2 = 1.438833        #[K/cm-1]
+                v2a = 2591.74        #cm-1
+                alpha2a = -1.437204
+                beta2a = 1.002562
+                #Effective temperature in (K)
+                t_eff = (c2 * v2a) / np.log(1+ (c1*v2a**3)/(radiance/10.))
+
+                #Convert to actual temperature (K)
+                t_act = alpha2a + beta2a*t_eff
+
+                pltvar = t_act
+                varTitle = "Temperature (K)"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+
+        elif self.band_num[self.currentGrid] == 3:
+            #Radiance is needed for all calculations so calculate it first
+            m3 = 38.8383
+            b3 = 29.1287
+            radiance = (self.data - b3)/m3 * 10.  #[W/(m2 sr um)]
+            if vaname == "Radiance":
+                pltvar = radiance
+                varTitle = "Radiance (W/(m$^2$ sr $\mu$m))"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+            elif vaname == "Temperature":
+                c1 = 1.19100e-5      #[mW/m2 sr cm-4]
+                c2 = 1.438833        #[K/cm-1]
+                v3a = 1522.52        #cm-1
+                alpha3a = -3.607841
+                beta3a = 1.0010018
+                #Effective temperature in (K)
+                t_eff = (c2 * v3a) / np.log(1+ (c1*v3a**3)/(radiance/10.))
+
+                #Convert to actual temperature (K)
+                t_act = alpha3a + beta3a*t_eff
+
+                pltvar = t_act
+                varTitle = "Temperature (K)"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+
         elif self.band_num[self.currentGrid] == 4:
-            #Radiance is need for all calculations so calculate it first
+            #Radiance is needed for all calculations so calculate it first
             m4 = 5.2285     
             b4 = 15.6854    
             radiance = (self.data - b4)/m4 * 10.  #[W/(m2 sr um)]
@@ -375,6 +430,34 @@ class GOESClassDataset:
                 varTitle = "Temperature (K)"
                 varTitle = varTitle + "\n"+self.getTime()
                 varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+
+        elif self.band_num[self.currentGrid] == 6:
+            #Radiance is needed for all calculations so calculate it first
+            m6 = 5.5297
+            b6 = 16.5892
+            radiance = (self.data - b6)/m6 * 10.  #[W/(m2 sr um)]
+            if vaname == "Radiance":
+                pltvar = radiance
+                varTitle = "Radiance (W/(m$^2$ sr $\mu$m))"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+            elif vaname == "Temperature":
+                c1 = 1.19100e-5      #[mW/m2 sr cm-4]
+                c2 = 1.438833        #[K/cm-1]
+                v6a = 751.93         #cm-1
+                alpha6a = -0.134688
+                beta6a = 1.000481
+                #Effective temperature in (K)
+                t_eff = (c2 * v6a) / np.log(1+ (c1*v6a**3)/(radiance/10.))
+
+                #Convert to actual temperature (K)
+                t_act = alpha6a + beta6a*t_eff
+
+                pltvar = t_act
+                varTitle = "Temperature (K)"
+                varTitle = varTitle + "\n"+self.getTime()
+                varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
+
         #Pass to plot object
         if self.pObj is not None:
             self.pObj.var = pltvar
@@ -452,7 +535,7 @@ class GOESClassDataset:
         #Add the derived variables based on the selected band
         if self.band_num[self.currentGrid] == 1:
             self.selectdVar.addItems(self.dvarlist[self.currentGrid])
-        elif self.band_num[self.currentGrid] == 4:
+        else:
             self.selectdVar.addItems(self.dvarlist[self.currentGrid])
         if self.raw == 1:
             self.selectionChangeVar(1)
