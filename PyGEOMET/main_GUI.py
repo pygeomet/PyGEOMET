@@ -43,6 +43,7 @@ import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import PyGEOMET.utils.sensor_info as CRTMInfo
+import PyGEOMET.utils.create_colormap as create_colormap
 import time
 import os
 import warnings
@@ -887,8 +888,8 @@ class PlotSlab:
                 self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax, orientation='vertical')         
 
             #Extend colorbar if contourf - pcolormesh doesn't allow extend at this point
-            if self.appobj.filltype == "contourf":
-                self.ColorBar.extend = self.extend
+            #if self.appobj.filltype == "contourf":
+            self.ColorBar.extend = self.extend
            
             #Create colorbar ticks 
             self.ColorBar.ax.tick_params(labelsize=9)                
@@ -2366,7 +2367,9 @@ class AppForm(QMainWindow):
         getEOM.triggered.connect(self.EOMget)
 
         #Color Palettes
-        self.colorlist = ['jet','brg','rainbow','bwr','RdBu','YlOrRd','viridis','magma','gray','pyart_NWSRef']
+        self.colorlist = ['jet','brg','rainbow','bwr','RdBu','YlOrRd',
+                          'viridis','magma','gray','pyart_NWSRef','sat_WV',
+                          'sat_IR']
         jet = QAction("&Default (jet)",self)
         jet.triggered.connect(lambda: self.selectionChangeColorPallete(0))
         brg = QAction(QIcon('brg.png'),"&BlueRedGreen",self)
@@ -2387,6 +2390,10 @@ class AppForm(QMainWindow):
         gray.triggered.connect(lambda: self.selectionChangeColorPallete(8))
         ref = QAction("&NWS Reflectivity",self)
         ref.triggered.connect(lambda: self.selectionChangeColorPallete(9))
+        satWV = QAction("&Satellite Water Vapor",self)
+        satWV.triggered.connect(lambda: self.selectionChangeColorPallete(10))
+        satIR = QAction("&Satellite IR",self)
+        satIR.triggered.connect(lambda: self.selectionChangeColorPallete(11))
 
         #Create map background menu bar
         defaultClear = QAction("&Default (Clear)", self)
@@ -2487,7 +2494,10 @@ class AppForm(QMainWindow):
         colorbarMenu.addAction(magma)
         colorbarMenu.addAction(gray)
         colorbarMenu.addAction(ref)
-        
+        satMenu = colorbarMenu.addMenu('&Satellite')
+        satMenu.addAction(satWV)
+        satMenu.addAction(satIR)
+ 
         #Contour Fill options
         contourMenu = plotMenu.addMenu('&Contour Fill Type')
         contourMenu.setStyleSheet(Layout.QMenu())
@@ -2697,6 +2707,28 @@ class AppForm(QMainWindow):
     def selectionChangeColorPallete(self,i):
         self.changeColor = True
         self.cmap = self.colorlist[i]
+        #Create cmap for Satellite Water Vapor
+        if (self.cmap == 'sat_WV'):
+            max_val = 273.
+            min_val = 163.
+            position = [0,(195.-min_val)/(max_val-min_val),(223.-min_val)/(max_val-min_val),
+                        (243.-min_val)/(max_val-min_val),(261.-min_val)/(max_val-min_val),
+                        (263.-min_val)/(max_val-min_val),1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)          
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+        #Create cmap for Satellite IR
+        if (self.cmap == 'sat_IR'):
+            max_val = 300.
+            min_val = 170.
+            position = [0,(200.-min_val)/(max_val-min_val),(208.-min_val)/(max_val-min_val),
+                          (218.-min_val)/(max_val-min_val),(228.-min_val)/(max_val-min_val),
+                          (245.-min_val)/(max_val-min_val),(253.-min_val)/(max_val-min_val),
+                          (258.-min_val)/(max_val-min_val),1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+
         self.on_draw(self.plotCount)
 
     #Function that changes the background color option when user selected
