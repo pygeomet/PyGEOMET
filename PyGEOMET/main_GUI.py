@@ -293,6 +293,8 @@ class PlotSlab:
         self.appobj.countries = None
         self.appobj.states = None
         self.appobj.counties = None
+        self.appobj.parallels = None
+        self.appobj.meridians = None
         self.cmap = self.appobj.cmap
         self.appobj.eom = None
         self.colorlock = False
@@ -555,6 +557,8 @@ class PlotSlab:
             self.appobj.states = None
             self.appobj.countries = None
             self.appobj.counties = None
+            self.appobj.meridians = None
+            self.appobj.parallels = None
             self.ColorBar = None
             self.appobj.domain_average = None
 
@@ -1076,9 +1080,13 @@ class PlotSlab:
                 else:
                     linewidth=0
                 # draw parallels
-                self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
+                if self.appobj.parallels == None:
+                    self.appobj.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=10,
+                                 ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
                 # draw meridians
-                self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
+                if self.appobj.meridians == None:
+                    self.appobj.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,
+                                 ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
         elif (self.currentPType == 'Vertical Slice'):
@@ -1483,6 +1491,8 @@ class PlotSlab:
                 self.appobj.countries = None
                 self.appobj.states = None
                 self.appobj.counties = None
+                self.appobj.parallels = None
+                self.appobj.meridians = None
                 #Removes the colorbar
                 self.ColorBar = None
                 #Reset the color scale unless plotting WRF reflectivity
@@ -1985,6 +1995,8 @@ class PlotSlab:
         self.appobj.countries = None
         self.appobj.states = None
         self.appobj.counties = None
+        self.appobj.meridians = None
+        self.appobj.parallels = None
         self.appobj.recallProjection = True
         self.currentGrid = i+1
         self.currentTime = 0
@@ -2780,8 +2792,26 @@ class AppForm(QMainWindow):
     def plotLatlonGrid(self):
         if self.plotlatlon == False:
             self.plotlatlon = True
+            for par in self.parallels:
+                self.parallels[par][0][0].remove()
+                if (len(self.parallels[par][1]) != 0):
+                    self.parallels[par][1][0].remove()
+            for mer in self.meridians:
+                self.meridians[mer][0][0].remove()
+                if (len(self.meridians[mer][1]) != 0):
+                    self.meridians[mer][1][0].remove()
         else:
             self.plotlatlon = False
+            for par in self.parallels:
+                self.parallels[par][0][0].remove()
+                if (len(self.parallels[par][1]) != 0):
+                    self.parallels[par][1][0].remove()
+            for mer in self.meridians:
+                self.meridians[mer][0][0].remove()
+                if (len(self.meridians[mer][1]) != 0):
+                    self.meridians[mer][1][0].remove()
+        self.parallels = None
+        self.meridians = None
         self.on_draw(self.plotCount)
 
     def plotWindBarbs(self):
