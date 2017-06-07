@@ -56,28 +56,22 @@ class SoundingDataset:
     def getSoundLoc(self):
         path = os.path.dirname(PyGEOMET.utils.__file__)
         f = open(os.path.join(path,'sounding_locations.txt'))
-        """
         lin_num = 0
         for line in f:
             #Skip header
             if lin_num > 0:
-                print(line[0:4])
-                print(line[12:20])
-                print(line[24:30])
-                print(line[36:42])
                 self.stat_id.append(line[0:4])
                 self.obs_lon.append(float(line[12:20]))
                 self.obs_lat.append(float(line[24:30]))
                 self.stat_num.append(line[36:42])
             lin_num += 1
         f.close()
-        """
-        info = np.genfromtxt(f,skip_header=1,dtype=None) 
-        for i in range(len(info)):    
-            self.stat_id.append(info[i][0])
-            self.obs_lon.append(info[i][1])
-            self.obs_lat.append(info[i][2])  
-            self.stat_num.append(info[i][3])
+        #info = np.genfromtxt(f,skip_header=1,dtype=None) 
+        #for i in range(len(info)):    
+        #    self.stat_id.append(info[i][0])
+        #    self.obs_lon.append(info[i][1])
+        #    self.obs_lat.append(info[i][2])  
+        #    self.stat_num.append(info[i][3])
  
         self.glons = [self.obs_lon]
         self.glats = [self.obs_lat]
@@ -85,10 +79,10 @@ class SoundingDataset:
     #Pull the selected sounding
     def getObsFile(self,ind,year=None,month=None,hour=None,station=None):
         if year == None or month == None or day == None:
-            print("Using default time of: year=2017, month=02, day=16")
-            year = '2017'
-            month = '02'
-            day = '16'
+            print("Using default time of: year=2011, month=04, day=28")
+            year = '2011'
+            month = '04'
+            day = '28'
         if hour == None:
             hour = '00'
 
@@ -170,28 +164,30 @@ class SoundingDataset:
 
         os.remove(filename)
 
-        self.p = np.array(p_o)
-        self.h = np.array(h_o)
-        self.t = np.array(t_o)
-        self.dew = np.array(dew_o)
-        self.q = np.array(q_o)
-        self.rh = np.array(rh_o)
+        self.p = np.array(p_o,dtype=np.float32)
+        self.h = np.array(h_o,dtype=np.float32) 
+        self.t = np.array(t_o,dtype=np.float32)
+        self.dew = np.array(dew_o,dtype=np.float32)
+        self.q = np.array(q_o,dtype=np.float32)
+        self.rh = np.array(rh_o,dtype=np.float32)
         #Covert wind direction to "math" angle
         # from meteorological angle
-        direct = 270. - np.array(direct_o)
+        direct = 270. - np.array(direct_o,dtype=np.float32)
         #Convert wind to m/s from knots
-        wind = np.array(wind_o)*0.514444
+        wind = np.array(wind_o,dtype=np.float32)*0.514444
         #Get the components of the wind
         self.u = wind * np.cos(direct*(np.pi/180.))
         self.v = wind * np.sin(direct*(np.pi/180.))
-        self.theta = np.array(theta_o)    
+        self.theta = np.array(theta_o,dtype=np.float32)    
 
     def getTime(self):
-        utc = self.hourList[self.currentHourIndex] + ":" +\
-              self.mmssList[self.currentHourIndex][self.currentMinuteIndex][0:2] + ":" +\
-              self.mmssList[self.currentHourIndex][self.currentMinuteIndex][2:4]
-        self.timeString = self.month + '/' + self.day + '/' + self.year +\
-                          ' ' + utc + ' UTC'
+        #utc = self.hourList[self.currentHourIndex] + ":" +\
+        #      self.mmssList[self.currentHourIndex][self.currentMinuteIndex][0:2] + ":" +\
+        #      self.mmssList[self.currentHourIndex][self.currentMinuteIndex][2:4]
+        utc = '00:00'
+        #self.timeString = self.month + '/' + self.day + '/' + self.year +\
+        #                  ' ' + utc + ' UTC'
+        self.timeString = '04/28/2011 00:00 UTC'
         return self.timeString
 
     def getTimeIndex(self):

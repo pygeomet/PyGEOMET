@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import glob
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import scipy.spatial as spatial
 import netCDF4
 import PyGEOMET.utils.wrf_functions as wrf
 import PyGEOMET.utils.wrf_cython as wrf_cython
@@ -161,33 +162,35 @@ class CanvasWidget(QWidget):
         #If they don't, ix and iy will be None. 
         #This will result in an error in the row/col calculations
         if (ix != None and iy != None):
-            if (self.plotObj.dataSet.runType == 'IDEAL'):
+            if (self.plotObj.dataSet.runType != 'IDEAL'):
+                lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                            self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
+                            self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
+                if (self.plotObj.appobj.dname == 'SOUNDING'):
+                    a = np.vstack((lat,lon)).T
+                    pt = [iy, ix]
+                    distance, index = spatial.KDTree(a).query(pt)
+                    #print(distance)
+                    #print(index)
+                    #print(a[index])
+                    #print(iy,ix)
+                    col = index
+                    row = index
+                    print(self.plotObj.dataSet.stat_id[index])
+                else:                    
+                    clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
+                                self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
+                                self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
+                    tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
+                    tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
+                    row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
+                    col  = np.argsort(np.abs(lon[row,:] - ix))[0]
+            else:                
+                
                 row = int(iy*1000/self.plotObj.dataSet.dy[self.plotObj.currentGrid-1] +
                          (self.plotObj.dataSet.ny[self.plotObj.currentGrid-1]-1)/2)
                 col = int(ix*1000/self.plotObj.dataSet.dx[self.plotObj.currentGrid-1] +
                          (self.plotObj.dataSet.nx[self.plotObj.currentGrid-1]-1)/2)
-            elif (self.plotObj.appobj.dname == 'SOUNDING'):
-                a = np.vstack((lat,lon)).T
-                pt = [iy, ix]
-                distance, index = spatial.KDTree(a).query(pt)
-                #print(distance)
-                #print(index)
-                #print(a[index])
-                #print(iy,ix)
-                col = index
-                row = index
-                print(self.plotObj.dataSet.stat_id[index])
-            else:
-                lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                            self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
-                            self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
-                clon,clat = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
-                            self.plotObj.dataSet.lon0[self.plotObj.currentGrid-1],
-                            self.plotObj.dataSet.lat0[self.plotObj.currentGrid-1])
-                tmp = np.argsort(np.abs(lat[:,int(self.plotObj.dataSet.nx[self.plotObj.currentGrid -1]/2)] - clat))[0]
-                tmp2 = np.argsort(np.abs(lon[tmp,:] - clon))[0]
-                row = np.argsort(np.abs(lat[:,tmp2] - iy))[0]
-                col  = np.argsort(np.abs(lon[row,:] - ix))[0]
 
             print( col, row )
             coords = [ix, iy]
@@ -1213,8 +1216,9 @@ class PlotSlab:
         #Determine the Dataset Type     
         if (self.appobj.dname == 'SOUNDING'):
             self.dataSet.getObsFile(i)
+            z = self.dataSet.h - self.dataSet.h[0]
             self.skewt = SkewT.SkewTobj(temp = self.dataSet.t, pressure = self.dataSet.p,
-                                        Z = self.dataSet.h, qv = self.dataSet.q,
+                                        Z = z, qv = self.dataSet.q,
                                         td = self.dataSet.dew, parcel = self.skewParcel,
                                         u = self.dataSet.u, v = self.dataSet.v )
 
