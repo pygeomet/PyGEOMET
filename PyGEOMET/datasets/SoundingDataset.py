@@ -2,7 +2,9 @@ import numpy as np
 import netCDF4
 import os
 import datetime
+from calendar import monthrange
 import wget
+import sys
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
@@ -14,37 +16,26 @@ import PyGEOMET.utils.LayoutFormat as Layout
 
 class SoundingDataset:
 
-    # The constructor can be initialized by specifying the #
-    # directory and file prefix for WRF output files.  If  #
-    # the user does not provide this information when the  #
-    # object is initalized, then set these variables to    #
-    # None.                                                #
-
     def __init__(self):
         self.path = None
         self.grid = None
-        #self.year = 2011
-        #self.month = 04
-        #self.day = 27
-        #self.hour = 12
         self.var = None
         self.timeObj = None
         self.currentGrid = 1
         self.currentVarIndex = 1
-        self.currentYearIndex = 0
-        self.currentMonthIndex = -1
-        self.currentDayIndex = -1
-        self.currentHourIndex = -1
-        self.currentMinuteIndex = -1
-        self.currentTimeIndex = -1
-        self.currentSweep = 0
         self.currentGridIndex = 67
-        self.description = None
         self.dsetname = "Sounding"
         self.projectionType = "lcc"
         self.resolution = 'l'
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['SkewT/Hodograph']
+        self.monthList = ['01','02','03','04','05','06','07',
+                          '08','09','10','11','12']
+        self.monNames = ['January', 'February', 'March', 'April', 'May',
+                         'June', 'July', 'August', 'September', 'October',
+                         'November', 'December']
+        self.hourList = ['00','12']
+        self.hourNames = ['00Z', '12Z']
         self.stat_id = []
         self.stat_num = []
         self.obs_lon = []
@@ -66,28 +57,39 @@ class SoundingDataset:
                 self.stat_num.append(line[36:42])
             lin_num += 1
         f.close()
-        #info = np.genfromtxt(f,skip_header=1,dtype=None) 
-        #for i in range(len(info)):    
-        #    self.stat_id.append(info[i][0])
-        #    self.obs_lon.append(info[i][1])
-        #    self.obs_lat.append(info[i][2])  
-        #    self.stat_num.append(info[i][3])
  
         self.glons = [self.obs_lon]
         self.glats = [self.obs_lat]
 
     #Pull the selected sounding
-    def getObsFile(self,ind,year=None,month=None,hour=None,station=None):
+    def getObsFile(self,ind=None,year=None,month=None,day=None,hour=None,station=None):
+        #Either ind or station have to be set. 
+        #The main_GUI will set ind from clicked selection
+        #If used outside of the GUI then station is most likely provided
+        if (ind == None and station == None):
+            print("Error: pass a station index or ID")
+            sys.exit()
+        elif (station != None):
+            #Determine index in file
+            station_ind = np.where(np.array(self.stat_id) == station)[0]
+            if (len(station_ind) == 0):
+                print("Input station not found: "+station)
+                sys.exit()
+            stat = self.stat_num[station_ind]
+        else:
+            stat = self.stat_num[ind]
         if year == None or month == None or day == None:
-            print("Using default time of: year=2011, month=04, day=28")
+            print("Using default time of: year=2011, month=04, day=27")
+            print("Pass year, month and day to switch from default time")
             year = '2011'
             month = '04'
-            day = '28'
+            day = '27'
         if hour == None:
-            hour = '00'
+            print("Using default hour of: 12 Z")
+            hour = '12'
 
         #Define url
-        url = "http://weather.uwyo.edu/cgi-bin/sounding?region=naconf&TYPE=TEXT%3ALIST&YEAR="+year+"&MONTH="+month+"&FROM="+day+hour+"&TO="+day+hour+"&STNM="+self.stat_num[ind]
+        url = "http://weather.uwyo.edu/cgi-bin/sounding?region=naconf&TYPE=TEXT%3ALIST&YEAR="+year+"&MONTH="+month+"&FROM="+day+hour+"&TO="+day+hour+"&STNM="+stat
 
         #Get the file
         filename = wget.download(url)
@@ -181,41 +183,13 @@ class SoundingDataset:
         self.theta = np.array(theta_o,dtype=np.float32)    
 
     def getTime(self):
-        #utc = self.hourList[self.currentHourIndex] + ":" +\
-        #      self.mmssList[self.currentHourIndex][self.currentMinuteIndex][0:2] + ":" +\
-        #      self.mmssList[self.currentHourIndex][self.currentMinuteIndex][2:4]
-        utc = '00:00'
-        #self.timeString = self.month + '/' + self.day + '/' + self.year +\
-        #                  ' ' + utc + ' UTC'
-        self.timeString = '04/28/2011 00:00 UTC'
+        self.timeString = self.month + '/' + self.day + '/' + self.year +\
+                          ' ' + self.hour + ':00 UTC'
         return self.timeString
-
-    def getTimeIndex(self):
-        ind = np.where(np.array(self.hourList).astype(int) == int(self.farr[self.currentTimeIndex][0:2]))
-        self.currentHourIndex = ind[0][0]
-        self.hour = self.hourList[self.currentHourIndex]
-        ind2 = np.where(np.array(self.mmssList[self.currentHourIndex]).astype(int) == int(self.farr[self.currentTimeIndex][2:6]))
-        self.currentMinuteIndex = ind2[0][0]
-        self.mmss = self.mmssList[self.currentHourIndex][self.currentMinuteIndex]
-
-    def setTimeIndex(self):
-        hr = self.hourList[self.currentHourIndex]
-        ms = self.mmssList[self.currentHourIndex][self.currentMinuteIndex]
-        self.currentTimeIndex = np.where(np.array(self.farr).astype(int) == np.array(hr+ms).astype(int))[0][0]
-        self.getTime()
 
     def setGrid(self, Indx):
         self.currentGridIndex = Indx
         self.grid = self.gridList[self.currentGridIndex]
-
-    def readNCVariable(self,vname, barbs=None, contour2=None):
-        variable = np.squeeze(self.variables[vname][self.currentTimeIndex])
-        if (hasattr(self.variables[vname],'units')):
-            self.units = self.variables[self.var].units
-        else:
-            self.units = ''
-        if (hasattr(self.variables[vname],'long_name')):
-            self.description = self.variables[vname].long_name
 
     def setProjection(self,gid=None,axs=None):
         self.map = [None]*1
@@ -235,10 +209,302 @@ class SoundingDataset:
                       urcrnrlat = self.ur_lat, resolution=self.resolution,
                       ax = axs)
 
+############# GUI Related Functions ##################
+
+    #Change the year
+
+    #Sets the year 
+    def setYear(self,i):
+        
+        self.currentYearIndex = i
+        #From the index get the year
+        self.year = self.yearList[self.currentYearIndex]
+        #If the year is the current year change the month
+        # list to match the current available months
+        old_month = self.month
+        if (self.year == str(self.cyear)):
+            old_month = self.month
+            self.selectMonth.clear()
+            for i in range(self.cmonth):
+                self.selectMonth.addItem(self.monNames[i])
+            #Try to set the month back to the same month before
+            # switching the year. If it is in the future, start
+            # at Jan.
+            if (self.currentMonthIndex >= self.selectMonth.count()):     
+                self.currentMonthIndex = 0
+        else:
+            self.selectMonth.clear()
+            self.selectMonth.addItems(self.monNames) 
+
+        #From the index get the month
+        self.month = self.monthList[self.currentMonthIndex]
+        self.selectMonth.setCurrentIndex(self.currentMonthIndex)
+
+        #Check if the day list is still valid
+        old_day = self.day
+        if (self.month != old_month or self.month == str(self.cmonth).zfill(2)):
+            self.selectDay.clear()
+            #Reset the day list
+            self.dayList = []
+            #If the month is the current month - get current number
+            # of days
+            if (self.month == str(self.cmonth).zfill(2) and 
+                self.year == str(self.cyear)):
+                for i in range(self.cday):
+                    self.dayList.append(str(i+1).zfill(2))
+                self.selectDay.addItems(self.dayList)
+            else: #Different month but not current month
+                days = monthrange(int(self.year), int(self.month))[1]
+                for i in range(days):
+                    self.dayList.append(str(i+1).zfill(2))
+                self.selectDay.addItems(self.dayList)
+ 
+            #Check if the previous day selection is still available
+            if (self.currentDayIndex >= self.selectDay.count()):
+                self.currentDayIndex = 0
+            #From the index get the day
+            self.day = self.dayList[self.currentDayIndex]
+            self.selectDay.setCurrentIndex(self.currentDayIndex)            
+
+        #Check if the hour list is still valid
+        if (self.year == str(self.cyear) and
+            self.month == str(self.cmonth).zfill(2) and
+            self.day == str(self.cday).zfill(2)):
+            self.selectHour.clear()
+            if (self.chour >= 12):
+                self.selectHour.addItems(self.hourNames)
+            else:
+                self.selectHour.addItem(self.hourNames[0])            
+            #Check if the previous hour selection is still available
+            if (self.currentHourIndex >= self.selectHour.count()):
+                self.currentHourIndex = 0
+            #From the index get the hour
+            self.hour = self.hourList[self.currentHourIndex]              
+            self.selectHour.setCurrentIndex(self.currentHourIndex)
+
+    #Sets the Month
+    def setMonth(self,i):
+
+        self.currentMonthIndex = i
+        #From the index get the month
+        self.month = self.monthList[self.currentMonthIndex]
+        #If the month and year are the current month/year 
+        # change the day list to match the current available days
+        if (self.year == str(self.cyear) and self.month == str(self.cmonth).zfill(2)):
+            self.selectDay.clear()
+            #Create day list
+            self.dayList = []
+            #Initial list is based on current days in the current month
+            for i in range(self.cday):
+                self.dayList.append(str(i+1).zfill(2))
+            self.selectDay.addItems(self.dayList)
+        else: #Get the number of days in the month
+            days = monthrange(int(self.year), int(self.month))[1]
+            if (days != len(self.dayList)):
+                self.selectDay.clear()
+                #Create day list - need it to compare lengths
+                self.dayList = []
+                for i in range(days):
+                    self.dayList.append(str(i+1).zfill(2))
+                self.selectDay.addItems(self.dayList)
+ 
+        #Check if the previous day selection is still available
+        if (self.currentDayIndex >= self.selectDay.count()):
+            self.currentDayIndex = 0
+        #From the index get the day
+        self.day = self.dayList[self.currentDayIndex]
+        self.selectDay.setCurrentIndex(self.currentDayIndex)
+
+        #Check if the hour list is still valid
+        if (self.year == str(self.cyear) and
+            self.month == str(self.cmonth).zfill(2) and
+            self.day == str(self.cday).zfill(2)):
+            self.selectHour.clear()
+            if (self.chour >= 12):
+                self.selectHour.addItems(self.hourNames)
+            else:
+                self.selectHour.addItem(self.hourNames[0])
+            #Check if the previous hour selection is still available
+            if (self.currentHourIndex >= self.selectHour.count()):
+                self.currentHourIndex = 0
+            #From the index get the hour
+            self.hour = self.hourList[self.currentHourIndex]
+            self.selectHour.setCurrentIndex(self.currentHourIndex)
+
+    #Sets the Day
+    def setDay(self,i):
+
+        self.currentDayIndex = i
+        #From the index get the day
+        self.day = self.dayList[self.currentDayIndex]
+        #If the month, year and day are the current month/day/year
+        # change the hour list to match the current available hours
+        if (self.year == str(self.cyear) and 
+            self.month == str(self.cmonth).zfill(2) and 
+            self.day == str(self.cday).zfill(2)):
+            self.selectHour.clear()
+            if (self.chour >= 12):
+                self.selectHour.addItems(self.hourNames)
+            else:
+                self.selectHour.addItem(self.hourNames[0])
+            #Check if the previous hour selection is still available
+            if (self.currentHourIndex >= self.selectHour.count()):
+                self.currentHourIndex = 0
+            #From the index get the hour
+            self.hour = self.hourList[self.currentHourIndex]
+            self.selectHour.setCurrentIndex(self.currentHourIndex)
+
+    #Sets the Hour
+    def setHour(self,i):
+
+        self.currentHourIndex = i
+        #From the index get the hour
+        self.hour = self.hourList[self.currentHourIndex]
+
+    #Handles clicking of next button in the GUI
+    def nxtButtonAction(self):
+
+        #Check if you are already at the last available time
+        if (self.year == str(self.cyear) and 
+            self.month == str(self.cmonth).zfill(2) and
+            self.day == str(self.cday).zfill(2) and
+            self.hour == str(self.chour).zfill(2)):
+            #At the end of the time period
+            #Pop-up an error message notify the user
+            self.errorTime('nxtButton')
+        else: 
+            #First change the hour index
+            self.currentHourIndex += 1
+            #Check if we need to switch to the next day
+            if (self.currentHourIndex >= self.selectHour.count()):
+                self.currentHourIndex = 0
+                #Move the day forward
+                self.currentDayIndex += 1
+                #Check if the next day is available
+                if (self.currentDayIndex >= self.selectDay.count()):
+                    self.currentDayIndex = 0
+                    #Move the month forward 
+                    self.currentMonthIndex += 1
+                    #Check if the next month is available
+                    if (self.currentMonthIndex >= self.selectMonth.count()):
+                        self.currentMonthIndex = 0
+                        #Also set the year forward - dont need to check becuase
+                        # it is captured in the initial if - reverse order
+                        self.currentYearIndex -= 1
+                        #Set the year
+                        self.year = self.yearList[self.currentYearIndex]
+                        self.selectYear.setCurrentIndex(self.currentYearIndex)
+                        self.setYear(self.currentYearIndex)
+                        #From the index get the hour
+                        self.hour = self.hourList[self.currentHourIndex]
+                        self.selectHour.setCurrentIndex(self.currentHourIndex)
+                    else:                        
+                        #Set the Month index
+                        self.month = self.monthList[self.currentMonthIndex]
+                        self.selectMonth.setCurrentIndex(self.currentMonthIndex)
+                        #Reset the lists
+                        self.setMonth(self.currentMonthIndex)
+                        #From the index get the hour
+                        self.hour = self.hourList[self.currentHourIndex]
+                        self.selectHour.setCurrentIndex(self.currentHourIndex) 
+                else:
+                    #Set the day index
+                    self.day = self.dayList[self.currentDayIndex]
+                    self.selectDay.setCurrentIndex(self.currentDayIndex)
+                    self.setDay(self.currentDayIndex)
+                    #Set the index
+                    self.hour = self.hourList[self.currentHourIndex]
+                    self.selectHour.setCurrentIndex(self.currentHourIndex)
+            else: 
+                #Set the hour index
+                self.hour = self.hourList[self.currentHourIndex]
+                self.selectHour.setCurrentIndex(self.currentHourIndex) 
+ 
+    #Handles clicking of previous button in the GUI
+    def prevButtonAction(self):
+
+        #Check if you are already at the first available time
+        if (self.year == '1985' and self.month == '01' and
+            self.day == '01' and self.hour == '00'):
+            #At the beginning of the time period
+            #Pop-up an error message notify the user
+            self.errorTime('prevButton')
+        else:
+            #First change the hour index
+            self.currentHourIndex -= 1
+            #Check if we need to switch to the next day
+            if (self.currentHourIndex < 0):
+                self.currentHourIndex = len(self.hourList)-1
+                #Move the day back
+                self.currentDayIndex -= 1
+                #Check if the previous day is available
+                if (self.currentDayIndex < 0):
+                    #Move the month back
+                    self.currentMonthIndex -= 1
+                    #Check if the previous month is available
+                    if (self.currentMonthIndex < 0):
+                        self.currentMonthIndex = len(self.monthList)-1
+                        #Can set the day index to 30 - always 31 days in Dec.
+                        self.currentDayIndex = 30
+                        #Also set the year back - dont need to check becuase
+                        # it is captured in the initial if - reverse order
+                        self.currentYearIndex += 1
+                        #Set the year
+                        self.year = self.yearList[self.currentYearIndex]
+                        self.selectYear.setCurrentIndex(self.currentYearIndex)
+                        self.setYear(self.currentYearIndex)
+                        #From the index get the hour
+                        self.hour = self.hourList[self.currentHourIndex]
+                        self.selectHour.setCurrentIndex(self.currentHourIndex)
+                    else:
+                        #Set the Month index
+                        self.month = self.monthList[self.currentMonthIndex]
+                        self.selectMonth.setCurrentIndex(self.currentMonthIndex)
+                        #From the month and year determine the number of days
+                        # in the month
+                        days = monthrange(int(self.year), int(self.month))[1]
+                        #Set the index to the last day of the month
+                        self.currentDayIndex = days - 1
+                        #Reset the lists
+                        self.setMonth(self.currentMonthIndex)
+                        #From the index get the hour
+                        self.hour = self.hourList[self.currentHourIndex]
+                        self.selectHour.setCurrentIndex(self.currentHourIndex)
+                else:
+                    #Set the day index
+                    self.day = self.dayList[self.currentDayIndex]
+                    self.selectDay.setCurrentIndex(self.currentDayIndex)
+                    self.setDay(self.currentDayIndex)
+                    #Set the index
+                    self.hour = self.hourList[self.currentHourIndex]
+                    self.selectHour.setCurrentIndex(self.currentHourIndex)
+            else:
+                #Set the hour index
+                self.hour = self.hourList[self.currentHourIndex]
+                self.selectHour.setCurrentIndex(self.currentHourIndex)
+
+    #Error message
+    def errorTime(self,location):
+        msg = QMessageBox(self.plotObj.appobj)
+        msg.setIcon(QMessageBox.Information)
+        if (location == 'nxtButton'):
+            msg.setText('At the end of time : \n' +\
+                     self.month + '/' + self.day + '/' +\
+                     self.year + '   ' + self.hour + ':00Z')
+        elif (location == 'prevButton'):
+            msg.setText('At the first available of time : \n' +\
+                     self.month + '/' + self.day + '/' +\
+                     self.year + '   ' + self.hour + ':00Z')            
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    #Control bar for GUI
     def getDsetControlBar(self, plotObj):
+        self.plotObj = plotObj
         self.tabbing = QWidget()
-        self.tabbingLayout = QVBoxLayout()
-        self.tabbing.setLayout(self.tabbingLayout)
+        plotObj.tabbingLayout = QVBoxLayout()
+        self.tabbing.setLayout(plotObj.tabbingLayout)
         self.qscroll = QScrollArea()
 
         qscrollContents = QWidget()
@@ -265,7 +531,8 @@ class SoundingDataset:
             if count == 0:
                 count += 1
             else:
-                self.selectDset.addItem(self.dsetname)
+                dsetname = os.path.basename(str(plotObj.dSet[count].path))
+                self.selectDset.addItem(dsetname+' [Dataset '+str(count)+']')
                 count += 1
         self.selectDset.setCurrentIndex(plotObj.currentDset-1)
         self.selectDset.setSizeAdjustPolicy(QComboBox.AdjustToContents)
@@ -286,18 +553,122 @@ class SoundingDataset:
         selectPlotLabel.setText('Plot Type:')
         self.selectPlotType = QComboBox()
         self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.ptypes = ['SkewT']
         self.selectPlotType.addItems(self.ptypes)
         self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-#       self.selectPlotType.currentIndexChanged.connect(plotObj.selectionChangePlot)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
         selectPlotWidgetLayout.addWidget(self.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)
 
         #Time Control
+        #Determine the current UTC time
+        # Subtract 3 hours to account for delay in data from sounding
+        #  launch time
+        ctime = datetime.datetime.utcnow() - datetime.timedelta(hours=3)
+        self.cyear = ctime.year
+        self.cmonth = ctime.month
+        self.cday = ctime.day
+        self.chour = ctime.hour
+        #Set the initial default time
+        self.year = str(self.cyear).zfill(4)
+        self.month = str(self.cmonth).zfill(2)
+        self.day = str(self.cday).zfill(2)
+        if (self.chour >= 12):
+            #Reset chour - easier to compare to later
+            self.chour = 12
+            self.hour = '12'
+        else:
+            self.chour = 0
+            self.hour = '00'
+
         timeControlLabel = QLabel()
-        timeControlLabel.setText('Time Control:')
+        timeControlLabel.setText('Time Control [UTC]:')
         self.gboxLayout.addWidget(timeControlLabel)
+
+        yearbar = QWidget()
+        yearbarLayout = QHBoxLayout()
+        yearbar.setLayout(yearbarLayout)
+        yearWidgetLabel = QLabel()
+        yearWidgetLabel.setText('Year:')
+        self.selectYear = QComboBox()
+        self.selectYear.setStyleSheet(Layout.QComboBox())
+        self.selectYear.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Create year list
+        self.yearList = []
+        #Start year of 1985
+        for i in range(self.cyear-1985+1):
+            self.yearList.append(str(self.cyear-i))
+        self.selectYear.addItems(self.yearList)
+        self.selectYear.activated.connect(self.setYear)
+        yearbarLayout.addWidget(yearWidgetLabel)
+        yearbarLayout.addWidget(self.selectYear)
+        self.gboxLayout.addWidget(yearbar)
+
+        monthbar = QWidget()
+        monthbarLayout = QHBoxLayout()
+        monthbar.setLayout(monthbarLayout)
+        monthWidgetLabel = QLabel()
+        monthWidgetLabel.setText('Mon:')
+        self.selectMonth = QComboBox()
+        self.selectMonth.setStyleSheet(Layout.QComboBox())
+        self.selectMonth.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Initial list is based on current days in the current month
+        for i in range(self.cmonth):
+            self.selectMonth.addItem(self.monNames[i])
+        self.selectMonth.activated.connect(self.setMonth)
+        monthbarLayout.addWidget(monthWidgetLabel)
+        monthbarLayout.addWidget(self.selectMonth)
+        self.gboxLayout.addWidget(monthbar)
+
+        #Day
+        daybar = QWidget()
+        daybarLayout = QHBoxLayout()
+        daybar.setLayout(daybarLayout)
+        dayWidgetLabel = QLabel()
+        dayWidgetLabel.setText('Day:')
+        self.selectDay = QComboBox()
+        self.selectDay.setStyleSheet(Layout.QComboBox())
+        self.selectDay.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Create day list
+        self.dayList = []
+        #Initial list is based on current days in the current month
+        for i in range(self.cday):
+            self.dayList.append(str(i+1).zfill(2))        
+        self.selectDay.addItems(self.dayList)
+        self.selectDay.activated.connect(self.setDay)
+        daybarLayout.addWidget(dayWidgetLabel)
+        daybarLayout.addWidget(self.selectDay)
+        self.gboxLayout.addWidget(daybar)
+
+        #Hour
+        hourbar = QWidget()
+        hourbarLayout = QHBoxLayout()
+        hourbar.setLayout(hourbarLayout)
+        hourWidgetLabel = QLabel()
+        hourWidgetLabel.setText('Hour:')
+        self.selectHour = QComboBox()
+        self.selectHour.setStyleSheet(Layout.QComboBox())
+        self.selectHour.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #Initial list is based on current hour in the current day
+        if (self.chour >= 12):        
+            self.selectHour.addItems(self.hourNames)
+        else:
+            self.selectHour.addItem(self.hourNames[0])
+        self.selectHour.activated.connect(self.setHour)
+
+        hourbarLayout.addWidget(hourWidgetLabel)
+        hourbarLayout.addWidget(self.selectHour)
+        self.gboxLayout.addWidget(hourbar)
+
+        #Find the index to set the combobox displayed values
+        self.currentYearIndex = np.where(np.array(self.yearList) == self.year)[0][0]
+        self.currentMonthIndex = np.where(np.array(self.monthList) == self.month)[0][0]
+        self.currentDayIndex = np.where(np.array(self.dayList) == self.day)[0][0]
+        self.currentHourIndex = np.where(np.array(self.hourList) == self.hour)[0][0]
+        #Set the index for each combobox
+        self.selectYear.setCurrentIndex(self.currentYearIndex)
+        self.selectMonth.setCurrentIndex(self.currentMonthIndex)
+        self.selectDay.setCurrentIndex(self.currentDayIndex)
+        self.selectHour.setCurrentIndex(self.currentHourIndex)
 
         cpanel = QWidget()
         cpanelLayout = QHBoxLayout()
@@ -306,17 +677,16 @@ class SoundingDataset:
         nxtButton.setStyleSheet(Layout.QPushButton2())
         nxtButton.setText('&Next')
         nxtButton.setFixedWidth(75)
-        nxtButton.clicked.connect(plotObj.nxtButtonAction)
+        nxtButton.clicked.connect(self.nxtButtonAction)
         prevButton = QPushButton()
         prevButton.setStyleSheet(Layout.QPushButton2())
         prevButton.setText('&Prev')
         prevButton.setFixedWidth(75)
-        prevButton.clicked.connect(plotObj.prevButtonAction)
+        prevButton.clicked.connect(self.prevButtonAction)
         cpanelLayout.addWidget(prevButton)
         cpanelLayout.addWidget(nxtButton)
         self.gboxLayout.addWidget(cpanel)
-        self.tabbingLayout.addWidget(self.gbox)
-        self.optionTabs = QTabWidget()
+        plotObj.tabbingLayout.addWidget(self.gbox)
         plotObj.qscrollLayout.addWidget(self.tabbing,Qt.AlignTop)        
 
         return self.qscroll

@@ -446,6 +446,9 @@ class PlotSlab:
         self.optionTabs = QTabWidget()
         self.optionTabs.setMaximumHeight(self.appobj.screeny*.8*.4)        
         self.appobj.tabLayout.addWidget(self.appobj.cbar)
+        #Initialize the options for the dataset's
+        # first plot type
+        self.initializePlotOptions()
  
     def lockColorBar(self):
         self.colorlock = True
@@ -1194,12 +1197,15 @@ class PlotSlab:
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
 
-        #Plot sounding locations on the map
-        if self.appobj.dname == 'SOUNDING':
+        #Plot sounding locations on the map and add a title
+        if (self.appobj.dname == 'SOUNDING'):
+            #Plot station markers
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.glons[self.currentGrid-1],
                                                       self.dataSet.glats[self.currentGrid-1],
                                                       'bo',markersize=6,latlon=True)
-
+            #Add Title
+            soundingTitle = 'Click on a Sounding Location to Create a Plot'
+            self.appobj.axes1[self.pNum-1].set_title(soundingTitle,fontsize = 12)
         #Keep the same colormap
         self.appobj.changeColor = False
         
@@ -1215,7 +1221,9 @@ class PlotSlab:
 
         #Determine the Dataset Type     
         if (self.appobj.dname == 'SOUNDING'):
-            self.dataSet.getObsFile(i)
+            self.dataSet.getObsFile(ind = i,year = self.dataSet.year, month = self.dataSet.month,
+                                    day = self.dataSet.day, hour = self.dataSet.hour)
+            #Get above ground level height
             z = self.dataSet.h - self.dataSet.h[0]
             self.skewt = SkewT.SkewTobj(temp = self.dataSet.t, pressure = self.dataSet.p,
                                         Z = z, qv = self.dataSet.q,
@@ -1271,9 +1279,14 @@ class PlotSlab:
                                         Z = z[:,j,i], qv = qv[:,j,i], parcel = self.skewParcel,
                                         u = u[:,j,i], v = v[:,j,i])
 
+        #Add Sounding Station Name to Title
+        if (self.appobj.dname == 'SOUNDING'):
+            self.skewt.fig.suptitle(self.dataSet.stat_id[i]+ ' : ' +self.dataSet.getTime())
+        else: 
+            self.skewt.fig.suptitle(self.dataSet.getTime())
+
         #Create Figure
         self.skewt.fig.canvas.set_window_title('Skew-T at i='+str(i)+' j='+str(j))
-        self.skewt.fig.suptitle(self.dataSet.getTime())
         self.skewt.ax1.set_title(self.Plist[self.selectedParcel]+' Profile')   
         self.skewt.ax2.set_title('Hodograph [kt]')     
         self.skewt.ax1.set_xlabel('Temperature [$^o$C]')# \n'+self.dataSet.getTime())
@@ -1492,6 +1505,139 @@ class PlotSlab:
 
         self.table.setModel(self.model)
         self.table.show()
+
+    #Initialization function for the plots
+    # Needed for datasets that don't have specific variables
+    # Also for changing the plot type before selecting a variable
+    def initializePlotOptions(self):
+
+        #Skew-T
+        if (self.currentPType == 'SkewT/Hodograph'):
+
+            self.replot2d = True
+
+            #Create tab to control parcel type
+            self.pControl = QGroupBox()
+            parTitle = 'Parcel Selection'
+            self.pControlLayout = QVBoxLayout(self.pControl)
+
+            selectVarWidget = QWidget()
+            selectVarWidgetLayout = QHBoxLayout()
+            selectVarWidget.setLayout(selectVarWidgetLayout)
+
+            selectVarLabel = QLabel()
+            selectVarLabel.setText('Parcel:')
+
+            selectPVar = QComboBox()
+            selectPVar.setStyleSheet(Layout.QComboBox())
+            self.Plist = ['Surface Based', 'Mixed Layer', 'Most Unstable']
+            selectPVar.addItems(self.Plist)
+            selectPVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectPVar.currentIndexChanged.connect(self.selectionChangeParcel)
+
+            selectVarWidgetLayout.addWidget(selectVarLabel)
+            selectVarWidgetLayout.addWidget(selectPVar)
+            self.pControlLayout.addWidget(selectVarWidget)
+            self.optionTabs.addTab(self.pControl,parTitle)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)
+
+        #Vertical Profiles
+        if (self.currentPType == 'Vertical Profile'):
+            self.replot2d = True
+
+            #Create tab to control vertical plot variable
+            self.vertControl = QGroupBox()
+            vertTitle = 'Vertical Profile Control'
+            self.vertControlLayout = QVBoxLayout(self.vertControl)
+
+            selectVarWidget = QWidget()
+            selectVarWidgetLayout = QHBoxLayout()
+            selectVarWidget.setLayout(selectVarWidgetLayout)
+
+            selectVarLabel = QLabel()
+            selectVarLabel.setText('Vertical Variable:')
+
+            selectVVar = QComboBox()
+            selectVVar.setStyleSheet(Layout.QComboBox())
+            self.Vvarlist = self.dataSet.threeDVars
+            selectVVar.addItems(self.Vvarlist)
+            selectVVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectVVar.currentIndexChanged.connect(self.selectionChangeVerticalVar)
+            selectVarWidgetLayout.addWidget(selectVarLabel)
+            selectVarWidgetLayout.addWidget(selectVVar)
+            self.vertControlLayout.addWidget(selectVarWidget)
+            self.optionTabs.addTab(self.vertControl,vertTitle)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)
+
+        #Time Series
+        if (self.currentPType == 'Time Series'):
+            self.replot2d = True
+        
+        #If changed from difference plot - get the old colormap back
+        if (self.currentPType == 'Difference Plot'):
+
+            self.cmap = self.appobj.cmap
+            #Reset colorbar settings
+            self.colormax = None
+            self.colormin = None
+            self.ncontours = None
+            self.appobj.cmap = self.cmap
+            #Create tab to control the difference plot options
+            self.diffControl = QGroupBox()
+            diffTitle = 'Difference Plot Control'
+            self.diffControlLayout = QVBoxLayout(self.diffControl)
+
+            selectdataWidget = QWidget()
+            selectdataWidgetLayout = QHBoxLayout(selectdataWidget)
+
+            selectdataLabel = QLabel()
+            selectdataLabel.setText('Comparison dataset:')
+
+            count = 0
+            self.dsetlist = []
+            for i in self.dSet:
+                if count == 0:
+                    count += 1
+                else:
+                    dsetname = os.path.basename(str(self.dSet[count].path))
+                    self.dsetlist.append(dsetname+' [Dataset '+str(count)+']')
+                    count += 1
+
+            self.selectData = QComboBox()
+            self.selectData.setStyleSheet(Layout.QComboBox())
+            self.selectData.addItems(self.dsetlist)
+            self.selectData.setCurrentIndex(len(self.dsetlist)-1)
+            self.selectData.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            self.selectData.activated.connect(self.selectionChangeDiffData)
+
+            selectdataWidgetLayout.addWidget(selectdataLabel)
+            selectdataWidgetLayout.addWidget(self.selectData)
+            self.diffControlLayout.addWidget(selectdataWidget)
+            self.optionTabs.addTab(self.diffControl,diffTitle)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)
+
+            #Popup to select dataset for difference
+            self.dControl = QDialog(self.appobj)
+            self.dControl.resize(self.dControl.minimumSizeHint())
+            self.dControl.setWindowTitle("Difference Dataset Selection")
+            dControlLayout = QVBoxLayout(self.dControl)
+
+            self.buttonGroup = QButtonGroup()
+            #Create a button for each dataset
+            count = 0
+            self.buttonname = []
+            for i in self.dsetlist:
+                self.button_name = QRadioButton("{}".format(i))
+                self.button_name.setObjectName("radiobtn_{}".format(i))
+                self.buttonname.append(self.button_name)
+                dControlLayout.addWidget(self.button_name)
+                self.buttonGroup.addButton(self.button_name,count)
+                self.button_name.clicked.connect(lambda:self.determineRadioSelection())
+                count += 1
+            self.dControl.show()
 
     #Function that handles the plot type changes
     def selectionChangePlot(self,i):
@@ -1741,8 +1887,8 @@ class PlotSlab:
             #Create an initial sensor and channel selection box
             self.crtmControl = QDialog(self.appobj)
             self.crtmControl.resize(self.crtmControl.minimumSizeHint())
-            self.crtmControl.setMinimumHeight(self.appobj.screeny*.22)
-            self.crtmControl.setMinimumWidth(self.appobj.screenx*.15)
+            self.crtmControl.setMinimumHeight(self.appobj.screeny*.25)
+            self.crtmControl.setMinimumWidth(self.appobj.screenx*.25)
             self.crtmControl.setWindowTitle("Select sensor and channel")
             crtmControlLayout = QVBoxLayout(self.crtmControl)
             

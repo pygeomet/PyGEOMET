@@ -282,18 +282,18 @@ class SkewTobj:
                 dtenv = ((self.tv[k]+273.15)+(self.tv[k-1]+273.15))/2.
                 dum1 = self.g * dz * (dtparcel-dtenv) / dtenv
                 if (ptype == 'SB'):
-                    self.capesb = self.capesb + np.maximum(dum1,0)
+                    self.capesb = self.capesb + np.fmax(dum1,0)
                 if (ptype == 'ML'):
-                    self.capeml = self.capeml + np.maximum(dum1,0)
+                    self.capeml = self.capeml + np.fmax(dum1,0)
                 if (ptype == 'MU'):
-                    self.capemu = self.capemu + np.maximum(dum1,0)                
+                    self.capemu = self.capemu + np.fmax(dum1,0)                
                 if (self.press[k] > self.press[0]-300.):
                     if (ptype == 'SB'):
-                        self.cinsb = self.cinsb + np.minimum(dum1,0)    
+                        self.cinsb = self.cinsb + np.fmax(dum1,0)    
                     if (ptype == 'ML'):
-                        self.cinml = self.cinml + np.minimum(dum1,0)
+                        self.cinml = self.cinml + np.fmax(dum1,0)
                     if (ptype == 'MU'):
-                        self.cinmu = self.cinmu + np.minimum(dum1,0)
+                        self.cinmu = self.cinmu + np.fmax(dum1,0)
         #self.x_par, self.y_par = self.RotatePoints(t_par-273.15,p)
         self.x_parv, self.y_parv = self.RotatePoints(t_parv-273.15,p)
         
@@ -325,12 +325,12 @@ class SkewTobj:
     def HodoGraph(self):
         #Initialize arrays - a value for each 500 m up to 12 km
         #u and v wind
-        self.uwind = np.arange(25)
-        self.vwind = np.arange(25)        
+        self.uwind = np.arange(25,dtype=float)
+        self.vwind = np.arange(25,dtype=float)        
         #wind speed 
-        self.ws = np.arange(25)
+        self.ws = np.arange(25,dtype=float)
         #wind direction
-        self.wd = np.arange(25)
+        self.wd = np.arange(25,dtype=float)
         
         #Determine wind speed and direction at each height level
         for i in range(len(self.ws)):
@@ -338,16 +338,27 @@ class SkewTobj:
             if (i == 0):
                 self.uwind[i] = np.array(linear_interpolate1D(self.u,self.Z,10))*1.94384
                 self.vwind[i] = np.array(linear_interpolate1D(self.v,self.Z,10))*1.94384
-            else: 
-                self.uwind[i] = np.array(linear_interpolate1D(self.u,self.Z,i*500.))*1.94384
-                self.vwind[i] = np.array(linear_interpolate1D(self.v,self.Z,i*500.))*1.94384
-            #Calculate the wind speed
-            self.ws[i] = (self.uwind[i]**2 + self.vwind[i]**2)**(1./2.)
-            wd_tmp = 270 - np.arctan2(self.vwind[i],self.uwind[i])
-            if (wd_tmp < 0):
-                self.wd[i] = wd_tmp + 360.
-            else: 
-                self.wd[i] = wd_tmp
+            else:
+                #Make sure data exist above requested height
+                if (self.Z[-1] > i*500.): 
+                    self.uwind[i] = np.array(linear_interpolate1D(self.u,self.Z,i*500.))*1.94384
+                    self.vwind[i] = np.array(linear_interpolate1D(self.v,self.Z,i*500.))*1.94384
+                else:
+                    self.uwind[i] = np.nan
+                    self.vwind[i] = np.nan
+                      
+            #Calculate the wind speed but make sure data exists
+            if (self.uwind[i] == self.uwind[i] and self.vwind[i] == self.vwind[i]):
+                self.ws[i] = (self.uwind[i]**2 + self.vwind[i]**2)**(1./2.)
+                wd_tmp = 270 - np.arctan2(self.vwind[i],self.uwind[i])
+                if (wd_tmp < 0):
+                    self.wd[i] = wd_tmp + 360.
+                else: 
+                    self.wd[i] = wd_tmp
+            else:
+                self.ws[i] = np.nan
+                self.wd[i] = np.nan
+
         #print(self.uwind)
         #print(self.vwind)
 
@@ -435,14 +446,14 @@ class SkewTobj:
         ax12.set_ylabel('Height [km]')
 
         #Create wind barbs with height
-        y_tmp = (np.arange(40)+1)*50
+        y_tmp = (np.arange(20)+1)*50
         x_barbs = np.zeros(len(y_tmp))+50.
         y_barbs = -self.rd*np.log(y_tmp)
         #Interpolate wind to pressure levels
         u_barbs = np.zeros(len(y_tmp))
         v_barbs = np.zeros(len(y_tmp))
         for i in range(len(y_barbs)):
-            #Below the surface
+            #Below the surface or above top
             if (y_tmp[i] > self.press[0] or y_tmp[i] < self.press[-1]):
                 u_barbs[i] = np.nan
                 v_barbs[i] = np.nan
