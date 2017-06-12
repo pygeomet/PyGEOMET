@@ -2415,7 +2415,7 @@ class AppForm(QMainWindow):
         openMET.triggered.connect(self.metOpen)
 
         #Soundings
-        openSound = QAction("&Sounding",self)
+        openSound = QAction("&Soundings",self)
         openSound.setShortcut("Ctrl+S")
         openSound.setStatusTip('Open Sounding')
         openSound.triggered.connect(self.soundingOpen)

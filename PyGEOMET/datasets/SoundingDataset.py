@@ -42,6 +42,8 @@ class SoundingDataset:
         self.obs_lat = []
         self.getSoundLoc()
         self.setProjection()
+        #Flag to indicate station has been selected
+        self.availStation = False
 
     #Determine the sounding locations
     def getSoundLoc(self):
@@ -63,6 +65,8 @@ class SoundingDataset:
 
     #Pull the selected sounding
     def getObsFile(self,ind=None,year=None,month=None,day=None,hour=None,station=None):
+        #Set flag to indicate station has been selected
+        self.availStation = True
         #Either ind or station have to be set. 
         #The main_GUI will set ind from clicked selection
         #If used outside of the GUI then station is most likely provided
@@ -419,6 +423,10 @@ class SoundingDataset:
                 #Set the hour index
                 self.hour = self.hourList[self.currentHourIndex]
                 self.selectHour.setCurrentIndex(self.currentHourIndex) 
+
+        #Create a new plot if station has been selected
+        if (self.availStation):
+            self.plotObj.appobj.cw.drawPlot()
  
     #Handles clicking of previous button in the GUI
     def prevButtonAction(self):
@@ -482,6 +490,10 @@ class SoundingDataset:
                 #Set the hour index
                 self.hour = self.hourList[self.currentHourIndex]
                 self.selectHour.setCurrentIndex(self.currentHourIndex)
+
+        #Create a new plot if station has been selected
+        if (self.availStation):
+            self.plotObj.appobj.cw.drawPlot()
 
     #Error message
     def errorTime(self,location):
