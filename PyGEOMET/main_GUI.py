@@ -1,13 +1,3 @@
-######################################################################
-# Author: Udaysankar Nair, Department of Atmospheric Science,        #
-#         University of Alabama in Huntsville                        #
-#                                                                    #
-# Python class WrfDataset, which is used for manipulating WRF output #
-# files.  This class developed as a part of ESS680 course in Spring  #
-# of 2016.                                                           #
-######################################################################
-
-
 from __future__ import print_function
 
 import sys
@@ -1575,10 +1565,8 @@ class PlotSlab:
         if (self.currentPType == 'Time Series'):
             self.replot2d = True
         
-        #If changed from difference plot - get the old colormap back
+        #Difference plot
         if (self.currentPType == 'Difference Plot'):
-
-            self.cmap = self.appobj.cmap
             #Reset colorbar settings
             self.colormax = None
             self.colormin = None
@@ -1650,15 +1638,78 @@ class PlotSlab:
             self.cid = None
             self.row = None
             self.col = None
-       
+
         #If changed from difference plot - get the old colormap back
         if (self.currentPType == 'Difference Plot'):
             self.cmap = self.appobj.cmap
-
+            
         #Set the new plot type
         self.currentPType = self.dataSet.ptypes[i]
 		            
-        #Don't allow changing of plot type before plotting
+    
+        #Remove all added items
+        #Necessary to prevent error in plot after
+        # clearing the figure below
+        self.appobj.cs = None
+        self.appobj.cs2 = None
+        self.appobj.cs2label = None
+        self.appobj.barbs = None
+        self.appobj.vectors = None
+        self.appobj.vectorkey = None
+        self.appobj.domain_average = None
+        #Get the new projection
+        self.appobj.recallProjection = True
+        self.appobj.coasts = None
+        self.appobj.countries = None
+        self.appobj.states = None
+        self.appobj.counties = None
+        self.appobj.parallels = None
+        self.appobj.meridians = None
+        #Removes the colorbar
+        self.ColorBar = None
+        #Reset the color scale unless plotting WRF reflectivity
+        #Not all datasets have a dvarlist so only check if WRF at the moment
+        #Revist this as additional datasets are added (if they have derived vars)
+        if (self.dataSet.dsetname == 'WRF'):
+            if (self.currentVar != None):
+                if (self.dataSet.variableList[self.currentVar] != "REFL_10CM"):
+                    self.colormax = None
+                    self.colormin = None
+                    self.ncontours = None
+            if (self.currentdVar != None):
+                if (self.dataSet.dvarlist[self.currentdVar] != "refl"):
+                    self.colormax = None
+                    self.colormin = None
+                    self.ncontours = None
+        
+        #Remove the plotting axes and clear the figure
+        self.appobj.axes1[self.pNum-1] = None
+        self.figure.clear()
+
+        #Remove vertical slice controls if necessary
+        if self.vslicebox != None:
+            self.vslicebox.setParent(None)
+            self.vslicebox = None
+ 
+        #Destroy vertical plot control widget if necessary 
+        if self.vertControl != None:
+            self.vertControl.setParent(None)
+            self.vertControl = None
+                
+        #Destroy skew-T parcel control widget if necessary
+        if self.pControl != None:
+            self.pControl.setParent(None)
+            self.pControl = None
+
+        #Difference plot control widget if necessary
+        if self.diffControl != None:
+            self.diffControl.setParent(None)
+            self.diffControl = None     
+                 
+        #Initialize the plot options    
+        self.initializePlotOptions()    
+
+        #Don't allow plotting if no variable is selected
         if (self.currentVar != None or self.currentdVar != None):
             #Make sure there is a 3D variable selected before allowing 
             # a vertical slice plot to be made
@@ -1669,200 +1720,9 @@ class PlotSlab:
                 ind = np.where(self.dataSet.ptypes == self.currentPType)[0]
                 self.dataSet.selectPlotType.setCurrentIndex(ind)
                 #Throw an error
-                self.error3DVar()
-            else:
-                #Remove all added items
-                #Necessary to prevent error in plot after
-                # clearing the figure below
-                self.appobj.cs = None
-                self.appobj.cs2 = None
-                self.appobj.cs2label = None
-                self.appobj.barbs = None
-                self.appobj.vectors = None
-                self.appobj.vectorkey = None
-                self.appobj.domain_average = None
-                #Get the new projection
-                self.appobj.recallProjection = True
-                self.appobj.coasts = None
-                self.appobj.countries = None
-                self.appobj.states = None
-                self.appobj.counties = None
-                self.appobj.parallels = None
-                self.appobj.meridians = None
-                #Removes the colorbar
-                self.ColorBar = None
-                #Reset the color scale unless plotting WRF reflectivity
-                #Not all datasets have a dvarlist so only check if WRF at the moment
-                #Revist this as additional datasets are added (if they have derived vars)
-                if (self.dataSet.dsetname == 'WRF'):
-                    if (self.currentVar != None):
-                        if (self.dataSet.variableList[self.currentVar] != "REFL_10CM"):
-                            self.colormax = None
-                            self.colormin = None
-                            self.ncontours = None
-                    if (self.currentdVar != None):
-                        if (self.dataSet.dvarlist[self.currentdVar] != "refl"):
-                            self.colormax = None
-                            self.colormin = None
-                            self.ncontours = None
-            
-                #Remove the plotting axes and clear the figure
-                self.appobj.axes1[self.pNum-1] = None
-                self.figure.clear()
-
-                #Remove vertical slice controls if necessary
-                if self.vslicebox != None:
-                    self.vslicebox.setParent(None)
-                    self.vslicebox = None
- 
-                #Destroy vertical plot control widget if necessary 
-                if self.vertControl != None:
-                    self.vertControl.setParent(None)
-                    self.vertControl = None
-
-                #Destroy skew-T parcel control widget if necessary
-                if self.pControl != None:
-                    self.pControl.setParent(None)
-                    self.pControl = None
-
-                #Difference plot control widget if necessary
-                if self.diffControl != None:
-                    self.diffControl.setParent(None)
-                    self.diffControl = None        
-
-                #Skew-T
-                if (self.currentPType == 'SkewT/Hodograph'):
-                    
-                    self.replot2d = True
-
-                    #Create tab to control parcel type
-                    self.pControl = QGroupBox()
-                    parTitle = 'Parcel Selection'
-                    self.pControlLayout = QVBoxLayout(self.pControl)
-
-                    selectVarWidget = QWidget()
-                    selectVarWidgetLayout = QHBoxLayout()
-                    selectVarWidget.setLayout(selectVarWidgetLayout)
-
-                    selectVarLabel = QLabel()
-                    selectVarLabel.setText('Parcel:')
-
-                    selectPVar = QComboBox()
-                    selectPVar.setStyleSheet(Layout.QComboBox())
-                    self.Plist = ['Surface Based', 'Mixed Layer', 'Most Unstable']
-                    selectPVar.addItems(self.Plist)
-                    selectPVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-                    selectPVar.currentIndexChanged.connect(self.selectionChangeParcel)
-
-                    selectVarWidgetLayout.addWidget(selectVarLabel)
-                    selectVarWidgetLayout.addWidget(selectPVar)
-                    self.pControlLayout.addWidget(selectVarWidget)
-                    self.optionTabs.addTab(self.pControl,parTitle)
-                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
-                    self.tabbingLayout.addWidget(self.optionTabs)
-                    self.pltFxn(self.pNum)
-
-                #Vertical Profiles
-                if (self.currentPType == 'Vertical Profile'):
-                    self.replot2d = True
-                  
-                    #Create tab to control vertical plot variable
-                    self.vertControl = QGroupBox()
-                    vertTitle = 'Vertical Profile Control'
-                    self.vertControlLayout = QVBoxLayout(self.vertControl)
-            
-                    selectVarWidget = QWidget()
-                    selectVarWidgetLayout = QHBoxLayout()
-                    selectVarWidget.setLayout(selectVarWidgetLayout)
-
-                    selectVarLabel = QLabel()
-                    selectVarLabel.setText('Vertical Variable:')
-
-                    selectVVar = QComboBox()
-                    selectVVar.setStyleSheet(Layout.QComboBox())
-                    self.Vvarlist = self.dataSet.threeDVars
-                    selectVVar.addItems(self.Vvarlist)
-                    selectVVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-                    selectVVar.currentIndexChanged.connect(self.selectionChangeVerticalVar)       
-                    selectVarWidgetLayout.addWidget(selectVarLabel)
-                    selectVarWidgetLayout.addWidget(selectVVar)
-                    self.vertControlLayout.addWidget(selectVarWidget)
-                    self.optionTabs.addTab(self.vertControl,vertTitle)
-                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
-                    self.tabbingLayout.addWidget(self.optionTabs)                  
-
-                #Time Series
-                if (self.currentPType == 'Time Series'):
-                    self.replot2d = True
-
-                #Difference Plot
-                if (self.currentPType == 'Difference Plot'):
-                    #Reset colorbar settings
-                    self.colormax = None
-                    self.colormin = None
-                    self.ncontours = None
-                    self.appobj.cmap = self.cmap
-                    #Create tab to control the difference plot options
-                    self.diffControl = QGroupBox()
-                    diffTitle = 'Difference Plot Control'
-                    self.diffControlLayout = QVBoxLayout(self.diffControl)
-
-                    selectdataWidget = QWidget()
-                    selectdataWidgetLayout = QHBoxLayout(selectdataWidget)
-
-                    selectdataLabel = QLabel()
-                    selectdataLabel.setText('Comparison dataset:')
-
-                    count = 0
-                    self.dsetlist = []
-                    for i in self.dSet:
-                        if count == 0:
-                            count += 1
-                        else:
-                            dsetname = os.path.basename(str(self.dSet[count].path))
-                            self.dsetlist.append(dsetname+' [Dataset '+str(count)+']')
-                            count += 1
-
-                    self.selectData = QComboBox()
-                    self.selectData.setStyleSheet(Layout.QComboBox())
-                    self.selectData.addItems(self.dsetlist)
-                    self.selectData.setCurrentIndex(len(self.dsetlist)-1)
-                    self.selectData.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-                    self.selectData.activated.connect(self.selectionChangeDiffData)
-
-                    selectdataWidgetLayout.addWidget(selectdataLabel)
-                    selectdataWidgetLayout.addWidget(self.selectData)
-                    self.diffControlLayout.addWidget(selectdataWidget)
-                    self.optionTabs.addTab(self.diffControl,diffTitle)
-                    self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
-                    self.tabbingLayout.addWidget(self.optionTabs)
-
-                    #Popup to select dataset for difference
-                    self.dControl = QDialog(self.appobj)
-                    self.dControl.resize(self.dControl.minimumSizeHint())
-                    self.dControl.setWindowTitle("Difference Dataset Selection")
-                    dControlLayout = QVBoxLayout(self.dControl)
-        
-                    self.buttonGroup = QButtonGroup()
-                    
-                    #Create a button for each dataset
-                    count = 0
-                    self.buttonname = []
-                    for i in self.dsetlist:
-                        self.button_name = QRadioButton("{}".format(i))
-                        self.button_name.setObjectName("radiobtn_{}".format(i))
-                        self.buttonname.append(self.button_name)
-                        dControlLayout.addWidget(self.button_name)
-                        self.buttonGroup.addButton(self.button_name,count)
-                        self.button_name.clicked.connect(lambda:self.determineRadioSelection())
-                        count += 1    
-                    self.dControl.show() 
-		    
+                self.error3DVar()   
+            else:            
                 self.pltFxn(self.pNum) 
-        else:
-            self.errorPlotChange()
-            self.currentPType = self.dataSet.ptypes[0]
-            self.dataSet.selectPlotType.setCurrentIndex(0)
 
     #Changes the variable
     def selectionChangeVar(self,i):
