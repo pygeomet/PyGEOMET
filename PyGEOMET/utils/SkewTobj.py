@@ -289,11 +289,11 @@ class SkewTobj:
                     self.capemu = self.capemu + np.fmax(dum1,0)                
                 if (self.press[k] > self.press[0]-300.):
                     if (ptype == 'SB'):
-                        self.cinsb = self.cinsb + np.fmax(dum1,0)    
+                        self.cinsb = self.cinsb + np.fmin(dum1,0)    
                     if (ptype == 'ML'):
-                        self.cinml = self.cinml + np.fmax(dum1,0)
+                        self.cinml = self.cinml + np.fmin(dum1,0)
                     if (ptype == 'MU'):
-                        self.cinmu = self.cinmu + np.fmax(dum1,0)
+                        self.cinmu = self.cinmu + np.fmin(dum1,0)
         #self.x_par, self.y_par = self.RotatePoints(t_par-273.15,p)
         self.x_parv, self.y_parv = self.RotatePoints(t_parv-273.15,p)
         
