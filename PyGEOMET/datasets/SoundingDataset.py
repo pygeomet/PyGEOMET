@@ -169,22 +169,26 @@ class SoundingDataset:
         f.close()    
 
         os.remove(filename)
-
-        self.p = np.array(p_o,dtype=np.float32)
-        self.h = np.array(h_o,dtype=np.float32) 
-        self.t = np.array(t_o,dtype=np.float32)
-        self.dew = np.array(dew_o,dtype=np.float32)
-        self.q = np.array(q_o,dtype=np.float32)
-        self.rh = np.array(rh_o,dtype=np.float32)
+     
+        #In the case of elevated stations check for first temperature
+        # value
+        ind_real = np.min(np.where(np.isnan(t_o) == False)[0])
+        
+        self.p = np.array(p_o[ind_real:],dtype=np.float32)
+        self.h = np.array(h_o[ind_real:],dtype=np.float32) 
+        self.t = np.array(t_o[ind_real:],dtype=np.float32)
+        self.dew = np.array(dew_o[ind_real:],dtype=np.float32)
+        self.q = np.array(q_o[ind_real:],dtype=np.float32)
+        self.rh = np.array(rh_o[ind_real:],dtype=np.float32)
         #Covert wind direction to "math" angle
         # from meteorological angle
-        direct = 270. - np.array(direct_o,dtype=np.float32)
+        direct = 270. - np.array(direct_o[ind_real:],dtype=np.float32)
         #Convert wind to m/s from knots
-        wind = np.array(wind_o,dtype=np.float32)*0.514444
+        wind = np.array(wind_o[ind_real:],dtype=np.float32)*0.514444
         #Get the components of the wind
         self.u = wind * np.cos(direct*(np.pi/180.))
         self.v = wind * np.sin(direct*(np.pi/180.))
-        self.theta = np.array(theta_o,dtype=np.float32)    
+        self.theta = np.array(theta_o[ind_real:],dtype=np.float32)    
 
     def getTime(self):
         self.timeString = self.month + '/' + self.day + '/' + self.year +\
