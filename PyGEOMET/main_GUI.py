@@ -568,6 +568,19 @@ class PlotSlab:
 
         #Check if colormap was changed
         if self.appobj.changeColor == True:
+            #Need to have the values set = satellite color tables
+            #Need to be brightness temperature or radiance
+            #Check if derived var is set first because not every data set has
+            # a derived variable list
+            if (self.appobj.max_val != None and self.appobj.min_val != None
+                and self.currentdVar != None):
+                #Next check if brightness temp/radiance
+                if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
+                    self.colormin = self.appobj.min_val
+                    self.colormax = self.appobj.max_val
+                    self.ncontours = 41
+                    self.colorlock = True
+                    self.lock.setChecked(True)
             self.cmap = self.appobj.cmap      
 
         #Set background map
@@ -1645,8 +1658,7 @@ class PlotSlab:
             
         #Set the new plot type
         self.currentPType = self.dataSet.ptypes[i]
-		            
-    
+		           
         #Remove all added items
         #Necessary to prevent error in plot after
         # clearing the figure below
@@ -2100,7 +2112,8 @@ class PlotSlab:
             self.readDiffField()
         self.appobj.axes1[self.pNum-1] = None
         self.figure.clear()
-        if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
+        if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3 and
+            (self.currentVar != None or self.currentdVar != None)):
             self.error3DVar()
         else:
             self.pltFxn(self.pNum)
@@ -2215,7 +2228,11 @@ class PlotSlab:
         if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
             self.readDiffField()
-        self.pltFxn(self.pNum)
+                        
+        #Make sure a variable is selected before plotting
+        #Needed to allow changing of plot type         
+        if (self.currentVar != None or self.currentdVar != None):
+            self.pltFxn(self.pNum)
 
     def selectionChangeOrient(self,i):
         self.currentOrient = i
@@ -2648,6 +2665,8 @@ class AppForm(QMainWindow):
         self.vectorkey = None
         self.resolution = 'l'
         self.clear = False
+        self.max_val = None
+        self.min_val = None
 
         #Path is needed to define CRTM coefficient data location
         self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
@@ -2784,31 +2803,40 @@ class AppForm(QMainWindow):
             self.on_draw(self.plotCount)
         else:
             self.EOMerror()
+            
     def selectionChangeColorPallete(self,i):
         self.changeColor = True
         self.cmap = self.colorlist[i]
         #Create cmap for Satellite Water Vapor
         if (self.cmap == 'sat_WV'):
-            max_val = 273.
-            min_val = 163.
-            position = [0,(195.-min_val)/(max_val-min_val),(223.-min_val)/(max_val-min_val),
-                        (243.-min_val)/(max_val-min_val),(261.-min_val)/(max_val-min_val),
-                        (263.-min_val)/(max_val-min_val),1]
+            self.max_val = 273.
+            self.min_val = 163.
+            position = [0,(195.-self.min_val)/(self.max_val-self.min_val),
+                        (223.-self.min_val)/(self.max_val-self.min_val),
+                        (243.-self.min_val)/(self.max_val-self.min_val),
+                        (261.-self.min_val)/(self.max_val-self.min_val),
+                        (263.-self.min_val)/(self.max_val-self.min_val),1]
             ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)          
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)
         #Create cmap for Satellite IR
-        if (self.cmap == 'sat_IR'):
-            max_val = 300.
-            min_val = 170.
-            position = [0,(200.-min_val)/(max_val-min_val),(208.-min_val)/(max_val-min_val),
-                          (218.-min_val)/(max_val-min_val),(228.-min_val)/(max_val-min_val),
-                          (245.-min_val)/(max_val-min_val),(253.-min_val)/(max_val-min_val),
-                          (258.-min_val)/(max_val-min_val),1]
+        elif (self.cmap == 'sat_IR'):
+            self.max_val = 300.
+            self.min_val = 170.
+            position = [0,(200.-self.min_val)/(self.max_val-self.min_val),
+                        (208.-self.min_val)/(self.max_val-self.min_val),
+                          (218.-self.min_val)/(self.max_val-self.min_val),
+                          (228.-self.min_val)/(self.max_val-self.min_val),
+                          (245.-self.min_val)/(self.max_val-self.min_val),
+                          (253.-self.min_val)/(self.max_val-self.min_val),
+                          (258.-self.min_val)/(self.max_val-self.min_val),1]
             ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)
-
+        else:
+            self.max_val = None
+            self.min_val = None
+            
         self.on_draw(self.plotCount)
 
     #Function that changes the background color option when user selected
