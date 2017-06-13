@@ -1083,7 +1083,10 @@ class PlotSlab:
                                            font=10, fmt=fmt)
 
         #Create geography
-        if (self.currentPType != 'Vertical Slice' and self.dataSet.map[self.currentGrid-1] != None):
+        #Second condition on vertical slice allows changing of grid without when Vertical Slice
+        # selected but no variable selected
+        if ((self.currentPType != 'Vertical Slice' or (self.currentVar == None and
+              self.currentdVar == None)) and self.dataSet.map[self.currentGrid-1] != None):
             if self.appobj.plotcoasts:
                 self.appobj.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
             if self.appobj.plotcountries:
@@ -1131,7 +1134,8 @@ class PlotSlab:
                                  ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
-        elif (self.currentPType == 'Vertical Slice'):
+        elif (self.currentPType == 'Vertical Slice' and self.currentVar != None and
+              self.currentdVar != None):
             ax1 = self.appobj.axes1[self.pNum-1]
             #Have to handle vertical slice of CMAQ differently because Pressure/height
             #  isn't in the standard output
@@ -2112,9 +2116,14 @@ class PlotSlab:
             self.readDiffField()
         self.appobj.axes1[self.pNum-1] = None
         self.figure.clear()
-        if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3 and
+        #Need double conditional since var will be None if a variable
+        # has not been selected
+        if (self.currentPType == 'Vertical Slice' and
             (self.currentVar != None or self.currentdVar != None)):
-            self.error3DVar()
+            if (len(self.var.shape) < 3):
+                self.error3DVar()
+            else:
+                self.pltFxn(self.pNum)
         else:
             self.pltFxn(self.pNum)
         
