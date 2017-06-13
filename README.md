@@ -14,6 +14,7 @@ PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package
 - NCEP-DOE Reanalysis 2
 - Next-Generation Radar (NEXRAD) Level II data
 - Geostationary Operational Environmental Satellite (GOES)
+- CONUS 00 and 12 Z Radiosonde Data
 
 PyGEOMET consists of two main parts, the Graphical User Interface (GUI) and the dataset objects. The GUI was built using the PyQt5 python bindings for Qt cross-platform framework and contains all of the plotting code. The dataset objects, which are used for importing and accessing each dataset, are linked into the GUI but can also be implemented independently within Python scripts.   
  
@@ -28,7 +29,9 @@ Once the package has been downloaded to your computer, navigate to the PyGEOMET 
 
     python setup.py install
     
-Note: The code uses Cython which requires a C-compiler. For Windows users, the compiler usually doesn't come by default with the operating system so you have to install it.  Microsoft Visual C++ is free and can be downloaded [here](http://landinghub.visualstudio.com/visual-cpp-build-tools). Follow the installation wizard instructions and it should work for compiling the Cython code for PyGEOMET.  
+Notes: 
+1) The code uses Cython which requires a C-compiler. For Windows users, the compiler usually doesn't come by default with the operating system so you have to install it.  Microsoft Visual C++ is free and can be downloaded [here](http://landinghub.visualstudio.com/visual-cpp-build-tools). Follow the installation wizard instructions and it should work for compiling the Cython code for PyGEOMET.  
+2) Simulated satellite functionality has been added using the Community Radiative Transfer Model (CRTM) available [here](http://ftp.emc.ncep.noaa.gov/jcsda/CRTM/). The interface to the CRTM code has been written in Fortran 90 and thus, a Fortran compiler is needed. In order to use this component of PyGEOMET, it is first necessary to compile CRTM separately before running the PyGEOMET install. It is necessary to compiler CRTM and PyGEOMET with the same Fortran compiler. Also, the Fortran compiler flag -fPIC must be added when compiling the CRTM code. While compiling Fortran code on Windows can be challenging, it can be done using MinGW and MSYS. A more detailed Windows installation will be provided at a later date.  
   
 ### Dependencies
 While there are many different ways to get and install Python, we recommend you install the Anaconda Python Distribution from Continuum Analytics ([download site](https://www.continuum.io/downloads)). PyGEOMET is primarily tested using this distribution on both Python 2.7 and 3.5.  
@@ -52,6 +55,9 @@ Many of the PyGEOMET dependencies are already included in standard distributions
 - sys
 - glob
 - time
+- wget
+- f2py
+- shutil
 - warnings
 
 If you use the Anaconda, all of the non-standard packages can be installed using "conda install".
