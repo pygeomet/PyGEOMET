@@ -33,6 +33,7 @@ import PyGEOMET.datasets.RadarDataset as NEXRAD
 import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.datasets.SoundingDataset as SoundDataset
+import PyGEOMET.datasets.NetCDFDataset as NetCDFDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import PyGEOMET.utils.sensor_info as CRTMInfo
 import PyGEOMET.utils.create_colormap as create_colormap
@@ -564,7 +565,8 @@ class PlotSlab:
             self.dataSet.ll_lon[self.currentGrid-1] = self.appobj.llcrnrlon
             self.dataSet.ur_lat[self.currentGrid-1] = self.appobj.urcrnrlat
             self.dataSet.ur_lon[self.currentGrid-1] = self.appobj.urcrnrlon
-        print(self.dataSet.map[self.currentGrid-1].llcrnrlat,self.dataSet.map[self.currentGrid-1].llcrnrlon)
+        if (self.dataSet.map[self.currentGrid-1] != None):
+            print(self.dataSet.map[self.currentGrid-1].llcrnrlat,self.dataSet.map[self.currentGrid-1].llcrnrlon)
 
         #Check if colormap was changed
         if self.appobj.changeColor == True:
@@ -2382,11 +2384,6 @@ class AppForm(QMainWindow):
         extractAction.setStatusTip("Leave the App")
         extractAction.triggered.connect(self.close_program)        
         
-        #openDir = QAction("&Select Directory", self)
-        #openDir.setShortcut("Ctrl+D")
-        #openDir.setStatusTip('Open Directory')
-        #openDir.triggered.connect(self.wrfOpen)
-        
         openEditor = QAction("&Editor", self)
         openEditor.setShortcut("Ctrl+E")
         openEditor.setStatusTip('Open Editor')
@@ -2445,6 +2442,12 @@ class AppForm(QMainWindow):
         openSound.setShortcut("Ctrl+S")
         openSound.setStatusTip('Open Sounding')
         openSound.triggered.connect(self.soundingOpen)
+
+        #Generic netCDF files
+        openNetCDF = QAction("&Generic netCDF",self)
+        openNetCDF.setShortcut("Ctrl+C")
+        openNetCDF.setStatusTip('Open netCDF')
+        openNetCDF.triggered.connect(self.netcdfOpen)
 
         ####End Dataset menu bar ##############################
 
@@ -2544,6 +2547,7 @@ class AppForm(QMainWindow):
         dataSetMenu.addAction(openMERRA)
         dataSetMenu.addAction(openNEXRAD)
         dataSetMenu.addAction(openSound)
+        dataSetMenu.addAction(openNetCDF)
 
         #set up the plot settings menu
         plotMenu = mainMenu.addMenu('&Plot Settings')
@@ -2805,6 +2809,20 @@ class AppForm(QMainWindow):
         self.dataSet.append(SoundDataset.SoundingDataset())
         QApplication.restoreOverrideCursor()
 
+    #Select the files
+    def netcdfOpen(self):
+        self.dname = 'netCDF'
+        self.files = QFileDialog.getOpenFileNames(self, 'Select Files')
+        if (len(self.files) > 0):
+            self.numDset += 1
+            self.dataSet.append(NetCDFDataset.NetCDFDataset())
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            self.dataSet[self.numDset].name(files=self.files)
+            QApplication.restoreOverrideCursor()
+        else:
+            self.errorNoFilesSelected()
+
+
     def EOMget(self):
         if self.dataSet[self.numDset].dsetname == "MERRA":
             self.eom = True
@@ -3044,6 +3062,15 @@ class AppForm(QMainWindow):
         msg.setIcon(QMessageBox.Information)
         msg.setText('No '+self.dname+' files found in the selected directory.\n\n'+ 
                     self.dname+' files must be named '+self.prefix)
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    #Create error message when no files are selected
+    def errorNoFilesSelected(self):
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('No files were selected')
         msg.setWindowTitle("Warning")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
