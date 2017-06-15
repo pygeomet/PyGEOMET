@@ -611,19 +611,19 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,t,p,mp_physics,re)
    rho_air = p/(rd * t * (1. + 0.608 * qv)) 
 
    !Cacluate cloud effective radius - assume constant number concentration
-   re(1) = m2um * ((rho_air * qcloud) / (pi * rhor * nc)) ** (1./3.)
+   re(1) = m2um * (3./2.) * ((rho_air * qcloud) / (pi * rhor * nc)) ** (1./3.)
 
    !Cacluate ice effective radius - assume constant number concentration
-   re(2) = m2um * ((rho_air * qice) / (pi * rhoi * ni)) ** (1./3.) 
+   re(2) = m2um * (3./2.) * ((rho_air * qice) / (pi * rhoi * ni)) ** (1./3.) 
 
    !Cacluate rain effective radius - gamma distribution
-   re(3) = m2um * ((rho_air * qrain) / (pi * rhor * n0r)) ** (1./4.)
+   re(3) = m2um * (3./2.) * ((rho_air * qrain) / (pi * rhor * n0r)) ** (1./4.)
 
    !Cacluate snow effective radius - gamma distribution
-   re(4) = m2um * ((rho_air * qsnow) / (pi * rhos * n0s)) ** (1./4.)
+   re(4) = m2um * (3./2.) * ((rho_air * qsnow) / (pi * rhos * n0s)) ** (1./4.)
 
    !Cacluate graupel effective radius - gamma distribution
-   re(5) = m2um * ((rho_air * qgraupel) / (pi * rhog * n0g)) ** (1./4.)
+   re(5) = m2um * (3./2.) * ((rho_air * qgraupel) / (pi * rhog * n0g)) ** (1./4.)
 
 end subroutine eff_radius
 
