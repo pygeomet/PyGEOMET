@@ -1,7 +1,8 @@
 SUBROUTINE CRTM(press, theta, qv, qcloud, qice, qrain, qsnow, qgraupel, &
-                qhail, lai, u10, v10, seaice, snowh, coszen, &
-                vegfrac, ptop, tsk, ivegtyp, xland, landuse, mp_physics, &
-                lat, lon, sensor, channel, coeff_path, request_var, crtm_out, ii, jj, kk) 
+                qhail, ncloud, nice, nrain, nsnow, ngraupel, nhail, lai, u10, &
+                v10, seaice, snowh, coszen, vegfrac, ptop, tsk, ivegtyp, xland, &
+                landuse, mp_physics, lat, lon, sensor, channel, coeff_path, &
+                request_var, crtm_out, ii, jj, kk) 
 
 use crtm_module
 
@@ -13,6 +14,8 @@ integer, intent(in) :: ii, jj, kk
 real, intent(in) :: press(kk,jj,ii), theta(kk,jj,ii), qv(kk,jj,ii)
 real, intent(in) :: qcloud(kk,jj,ii), qice(kk,jj,ii), qrain(kk,jj,ii)
 real, intent(in) :: qsnow(kk,jj,ii), qgraupel(kk,jj,ii), qhail(kk,jj,ii)
+real, intent(in) :: ncloud(kk,jj,ii), nice(kk,jj,ii), nrain(kk,jj,ii)
+real, intent(in) :: nsnow(kk,jj,ii), ngraupel(kk,jj,ii), nhail(kk,jj,ii)
 real, intent(in) :: lai(jj,ii), u10(jj,ii)
 real, intent(in) :: v10(jj,ii), seaice(jj,ii), snowh(jj,ii)
 real, intent(in) :: coszen(jj,ii), vegfrac(jj,ii), tsk(jj,ii), lon(jj,ii)
@@ -108,7 +111,8 @@ else if( mp_physics == 5 .or. mp_physics == 85 .or. mp_physics == 95) then
    ! change to 6 cloud types because microwave is sensitive to density
    n_clouds = 6  
 else if( mp_physics == 8 .or. mp_physics == 6 .or. &
-         mp_physics == 2 .or. mp_physics == 28)then
+         mp_physics == 2 .or. mp_physics == 28 .or. &
+         mp_physics == 10) then
    n_clouds = 5
 end if
 
@@ -164,7 +168,8 @@ else if (mp_physics == 5 .or. mp_physics == 85 .or. &
     atm(1)%cloud(6)%n_layers = n_layers
     atm(1)%cloud(6)%Type = HAIL_CLOUD
 else if (mp_physics == 8 .or. mp_physics == 28 .or. &
-         mp_physics == 6 .or. mp_physics == 2) then
+         mp_physics == 6 .or. mp_physics == 2 .or. &
+         mp_physics == 10) then
     !Cloud Types
     atm(1)%cloud(1)%n_layers = n_layers
     atm(1)%cloud(1)%Type = WATER_CLOUD
@@ -417,7 +422,7 @@ iloop: do i = 1, ii
              atm(1)%Cloud(5)%Effective_Radius(k) = 0.0
              atm(1)%Cloud(6)%Effective_Radius(k) = 0.0
          else if (mp_physics == 8 .or. mp_physics == 28 .or. &
-                  mp_physics == 6 .or. mp_physics == 2) then
+                  mp_physics == 6 .or. mp_physics == 2 .or. mp_physics == 10) then
              atm(1)%Cloud(1)%Water_Content(k) = max(0.,qcloud(n_layers+1-k,j,i)*mass_lay)
              atm(1)%Cloud(2)%Water_Content(k) = max(0.,qice(n_layers+1-k,j,i)*mass_lay)
              atm(1)%Cloud(3)%Water_Content(k) = max(0.,qrain(n_layers+1-k,j,i)*mass_lay)
@@ -427,7 +432,9 @@ iloop: do i = 1, ii
              CALL eff_radius(qcloud(n_layers+1-k,j,i),qice(n_layers+1-k,j,i), &
                              qrain(n_layers+1-k,j,i),qsnow(n_layers+1-k,j,i), &
                              qgraupel(n_layers+1-k,j,i),qv(n_layers+1-k,j,i), &
-                             temp(n_layers+1-k), &
+                             ncloud(n_layers+1-k,j,i),nice(n_layers+1-k,j,i), &
+                             nrain(n_layers+1-k,j,i),nsnow(n_layers+1-k,j,i), &
+                             ngraupel(n_layers+1-k,j,i),temp(n_layers+1-k), &
                              lay_pressure(n_layers+1-k), &
                              mp_physics,r_eff(:))
              !if (i == ii .and. j == jj) then 
@@ -564,7 +571,8 @@ subroutine solar_zenith(lat,lon,jday,hour,sun_zenith)
 
 end subroutine solar_zenith
 
-subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,t,p,mp_physics,re)
+subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
+                      nsnow,ngraupel,t,p,mp_physics,re)
    
    !This subroutine calculates the effective
    ! radius of the drop distribution
@@ -574,6 +582,7 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,t,p,mp_physics,re)
    implicit none
 
    real, intent(in) :: qcloud, qice, qrain, qsnow, qgraupel, qv
+   real, intent(in) :: ncloud, nice, nrain, nsnow, ngraupel
    real, intent(in) :: t, p
    integer, intent(in) :: mp_physics 
    real, intent(inout) :: re(5) !1 = cloud, 2 = ice, 3 = rain, 4 = snow, 5 = graupel
@@ -583,47 +592,214 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,t,p,mp_physics,re)
    real, parameter :: lin_n0r = 8.e6, lin_n0s = 3.e6, lin_n0g = 4.e6  ![m^-4]
    real, parameter :: lin_rhor = 1000., lin_rhos = 100.   ![kg/m^3] 
    real, parameter :: lin_rhoi = 100., lin_rhog = 400.    ![kg/m^3]
-   real, parameter :: lin_ric = 3.e8 ![m^-3] from UPP? 
+   real, parameter :: lin_ic = 3.e8 ![m^-3] UPP
+   real, parameter :: lin_cc = 1.e9 ![m^-3] 
+
+   !Thompson microphysics -- Thompson et al. (2008), MWR.
+   !  Some values/equations were adapted from the module_mp_thompson.F code in 
+   !    WRF
+   real :: wgamma
+   real, parameter :: thomp_rhor = 1000., thomp_rhos = 100. ![kg/m^3]
+   real, parameter :: thomp_rhog = 500.,  thomp_rhoi = 890. ![kg/m^3]
+   real, parameter :: thomp_nt_c = 100.e6 ![m^-3] 
+   !Minimum microphysical values from Thompson code
+   real, parameter :: R1 = 1.e-12, R2 = 1.e-6 
+   !Gamma function ratios from Thompson code
+   real, dimension(15), parameter:: gamma_ratio = (/24,60,120,210,336,   &
+                   504,720,990,1320,1716,2184,2730,3360,4080,4896/)
+   real, parameter :: mu_i = 0.0, mu_r = 0.0, mu_g = 0.0, mu_s = 0.6357
+   real, parameter :: bm_r = 3.0, bm_s = 2.0, bm_g = 3.0, bm_i = 3.0
+   !Max and min graupel concentration
+   real, parameter :: g_min = 1.E4, g_max = 3.e6 
+   real :: ci(2), cr(3), crg(3), cig(2), cg(3), cgg(3)
+   real :: rc, nc, lamc, ri, ni, lami, rr, nr, lamr, rg, ng, ng_min, lamg
+   real :: tc, smob, smob2, smoc, rs, loga, a, b, cs
+   integer :: mu_c
+   !..For snow moments conversions (from Field et al. 2005)
+   real, dimension(10), parameter :: &
+      thomp_sa = (/ 5.065339, -0.062659, -3.032362, 0.029469, -0.000285, &
+                    0.31255,   0.000204,  0.003199, 0.0,      -0.015952/)
+   real, dimension(10), parameter :: &
+      thomp_sb = (/ 0.476221, -0.015896,  0.165977, 0.007468, -0.000141, &
+                    0.060366,  0.000079,  0.000594, 0.0,      -0.003577/)
 
    !Global varaibles
-   real :: nc, ni, n0r, n0s, n0g, rhog, rhos, rhor, rhoi
+   !real :: nc, ni, n0r, n0s, n0g, rhog, rhos, rhor, rhoi
    real, parameter :: m2um = 1.e6 !meters to micrometers
    real, parameter :: rd = 287.05 !dry air gas constant
-   real, parameter :: pi = 3.14159
+   real, parameter :: pi = 3.14159265359
    real :: rho_air
  
    !Start Calculations
    !Initialize 
    re(:) = 0.0
- 
-   !Transfer variables -- changing physics
-   n0r = lin_n0r
-   n0s = lin_n0s
-   n0g = lin_n0g
-   nc = lin_ric
-   ni = lin_ric
-   rhor = lin_rhor
-   rhos = lin_rhos
-   rhog = lin_rhog
-   rhoi = lin_rhoi
 
    !Calculate air density from virtual temperature
-   rho_air = p/(rd * t * (1. + 0.608 * qv)) 
+   rho_air = p/(rd * t * (1. + 0.608 * qv))
 
-   !Cacluate cloud effective radius - assume constant number concentration
-   re(1) = m2um * (3./2.) * ((rho_air * qcloud) / (pi * rhor * nc)) ** (1./3.)
+   !Thompson
+   if (mp_physics == 8) then
+         
+     !Calcuate cloud effective radius
+     rc = MAX(R1, qcloud*rho_air)
+     nc = MAX(R2, thomp_nt_c)
+     if (rc .le. R1 .or. nc .le. R2) then
+       re(1) = 2.49E-6 !Low value from Thompson code
+     else
+       !Shape parameter
+       if (nc .lt. 100) then
+           mu_c = 15
+       elseif (nc .gt. 1.e10) then
+           mu_c = 2
+       else
+           mu_c = MIN(15, NINT(1.e9/nc) + 2)
+       endif
+       !Slope parameter
+       lamc = (nc*pi*thomp_rhor*gamma_ratio(mu_c)/rc*6.)**(1./3.)
+       re(1) = m2um * MAX(2.51E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_c)/lamc), 50.E-6))  
+     endif 
 
-   !Cacluate ice effective radius - assume constant number concentration
-   re(2) = m2um * (3./2.) * ((rho_air * qice) / (pi * rhoi * ni)) ** (1./3.) 
+     !Calculate ice effective radius
+     ci(1) = mu_i + 1.
+     ci(2) = bm_i + mu_i + 1.
+     cig(1) = wgamma(ci(1))
+     cig(2) = wgamma(ci(2))
+     ri = MAX(R1, qice*rho_air)
+     ni = MAX(R2, nice*rho_air) !Double moment ice - nice is in units [kg^-1]
+     if (ri .le. R1 .or. ni .le. R2) then
+       re(2) = 4.99E-6 !Low value from Thompson code
+     else
+       !Slope parameter
+       lami = (pi*thomp_rhoi*cig(2)*ni/ri*6*cig(1))**(1./bm_i)
+       re(2) = m2um * MAX(5.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_i)/lami), 125.E-6)) 
+     endif 
 
-   !Cacluate rain effective radius - gamma distribution
-   re(3) = m2um * (3./2.) * ((rho_air * qrain) / (pi * rhor * n0r)) ** (1./4.)
+     !Calculate rain effective radius
+     cr(1) = bm_r + 1.
+     cr(2) = mu_r + 1.
+     cr(3) = bm_r + mu_r + 1.
+     crg(1) = wgamma(cr(1))
+     crg(2) = wgamma(cr(2))  
+     crg(3) = wgamma(cr(3))   
+     rr = MAX(R1, qrain*rho_air)
+     nr = MAX(R2, nrain*rho_air) !Double moment rain - nrain is in units [kg^-1]
+     lamr = (pi*thomp_rhor*crg(3)*nr/rr*crg(2))**(1./bm_r)
+     re(3) = m2um * MAX(25.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_r)/lamr), 999.E-6))
 
-   !Cacluate snow effective radius - gamma distribution
-   re(4) = m2um * (3./2.) * ((rho_air * qsnow) / (pi * rhos * n0s)) ** (1./4.)
+     !Calculate snow effective radius
+     cs = bm_s + 1.
+     rs = MAX(R1, qsnow*rho_air)
+     if (rs .le. R1) then
+       re(4) = 9.99E-6 !Low value from Thompson code
+     else
+       tc = MIN(-0.1, t-273.15)
+       smob = rs/0.069
+       if (bm_s .gt. (2.0-1.e-3) .and. bm_s .lt. (2.0+1.e-3)) then
+         smob2 = smob
+       else
+         loga = thomp_sa(1) + thomp_sa(2)*tc + thomp_sa(3)*bm_s &
+                + thomp_sa(4)*tc*bm_s + thomp_sa(5)*tc*tc &
+                + thomp_sa(6)*bm_s*bm_s + thomp_sa(7)*tc*tc*bm_s &
+                + thomp_sa(8)*tc*bm_s*bm_s + thomp_sa(9)*tc*tc*tc &
+                + thomp_sa(10)*bm_s*bm_s*bm_s
+         a = 10.0**loga
+         b = thomp_sb(1) + thomp_sb(2)*tc + thomp_sb(3)*bm_s &
+                + thomp_sb(4)*tc*bm_s + thomp_sb(5)*tc*tc &
+                + thomp_sb(6)*bm_s*bm_s + thomp_sb(7)*tc*tc*bm_s &
+                + thomp_sb(8)*tc*bm_s*bm_s + thomp_sb(9)*tc*tc*tc &
+                + thomp_sb(10)*bm_s*bm_s*bm_s 
+         smob2 = (smob/a)**(1./b)  
+       endif
+       !..Calculate bm_s+1 (th) moment.  Useful for diameter calcs.
+       loga = thomp_sa(1) + thomp_sa(2)*tc + thomp_sa(3)*cs &
+              + thomp_sa(4)*tc*cs + thomp_sa(5)*tc*tc &
+              + thomp_sa(6)*cs*cs + thomp_sa(7)*tc*tc*cs &
+              + thomp_sa(8)*tc*cs*cs + thomp_sa(9)*tc*tc*tc &
+              + thomp_sa(10)*cs*cs*cs
+       a = 10.0**loga
+       b = thomp_sb(1) + thomp_sb(2)*tc + thomp_sb(3)*cs &
+              + thomp_sb(4)*tc*cs + thomp_sb(5)*tc*tc &
+              + thomp_sb(6)*cs*cs + thomp_sb(7)*tc*tc*cs &
+              + thomp_sb(8)*tc*cs*cs + thomp_sb(9)*tc*tc*tc &
+              + thomp_sb(10)*cs*cs*cs 
+       smoc = a * smob2**b
+       re(4) = m2um * MAX(10.E-6, MIN(0.5*(smoc/smob), 999.E-6))
+     endif
+     
+     !Calculate graupel effective radius
+     cg(1) = bm_g + 1.
+     cg(2) = mu_g + 1.
+     cg(3) = bm_g + mu_g + 1.
+     cgg(1) = wgamma(cg(1))
+     cgg(2) = wgamma(cg(2))
+     cgg(3) = wgamma(cg(3)) 
+     rg = qgraupel    
+     ng = MAX(DBLE(g_min), MIN(200./qgraupel,DBLE(g_max)))
+     ng_min = MIN(ng, g_max)
+     ng = ng_min
+     lamg = ((ng*pi*thomp_rhog*cgg(1)/6.*rg*rho_air)**(1./cg(1))) &
+            * (cgg(3)/cgg(2)*cgg(1))**(1./bm_g)
+     re(5) = m2um * (3./2.) * (1./lamg)
+ 
 
-   !Cacluate graupel effective radius - gamma distribution
-   re(5) = m2um * (3./2.) * ((rho_air * qgraupel) / (pi * rhog * n0g)) ** (1./4.)
+   else !From Lin but default if mp scheme has not yet been implemented
+
+     !Calcuate cloud effective radius - assume constant number concentration
+     re(1) = m2um * (3./2.) * ((rho_air * qcloud) / (pi * lin_rhor * lin_cc)) ** (1./3.)
+
+     !Calcuate ice effective radius - assume constant number concentration
+     re(2) = m2um * (3./2.) * ((rho_air * qice) / (pi * lin_rhoi * lin_ic)) ** (1./3.) 
+
+     !Calcuate rain effective radius - gamma distribution
+     re(3) = m2um * (3./2.) * ((rho_air * qrain) / (pi * lin_rhor * lin_n0r)) ** (1./4.)
+
+     !Calcuate snow effective radius - gamma distribution
+     re(4) = m2um * (3./2.) * ((rho_air * qsnow) / (pi * lin_rhos * lin_n0s)) ** (1./4.)
+
+     !Calcuate graupel effective radius - gamma distribution
+     re(5) = m2um * (3./2.) * ((rho_air * qgraupel) / (pi * lin_rhog * lin_n0g)) ** (1./4.)
+
+   endif
 
 end subroutine eff_radius
+
+!Gamma functions (WGAMMA and GAMMALN) from Thompson code
+real function wgamma(x)
+
+implicit none
+real :: gammln
+real, intent(in) :: x
+
+wgamma = EXP(gammln(x))
+
+end function wgamma
+
+!  (C) Copr. 1986-92 Numerical Recipes Software 2.02
+!Returns the value ln(gamma(xx)) for xx > 0
+real function gammln(xx)
+
+implicit none
+real, intent(in) :: xx
+real*8, parameter :: stp = 2.5066282746310005
+real*8, dimension(6), parameter :: cof = (/76.18009172947146,&
+                       -86.50532032941677, 24.01409824083091,&
+                       -1.231739572450155, .1208650973866179e-2,&
+                       -.5395239384953e-5/)
+
+real*8 :: ser, tmp, x, y
+integer :: j
+
+x = xx
+y = x
+tmp = x + 5.5D0
+tmp = (x + 0.5D0) * LOG(tmp) - tmp
+ser = 1.000000000190015D0
+do j = 1, 6
+  y = y + 1.D0
+  ser = ser + cof(j)/y
+enddo
+gammln = tmp + LOG(stp * ser/x)
+
+end function gammln
+
 

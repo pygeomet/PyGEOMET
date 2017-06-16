@@ -780,20 +780,30 @@ class WRFDerivedVar:
         ivegtyp = np.array(self.dataSet.readNCVariable('IVGTYP'),order='F')
         xland = np.array(self.dataSet.readNCVariable('XLAND'),order='F')
         landuse = self.dataSet.readNCGlobalAttr('MMINLU')
-        #mp_physics = dataSet.readNCGlobalAttr('MP_PHYSICS')
-        mp_physics = 2
+        mp_physics = self.dataSet.readNCGlobalAttr('MP_PHYSICS')
+        #mp_physics = 2
         lon = np.array(self.dataSet.readNCVariable('XLONG'),order='F')
         lat = np.array(self.dataSet.readNCVariable('XLAT'),order='F')
+        dims = self.press.shape
+        if (mp_physics == 8):
+            nrain = np.array(self.dataSet.readNCVariable('QNRAIN'),order='F')
+            nice = np.array(self.dataSet.readNCVariable('QNICE'),order='F')
+        else:
+            nrain = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+            nice = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        ncloud = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        nsnow = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        ngraupel = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        nhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
         #Use global variables
         #self.press, self.theta, self.qvapor, self.u10, self.v10, 
         #self.sensor, self.channel
         #Create dummy array for qhail
-        dims = self.press.shape
         qhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
         crtm_out = np.zeros((dims[1],dims[2]),order='F',dtype='float32')
         CRTM.crtm(self.press/100.,self.theta,self.qvapor,qcloud,qice,
-                  qrain,qsnow,qgraupel,qhail,lai,self.u10,
-                  self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
+                  qrain,qsnow,qgraupel,qhail,ncloud,nice,nrain,nsnow,ngraupel,nhail,
+                  lai,self.u10,self.v10,seaice,snowh,coszen,vegfrac,ptop,tsk,
                   ivegtyp,xland,landuse,mp_physics,lat,lon,self.sensor,
                   int(self.channel),full_path,request_var,crtm_out,dims[2],dims[1],dims[0])
 
