@@ -612,7 +612,7 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
    !Max and min graupel concentration
    real, parameter :: g_min = 1.E4, g_max = 3.e6 
    real :: ci(2), cr(3), crg(3), cig(2), cg(3), cgg(3)
-   real :: rc, nc, lamc, ri, ni, lami, rr, nr, lamr, rg, ng, ng_min, lamg
+   real :: rc, ri, ni, rr, nr, rg, ng, ng_min
    real :: tc, smob, smob2, smoc, rs, loga, a, b, cs
    integer :: mu_c
    !..For snow moments conversions (from Field et al. 2005)
@@ -623,8 +623,24 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
       thomp_sb = (/ 0.476221, -0.015896,  0.165977, 0.007468, -0.000141, &
                     0.060366,  0.000079,  0.000594, 0.0,      -0.003577/)
 
-   !Global varaibles
-   !real :: nc, ni, n0r, n0s, n0g, rhog, rhos, rhor, rhoi
+   !Morrison microphysics -- Morrison et al. (2009), MWR
+   !  Some equations were adapted from the module_mp_morr_two_moment.F code in
+   !    WRF
+   real, parameter :: morr_rhor = 997., morr_rhoi = 500. ![kg/m^3]
+   real, parameter :: morr_rhog = 400., morr_rhos = 100. ![kg/m^3] !hail = 900.
+   real, parameter :: morr_qsmall = 1.e-14 !Smallest allowed hydrometeor mixing ratio
+   real, parameter :: morr_re_default = 25. ![um] effective radius if q < qsmall
+   real, parameter :: morr_nc = 250.e6 ![m^-3] constant from WRF code
+   !Slope parameter min and max from Morrison WRF code
+   real, parameter :: morr_lamrMax = 1./20.e-6, morr_lamrMin = 1./2800e-6
+   real, parameter :: morr_lamiMax = 1./1.e-6, morr_lamiMin = 1./(2.*125.e-6*100.e-6)
+   real, parameter :: morr_lamsMax = 1./10.e-6, morr_lamsMin = 1./2000e-6
+   real, parameter :: morr_lamgMax = 1./20.e-6, morr_lamgMin = 1./2000e-6
+   real :: morr_lamcMin, morr_lamcMax
+   real :: morr_mu_c
+
+   !Global (somewhat) varaibles
+   real :: nc, lamc, lami, lams, lamr, lamg
    real, parameter :: m2um = 1.e6 !meters to micrometers
    real, parameter :: rd = 287.05 !dry air gas constant
    real, parameter :: pi = 3.14159265359
@@ -741,6 +757,77 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
             * (cgg(3)/cgg(2)*cgg(1))**(1./bm_g)
      re(5) = m2um * (3./2.) * (1./lamg)
  
+   else if (mp_physics == 10) then !Morrison double moment 
+
+     !Calcuate cloud effective radius
+     if (qcloud .lt. morr_qsmall) then
+       re(1) = morr_re_default
+     else
+       nc = (morr_nc/rho_air)
+       !Determine the spectral shape parameter for cloud droplets (morr_mu_c)
+       !Uses the Martin et al. (1994) formula (adapted from Morrison WRF code)
+       morr_mu_c = 0.0005714*(nc/1.e6*rho_air) + 0.2714
+       morr_mu_c = (1./morr_mu_c*morr_mu_c) - 1.
+       morr_mu_c = MAX(morr_mu_c,2.)
+       morr_mu_c = MIN(morr_mu_c,10.)
+
+       lamc = (pi*morr_rhor*wgamma(morr_mu_c+4.)*nc/6.*qcloud*wgamma(morr_mu_c+1.))**(1./3.) 
+       !Check if calculated slope parameter is within MIN/MAX values from Morrison
+       ! WRF code
+       morr_lamcMin = (morr_mu_c+1)/60.e-6
+       morr_lamcMax = (morr_mu_c+1)/1.e-6
+       if (lamc .lt. morr_lamcMin) lamc = morr_lamcMin
+       if (lamc .gt. morr_lamcMax) lamc = morr_lamcMax
+       re(1) = m2um * (1./2.) * (wgamma(morr_mu_c+4.)/wgamma(morr_mu_c+3.)) / lamc
+     endif
+
+     !Calcuate ice effective radius
+     if (qice .lt. morr_qsmall) then
+       re(2) = morr_re_default
+     else
+       lami = (wgamma(4.)*morr_rhoi*pi*nice/6.*qice)**(1./3.)
+       !Check if calculated slope parameter is within MIN/MAX values from Morrison
+       ! WRF code
+       if (lami .lt. morr_lamiMin) lami = morr_lamiMin
+       if (lami .gt. morr_lamiMax) lami = morr_lamiMax     
+       re(2) = m2um * (3./2.) / lami
+     endif
+
+     !Calcuate rain effective radius
+     if (qrain .lt. morr_qsmall) then
+       re(3) = morr_re_default
+     else
+       lamr = (morr_rhor*pi*nice/qrain)**(1./3.)
+       !Check if calculated slope parameter is within MIN/MAX values from Morrison
+       ! WRF code
+       if (lamr .lt. morr_lamrMin) lamr = morr_lamrMin
+       if (lamr .gt. morr_lamrMax) lamr = morr_lamrMax
+       re(3) = m2um * (3./2.) / lamr
+     endif
+
+     !Calcuate snow effective radius
+     if (qsnow .lt. morr_qsmall) then
+       re(4) = morr_re_default
+     else
+       lams = (wgamma(4.)*morr_rhos*pi*nsnow/6.*qsnow)**(1./3.)
+       !Check if calculated slope parameter is within MIN/MAX values from Morrison
+       ! WRF code
+       if (lams .lt. morr_lamsMin) lams = morr_lamsMin
+       if (lams .gt. morr_lamsMax) lams = morr_lamsMax
+       re(4) = m2um * (3./2.) / lams
+     endif
+
+     !Calcuate graupel effective radius
+     if (qgraupel .lt. morr_qsmall) then
+       re(5) = morr_re_default
+     else
+       lamg = (wgamma(4.)*morr_rhog*pi*ngraupel/6.*qgraupel)**(1./3.)
+       !Check if calculated slope parameter is within MIN/MAX values from Morrison
+       ! WRF code
+       if (lamg .lt. morr_lamgMin) lamg = morr_lamgMin
+       if (lamg .gt. morr_lamgMax) lamg = morr_lamgMax
+       re(5) = m2um * (3./2.) / lamg
+     endif
 
    else !From Lin but default if mp scheme has not yet been implemented
 
@@ -763,7 +850,7 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
 
 end subroutine eff_radius
 
-!Gamma functions (WGAMMA and GAMMALN) from Thompson code
+!GAMMA function = EXP(ln(GAMMA))
 real function wgamma(x)
 
 implicit none
@@ -774,17 +861,17 @@ wgamma = EXP(gammln(x))
 
 end function wgamma
 
-!  (C) Copr. 1986-92 Numerical Recipes Software 2.02
+!Numerical Recipes (Fortran Version), Press et al. (1989), pg. 157
 !Returns the value ln(gamma(xx)) for xx > 0
 real function gammln(xx)
 
 implicit none
 real, intent(in) :: xx
-real*8, parameter :: stp = 2.5066282746310005
-real*8, dimension(6), parameter :: cof = (/76.18009172947146,&
-                       -86.50532032941677, 24.01409824083091,&
-                       -1.231739572450155, .1208650973866179e-2,&
-                       -.5395239384953e-5/)
+real*8, parameter :: stp = 2.50662827465
+real*8, dimension(6), parameter :: cof = (/76.18009173,&
+                       -86.50532033, 24.01409822,&
+                       -1.231739516, .120858003e-2,&
+                       -.536382e-5/)
 
 real*8 :: ser, tmp, x, y
 integer :: j
@@ -793,7 +880,7 @@ x = xx
 y = x
 tmp = x + 5.5D0
 tmp = (x + 0.5D0) * LOG(tmp) - tmp
-ser = 1.000000000190015D0
+ser = 1.000000000D0
 do j = 1, 6
   y = y + 1.D0
   ser = ser + cof(j)/y

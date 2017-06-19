@@ -788,12 +788,20 @@ class WRFDerivedVar:
         if (mp_physics == 8):
             nrain = np.array(self.dataSet.readNCVariable('QNRAIN'),order='F')
             nice = np.array(self.dataSet.readNCVariable('QNICE'),order='F')
+            nsnow = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+            ngraupel = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        elif (mp_physics == 10):
+            nrain = np.array(self.dataSet.readNCVariable('QNRAIN'),order='F')
+            nice = np.array(self.dataSet.readNCVariable('QNICE'),order='F')
+            nsnow = np.array(self.dataSet.readNCVariable('QNSNOW'),order='F')
+            ngraupel = np.array(self.dataSet.readNCVariable('QNGRAUPEL'),order='F')
         else:
             nrain = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
             nice = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+            nsnow = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+            ngraupel = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
+        #Current microphysics implemented does not include these variables 
         ncloud = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
-        nsnow = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
-        ngraupel = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
         nhail = np.zeros((dims[0],dims[1],dims[2]),order='F',dtype='float32')
         #Use global variables
         #self.press, self.theta, self.qvapor, self.u10, self.v10, 
