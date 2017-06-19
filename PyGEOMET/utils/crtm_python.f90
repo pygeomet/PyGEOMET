@@ -641,6 +641,9 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
 
    !Global (somewhat) varaibles
    real :: nc, lamc, lami, lams, lamr, lamg
+   !Minimum mixing ratios needed to compute effective radius
+   real, parameter :: min_qc = 1.e-8, min_qr = 1.e-8, min_qi = 1.e-8
+   real, parameter :: min_qg = 1.e-8, min_qs = 1.e-8
    real, parameter :: m2um = 1.e6 !meters to micrometers
    real, parameter :: rd = 287.05 !dry air gas constant
    real, parameter :: pi = 3.14159265359
@@ -676,31 +679,39 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
      endif 
 
      !Calculate ice effective radius
-     ci(1) = mu_i + 1.
-     ci(2) = bm_i + mu_i + 1.
-     cig(1) = wgamma(ci(1))
-     cig(2) = wgamma(ci(2))
-     ri = MAX(R1, qice*rho_air)
-     ni = MAX(R2, nice*rho_air) !Double moment ice - nice is in units [kg^-1]
-     if (ri .le. R1 .or. ni .le. R2) then
-       re(2) = 4.99E-6 !Low value from Thompson code
+     if (qice .lt. min_qi) then
+       re(2) = 0.0
      else
-       !Slope parameter
-       lami = (pi*thomp_rhoi*cig(2)*ni/ri*6*cig(1))**(1./bm_i)
-       re(2) = m2um * MAX(5.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_i)/lami), 125.E-6)) 
-     endif 
+       ci(1) = mu_i + 1.
+       ci(2) = bm_i + mu_i + 1.
+       cig(1) = wgamma(ci(1))
+       cig(2) = wgamma(ci(2))
+       ri = MAX(R1, qice*rho_air)
+       ni = MAX(R2, nice*rho_air) !Double moment ice - nice is in units [kg^-1]
+       if (ri .le. R1 .or. ni .le. R2) then
+         re(2) = 4.99E-6 !Low value from Thompson code
+       else
+         !Slope parameter
+         lami = (pi*thomp_rhoi*cig(2)*ni/ri*6*cig(1))**(1./bm_i)
+         re(2) = m2um * MAX(5.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_i)/lami), 125.E-6)) 
+       endif 
+     endif
 
      !Calculate rain effective radius
-     cr(1) = bm_r + 1.
-     cr(2) = mu_r + 1.
-     cr(3) = bm_r + mu_r + 1.
-     crg(1) = wgamma(cr(1))
-     crg(2) = wgamma(cr(2))  
-     crg(3) = wgamma(cr(3))   
-     rr = MAX(R1, qrain*rho_air)
-     nr = MAX(R2, nrain*rho_air) !Double moment rain - nrain is in units [kg^-1]
-     lamr = (pi*thomp_rhor*crg(3)*nr/rr*crg(2))**(1./bm_r)
-     re(3) = m2um * MAX(25.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_r)/lamr), 999.E-6))
+     if (qrain .lt. min_qr) then
+       re(3) = 0.0
+     else
+       cr(1) = bm_r + 1.
+       cr(2) = mu_r + 1.
+       cr(3) = bm_r + mu_r + 1.
+       crg(1) = wgamma(cr(1))
+       crg(2) = wgamma(cr(2))  
+       crg(3) = wgamma(cr(3))   
+       rr = MAX(R1, qrain*rho_air)
+       nr = MAX(R2, nrain*rho_air) !Double moment rain - nrain is in units [kg^-1]
+       lamr = (pi*thomp_rhor*crg(3)*nr/rr*crg(2))**(1./bm_r)
+       re(3) = m2um * MAX(25.01E-6, MIN(SNGL(0.5D0 * DBLE(3.+mu_r)/lamr), 999.E-6))
+     endif
 
      !Calculate snow effective radius
      cs = bm_s + 1.
@@ -743,20 +754,24 @@ subroutine eff_radius(qcloud,qice,qrain,qsnow,qgraupel,qv,ncloud,nice,nrain,&
      endif
      
      !Calculate graupel effective radius
-     cg(1) = bm_g + 1.
-     cg(2) = mu_g + 1.
-     cg(3) = bm_g + mu_g + 1.
-     cgg(1) = wgamma(cg(1))
-     cgg(2) = wgamma(cg(2))
-     cgg(3) = wgamma(cg(3)) 
-     rg = qgraupel    
-     ng = MAX(DBLE(g_min), MIN(200./qgraupel,DBLE(g_max)))
-     ng_min = MIN(ng, g_max)
-     ng = ng_min
-     lamg = ((ng*pi*thomp_rhog*cgg(1)/6.*rg*rho_air)**(1./cg(1))) &
-            * (cgg(3)/cgg(2)*cgg(1))**(1./bm_g)
-     re(5) = m2um * (3./2.) * (1./lamg)
- 
+     if (qgraupel .lt. min_qg) then
+       re(5) = 0.0
+     else
+       cg(1) = bm_g + 1.
+       cg(2) = mu_g + 1.
+       cg(3) = bm_g + mu_g + 1.
+       cgg(1) = wgamma(cg(1))
+       cgg(2) = wgamma(cg(2))
+       cgg(3) = wgamma(cg(3)) 
+       rg = qgraupel    
+       ng = MAX(DBLE(g_min), MIN(200./qgraupel,DBLE(g_max)))
+       ng_min = MIN(ng, g_max)
+       ng = ng_min
+       lamg = ((ng*pi*thomp_rhog*cgg(1)/6.*rg*rho_air)**(1./cg(1))) &
+              * (cgg(3)/cgg(2)*cgg(1))**(1./bm_g)
+       re(5) = m2um * (3./2.) * (1./lamg)
+     endif 
+
    else if (mp_physics == 10) then !Morrison double moment 
 
      !Calcuate cloud effective radius
