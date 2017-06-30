@@ -65,7 +65,7 @@ class CanvasWidget(QWidget):
         plotLayout.addWidget(self.canvas)
         self.mpl_toolbar = NavigationToolbar(self.canvas, parent)
         plotLayout.addWidget(self.mpl_toolbar)
-
+        
         self.gbox.setLayout(plotLayout)
 
         widgetLayout = QVBoxLayout()
@@ -576,6 +576,7 @@ class PlotSlab:
             # a derived variable list
             if (self.appobj.max_val != None and self.appobj.min_val != None
                 and self.currentdVar != None):
+                print(self.currentdVar)
                 #Next check if brightness temp/radiance
                 if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
                     self.colormin = self.appobj.min_val
@@ -1749,7 +1750,7 @@ class PlotSlab:
         self.readField()
         #initialize an index for derived variable
         # not used but needed in setPlotVars
-        self.currentdVar = 0
+        #self.currentdVar = 0
         self.setPlotVars()
 
     #Changes the derived variable
@@ -1961,7 +1962,7 @@ class PlotSlab:
             #Force plotting of WRF radar reflectivity to pyART colors/scale
             #Not all datasets have a dvarlist so only check if WRF at the moment
             #Revist this as additional datasets are added (if they have derived vars)
-            if (self.dataSet.dsetname == 'WRF'):
+            if (self.dataSet.dsetname == 'WRF' and self.currentdVar != None):
                 #Clear CRTM controls if necessary
                 if (self.crtmbox is not None and 
                     self.dataSet.dvarlist[self.currentdVar] != 'BrightTemp/Radiance'):
@@ -3148,28 +3149,47 @@ class AppForm(QMainWindow):
         #self.plotControlTabs.addTab(self.plotTab[0],'GridView')
         self.cpLayout.addWidget(self.plotControlTabs)
  
-        qscroll = QScrollArea(self.main_frame)
-        qscroll.setStyleSheet(Layout.QScrollArea())
-        qlayout.addWidget(qscroll)
+        #qscroll = QScrollArea(self.main_frame)
+        #qscroll.setStyleSheet(Layout.QScrollArea())
+
+        #Make Plot Area into a Tab control
+        self.plotAreaTab = QTabWidget(self.main_frame)
+        #qlayout.addWidget(qscroll)
+        qlayout.addWidget(self.plotAreaTab)
         qlayout.addWidget(self.controlPanel)
 
-        qscrollContents = QWidget()
-        qscrollLayout = QVBoxLayout(qscrollContents)
+        #qscrollContents = QWidget()
+        #qscrollLayout = QVBoxLayout(qscrollContents)
 
-        qscroll.setWidget(qscrollContents)
-        qscroll.setWidgetResizable(True)
+        #qscroll.setWidget(qscrollContents)
+        #qscroll.setWidgetResizable(True)
         
-        qfigWidget = QWidget(qscrollContents)
+        #qfigWidget = QWidget(qscrollContents)
         
         self.pltList = []
-        self.plotLayout = QVBoxLayout()
-        qfigWidget.setLayout(self.plotLayout)
-        qscrollLayout.addWidget(qfigWidget)
-        qscrollContents.setLayout(qscrollLayout)
+        #self.plotTab.addTab(self.gbox,boxTitleString)
+        #self.plotLayout = QVBoxLayout()
+        #qfigWidget.setLayout(self.plotLayout)
+        #qscrollLayout.addWidget(qfigWidget)
+        #qscrollContents.setLayout(qscrollLayout)
         self.setCentralWidget(self.main_frame)
 
         self.move(self.screenx*.05,self.screeny*.025)
         self.setStyleSheet(Layout.QMain())
+
+        #Connect plot tabs to function
+        self.plotControlTabs.currentChanged.connect(self.plotControlSelected)
+        self.plotAreaTab.currentChanged.connect(self.plotAreaSelected)
+
+    #Function to change the plot area selected with the
+    # plot control change
+    def plotControlSelected(self,i):
+        self.plotAreaTab.setCurrentIndex(i)
+
+    #Function to change the plot control selected with the
+    # plot area change
+    def plotAreaSelected(self,i):
+        self.plotControlTabs.setCurrentIndex(i)
 
     def get_data2(self):
         return np.arange(20).reshape([4, 5]).copy()
@@ -3186,9 +3206,10 @@ class AppForm(QMainWindow):
             self.plotTab[self.plotCount].setLayout(self.tabLayout)
             slbplt.getControlBar()
             self.cw.setPlot(slbplt)
-            self.plotLayout.addWidget(self.cw)
+            #self.plotLayout.addWidget(self.cw)
             self.pltList.append(self.cw)
             tabName = 'Plot #'+ str(self.plotCount)
+            self.plotAreaTab.addTab(self.cw,tabName)
             self.plotControlTabs.addTab(self.plotTab[self.plotCount],tabName)
             self.plotControlTabs.setCurrentIndex(self.plotCount)
             self.on_draw(self.plotCount)
@@ -3197,9 +3218,10 @@ class AppForm(QMainWindow):
 
     def deleteButtonAction(self):
         if (self.plotCount != 0):
-            self.plotLayout.itemAt(self.plotControlTabs.currentIndex()).widget().deleteLater()
+            #self.plotLayout.itemAt(self.plotControlTabs.currentIndex()).widget().deleteLater()
             #self.plotTab[self.plotControlTabs.currentIndex()] = None
             #self.pltList[self.plotControlTabs.currentIndex()] = None
+            self.plotAreaTab.removeTab(self.plotControlTabs.currentIndex())
             self.plotControlTabs.removeTab(self.plotControlTabs.currentIndex())
             self.on_draw(self.plotCount)
 
