@@ -66,6 +66,9 @@ def read_nctime(infile):
         #timeString.append(timeObj.strftime("%d %b %Y, %H:%M:%S UTC"))
         timeString = timeObj.strftime("%d %b %Y, %H:%M:%S UTC")
 
+    #Close the file
+    ncId.close()
+
     return timeString
 
 class WrfDataset:
