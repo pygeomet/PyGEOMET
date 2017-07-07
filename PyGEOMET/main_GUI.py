@@ -272,6 +272,8 @@ class PlotSlab:
         self.appobj.plotbarbs = False
         self.appobj.plotvectors = False
         self.appobj.plotcontour2 = False
+        self.selectedVvar = None
+        self.selecteddVvar = None
         self.vplot = None
         self.vertControl = None
         self.pControl = None
@@ -1577,6 +1579,26 @@ class PlotSlab:
             selectVarWidgetLayout.addWidget(selectVarLabel)
             selectVarWidgetLayout.addWidget(selectVVar)
             self.vertControlLayout.addWidget(selectVarWidget)
+
+            #Derived vertical variable control
+            selectdVarWidget = QWidget()
+            selectdVarWidgetLayout = QHBoxLayout()
+            selectdVarWidget.setLayout(selectdVarWidgetLayout)
+
+            selectdVarLabel = QLabel()
+            selectdVarLabel.setText('Derived Vertical Variable:')
+
+            selectdVVar = QComboBox()
+            selectdVVar.setStyleSheet(Layout.QComboBox())
+            self.dVvarlist = ['wind-3d']
+            selectdVVar.addItems(self.dVvarlist)
+            selectdVVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectdVVar.activated.connect(self.selectionChangedVerticalVar)
+            selectdVarWidgetLayout.addWidget(selectdVarLabel)
+            selectdVarWidgetLayout.addWidget(selectdVVar)
+            self.vertControlLayout.addWidget(selectdVarWidget)
+
+
             self.optionTabs.addTab(self.vertControl,vertTitle)
             self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
             self.tabbingLayout.addWidget(self.optionTabs)
@@ -2042,11 +2064,24 @@ class PlotSlab:
         self.pltFxn(self.pNum)
 
     def selectionChangeVerticalVar(self,i):
+        self.selecteddVvar = None
         self.selectedVvar = i
         self.vplot = self.dataSet.readNCVariable(self.Vvarlist[i],
                      barbs=self.appobj.plotbarbs, contour2=self.appobj.plotcontour2)
         self.VertvarTitle = self.dataSet.description +' ('+self.dataSet.units
         self.VertvarTitle = self.VertvarTitle +') \n'+self.dataSet.getTime()
+
+    def selectionChangedVerticalVar(self,i):
+        self.selectedVvar = None
+        self.selecteddVvar = i
+        dVvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet,
+                                       var = self.dVvarlist[self.selecteddVvar],
+                                       ptype = self.currentPType, sensor = self.crtmSensor,
+                                       channel = self.crtmChannel,
+                                       path = self.appobj.main_path,
+                                       req_var = self.crtmVar)
+        self.vplot = dVvar.var
+        self.VertvarTitle = dVvar.varTitle
 
     def selectionChangeParcel(self,i):
         self.selectedParcel = i
@@ -2232,8 +2267,11 @@ class PlotSlab:
             self.replot2d = True
             self.col = None
             self.row = None
-            if (self.currentPType == 'Vertical Profile'):
+            if (self.currentPType == 'Vertical Profile' and self.selectedVvar != None):
                 self.selectionChangeVerticalVar(self.selectedVvar)
+            #Derived vertical profile
+            if (self.currentPType == 'Vertical Profile' and self.selecteddVvar != None):
+                self.selectionChangedVerticalVar(self.selecteddVvar)
         self.readField()
 
         #Difference plot - read in difference data
