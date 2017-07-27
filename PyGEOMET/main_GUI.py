@@ -1139,8 +1139,8 @@ class PlotSlab:
                                  ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
-        elif (self.currentPType == 'Vertical Slice' and self.currentVar != None and
-              self.currentdVar != None):
+        elif (self.currentPType == 'Vertical Slice' and (self.currentVar != None or
+              self.currentdVar != None)):
             ax1 = self.appobj.axes1[self.pNum-1]
             #Have to handle vertical slice of CMAQ differently because Pressure/height
             #  isn't in the standard output
@@ -1344,13 +1344,16 @@ class PlotSlab:
             #mhgt = height.min()*np.log((press.max()*1.02)/press.max())
             mhgt = height.min()*np.log(1000./press.max())
             ax2.set_ylim(mhgt, height.max())
-            subs = [0.5,1,2,3,4,5,6,7,8,9,10]
+            subs = [0.5,2,3,4,5,6,7,8,9]
             loc = matplotlib.ticker.LogLocator(base=10., subs=subs)
-            ax.yaxis.set_major_locator(loc)
-            fmt = matplotlib.ticker.FormatStrFormatter("%g")
-            ax.yaxis.set_major_formatter(fmt)
+            ax.yaxis.set_minor_locator(loc)
+            ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+            ax.yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+            #fmt = matplotlib.ticker.FormatStrFormatter("%g")
+            #ax.yaxis.set_major_formatter(fmt)
             ax.margins(0.02)
-            ax.yaxis.grid(True)
+            #Turn major and minor grid lines on
+            ax.yaxis.grid(True, which='both')
         else:
            self.errorSelectVVar()
 
