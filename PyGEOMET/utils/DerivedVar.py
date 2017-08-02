@@ -142,6 +142,8 @@ class WRFDerivedVar:
                 self.mean_layer_temp()
             elif var == "BrightTemp/Radiance":
                 self.crtm_wrapper(req_var)
+            elif var == 'RH':
+                self.relative_humidity()
             else:
                 print("Cannot find input variable")
                 self.var = None
@@ -758,6 +760,13 @@ class WRFDerivedVar:
         self.var2 = self.var
         self.varTitle = "Mean Layer Temperature (K) \n"+ self.dataSet.getTime()
 
+    #Function to calculate the relative humidity
+    def relative_humidity(self):
+
+        self.var = wrf.get_rh(self.temp, self.qvapor, self.press)
+        self.var2 = self.var
+        self.varTitle = "Relative Humidity (%) \n"+ self.dataSet.getTime()
+ 
     #Function to determine the brightness temperature or radiance
     def crtm_wrapper(self,request_var):
          

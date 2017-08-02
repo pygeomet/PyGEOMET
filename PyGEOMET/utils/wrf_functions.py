@@ -1624,7 +1624,7 @@ def getDvarList(varlist,runtype):
     dvarlist.extend(['CAPE_SB','CAPE_ML','CAPE_MU',
                      'CIN_SB','CIN_ML','CIN_MU',
                      'mslp','pwat','temp-3d',
-                     'theta','theta-e-3d'])
+                     'theta','theta-e-3d','RH'])
 
     if runtype == 'REAL':
         dvarlist.extend(['lcl_hgt','temp_ML','t2m',
