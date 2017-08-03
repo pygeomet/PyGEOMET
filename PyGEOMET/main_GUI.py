@@ -316,6 +316,8 @@ class PlotSlab:
         self.appobj.urcrnrlat = None
         self.appobj.llcrnrlon = None
         self.appobj.urcrnrlon = None
+        #Previous plot type (used to create vertical difference plot)
+        self.prevPType = None
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -404,7 +406,6 @@ class PlotSlab:
         #print("After pindex:", self.cPIndex)
  
     def readDiffField(self):
-
         if not self.derivedVar:
             self.diffvar = self.diffdata.readNCVariable(self.diffdata.variableList[self.currentVar],
                 barbs=self.appobj.plotbarbs, vectors = self.appobj.plotvectors,
@@ -616,7 +617,8 @@ class PlotSlab:
         #Recall projection when grid/dataset is changed.
         if self.appobj.recallProjection == True:    
             if len(self.appobj.axes1) >= self.appobj.plotCount:
-                 if (self.currentPType == 'Vertical Slice'):
+                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                     self.prevPType == 'Vertical Slice')):
                      self.figure.clear()
                      #Set things to none so we don't try to remove them later
                      self.appobj.cs = None
@@ -631,7 +633,8 @@ class PlotSlab:
                  if self.dataSet.map[self.currentGrid-1] != None: 
                      self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
             else:
-                 if (self.currentPType == 'Vertical Slice'):
+                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                     self.prevPType == 'Vertical Slice')):
                      self.figure.clear()
                      #Set things to none so we don't try to remove them later
                      self.appobj.cs = None
@@ -665,7 +668,8 @@ class PlotSlab:
             #Determine if the passed variable is 3D
             if(self.nz == 1):
                 #Make sure the variable is 3D for vertical cross section
-                if (self.currentPType == 'Vertical Slice'):
+                if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                    self.prevPType == 'Vertical Slice')):
                     self.error3DVar()
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var - self.diffvar
@@ -675,6 +679,9 @@ class PlotSlab:
                 #If vertical cross section take the whole array
                 if (self.currentPType == 'Vertical Slice'):
                     var = self.var
+                #Create vertical slice difference plot
+                elif (self.currentPType == 'Difference Plot' and self.prevPType == 'Vertical Slice'):
+                    var = self.var - self.diffvar
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var[self.currentLevel] - self.diffvar[self.currentLevel]
                 else:
@@ -694,7 +701,8 @@ class PlotSlab:
                 self.figure.canvas.get_default_filename = lambda: (varname + '_' + time_string + '.png')
 
             #Set up vslice variables 
-            if (self.currentPType == 'Vertical Slice'):
+            if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and 
+                self.prevPType == 'Vertical Slice')):
                 #Create user control box 
                 if self.vslicebox is None:
                     self.verticalSliceControl()
@@ -824,7 +832,9 @@ class PlotSlab:
                         coll.remove()
                 #Create contour on a map
                 #Check if map exists to plot on
-                if (self.currentPType == 'Vertical Slice'):
+                #Second condition allows the creation of a vertical slice difference plot
+                if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                    self.prevPType == 'Vertical Slice')):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].contourf(
                                       horiz,
                                       plevs, pltfld,
@@ -885,7 +895,9 @@ class PlotSlab:
   
                 #Create pcolormesh on a map
                 #Check if map exists to plot on
-                if (self.currentPType == 'Vertical Slice'):
+                #Second condition allows the creation of a vertical slice difference plot
+                if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                    self.prevPType == 'Vertical Slice')):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
                                       horiz, 
                                       plevs, pltfld, 
@@ -924,7 +936,9 @@ class PlotSlab:
                 self.ColorBar.remove()
             
             #Create colorbar
-            if (self.currentPType ==  'Vertical Slice'):
+            #Second condition allows the creation of a vertical slice difference plot colorbar
+            if (self.currentPType ==  'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                self.prevPType == 'Vertical Slice')):
                 self.ColorBar = self.figure.colorbar(self.appobj.cs, ax=self.appobj.axes1[self.pNum-1], 
                                                      orientation='horizontal', pad=0.1)  
             else:
@@ -1088,10 +1102,17 @@ class PlotSlab:
                                            font=10, fmt=fmt)
 
         #Create geography
-        #Second condition on vertical slice allows changing of grid without when Vertical Slice
+        #Second condition on vertical slice allows changing of grid when Vertical Slice
         # selected but no variable selected
-        if ((self.currentPType != 'Vertical Slice' or (self.currentVar == None and
-              self.currentdVar == None)) and self.dataSet.map[self.currentGrid-1] != None):
+        if (self.currentPType == 'Difference Plot' and self.prevPType == 'Vertical Slice'):
+           flag = True
+        else:
+           flag = False
+
+        if ((self.currentPType != 'Vertical Slice' 
+            or (self.currentVar == None and self.currentdVar == None))
+            and self.dataSet.map[self.currentGrid-1] != None and not flag): 
+            print ("here", self.currentPType, self.prevPType)
             if self.appobj.plotcoasts:
                 self.appobj.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
             if self.appobj.plotcountries:
@@ -1139,7 +1160,8 @@ class PlotSlab:
                                  ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.appobj.recallProjection = False
-        elif (self.currentPType == 'Vertical Slice' and (self.currentVar != None or
+        elif ((self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and 
+               self.prevPType == 'Vertical Slice')) and (self.currentVar != None or
               self.currentdVar != None)):
             ax1 = self.appobj.axes1[self.pNum-1]
             #Have to handle vertical slice of CMAQ differently because Pressure/height
@@ -1611,7 +1633,8 @@ class PlotSlab:
             self.replot2d = True
         
         #Difference plot
-        if (self.currentPType == 'Difference Plot'):
+        if (self.currentPType == 'Difference Plot' or (self.currentPType == 'Difference Plot' and
+            self.prevPType == 'Vertical Slice')):
             #Reset colorbar settings
             self.colormax = None
             self.colormin = None
@@ -1676,7 +1699,7 @@ class PlotSlab:
     def selectionChangePlot(self,i):
         
         #Save previous plot type
-        prev_plot = self.currentPType
+        self.prevPType = self.currentPType
 
         #Reset clicked point values
         if self.cid is not None:
@@ -1759,7 +1782,7 @@ class PlotSlab:
             # a vertical slice plot to be made
             if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
                 #Switch back to the previous plot
-                self.currentPType = prev_plot
+                self.currentPType = self.prevPType
                 #Determine previous plot type index
                 ind = np.where(self.dataSet.ptypes == self.currentPType)[0]
                 self.dataSet.selectPlotType.setCurrentIndex(ind)
