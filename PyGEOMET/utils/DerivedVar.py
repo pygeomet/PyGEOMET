@@ -744,7 +744,7 @@ class WRFDerivedVar:
         swupt = self.dataSet.readNCVariable('SWUPT')
 
         #Calculate cloud albedo
-        self.var = (swupt - swuptc) / swdnt
+        self.var = ((swupt - swuptc) / swdnt) * 100.
         self.var2 = self.var
         self.varTitle = "Cloud Albedo \n"+ self.dataSet.getTime() 
 

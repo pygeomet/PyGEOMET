@@ -34,6 +34,7 @@ import PyGEOMET.datasets.CMAQDataset as CmaqDataset
 import PyGEOMET.datasets.METDataset as METDataset
 import PyGEOMET.datasets.SoundingDataset as SoundDataset
 import PyGEOMET.datasets.NetCDFDataset as NetCDFDataset
+import PyGEOMET.datasets.GOESRDataset as GOESRDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import PyGEOMET.utils.sensor_info as CRTMInfo
 import PyGEOMET.utils.create_colormap as create_colormap
@@ -407,7 +408,8 @@ class PlotSlab:
  
     def readDiffField(self):
         if not self.derivedVar:
-            self.diffvar = self.diffdata.readNCVariable(self.diffdata.variableList[self.currentVar],
+            ind = np.where(np.array(self.diffdata.variableList) == self.dataSet.variableList[self.currentVar])[0]
+            self.diffvar = self.diffdata.readNCVariable(self.diffdata.variableList[ind],
                 barbs=self.appobj.plotbarbs, vectors = self.appobj.plotvectors,
                 contour2=self.appobj.plotcontour2)
             #account for unstaggering of the grids in 3-dimensional variables
@@ -578,15 +580,23 @@ class PlotSlab:
             #Check if derived var is set first because not every data set has
             # a derived variable list
             if (self.appobj.max_val != None and self.appobj.min_val != None
-                and self.currentdVar != None):
-                print(self.currentdVar)
+                and (self.currentdVar != None or self.appobj.dname == 'GOES_R' 
+                or self.appobj.dname == 'GOES_Class' or self.appobj.dname == 'GOES_UAH')):
                 #Next check if brightness temp/radiance
-                if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
-                    self.colormin = self.appobj.min_val
-                    self.colormax = self.appobj.max_val
-                    self.ncontours = 41
-                    self.colorlock = True
-                    self.lock.setChecked(True)
+                if (self.currentdVar != None):
+                    if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
+                        self.colormin = self.appobj.min_val
+                        self.colormax = self.appobj.max_val
+                        self.ncontours = 41
+                        self.colorlock = True
+                        self.lock.setChecked(True)
+                if (self.appobj.dname == 'GOES_R' or self.appobj.dname == 'GOES_Class' 
+                    or self.appobj.dname == 'GOES_UAH'):
+                        self.colormin = self.appobj.min_val
+                        self.colormax = self.appobj.max_val
+                        self.ncontours = 41
+                        self.colorlock = True
+                        self.lock.setChecked(True)
             self.cmap = self.appobj.cmap      
 
         #Set background map
@@ -2302,6 +2312,7 @@ class PlotSlab:
 
         #Difference plot - read in difference data
         if (self.currentPType == 'Difference Plot'):
+            print (self.currentTime)
             self.diffdata.setTimeIndex(self.currentTime)
             self.readDiffField()
                         
@@ -2472,6 +2483,12 @@ class AppForm(QMainWindow):
         openGOESUAH.setStatusTip('Open GOES (UAH) Directory')
         openGOESUAH.triggered.connect(self.goesOpen)        
 
+        #GOES R
+        openGOESR = QAction("&GOES R", self)
+        openGOESR.setShortcut("Ctrl+S")
+        openGOESR.setStatusTip('Open GOES R Directory')
+        openGOESR.triggered.connect(self.goesROpen)
+
         #NCEP/NCAR Reanalysis OpenDAP
         openNCEPNCAR = QAction("&NCEP/NCAR Reanalysis", self)
         openNCEPNCAR.setShortcut("Ctrl+N")
@@ -2524,7 +2541,7 @@ class AppForm(QMainWindow):
         #Color Palettes
         self.colorlist = ['jet','brg','rainbow','bwr','RdBu','YlOrRd',
                           'viridis','magma','gray','pyart_NWSRef','sat_WV',
-                          'sat_IR']
+                          'sat_IR','cloud_albedo']
         jet = QAction("&Default (jet)",self)
         jet.triggered.connect(lambda: self.selectionChangeColorPallete(0))
         brg = QAction(QIcon('brg.png'),"&BlueRedGreen",self)
@@ -2549,6 +2566,8 @@ class AppForm(QMainWindow):
         satWV.triggered.connect(lambda: self.selectionChangeColorPallete(10))
         satIR = QAction("&Satellite IR",self)
         satIR.triggered.connect(lambda: self.selectionChangeColorPallete(11))
+        cldA = QAction("&Cloud Albedo",self)
+        cldA.triggered.connect(lambda: self.selectionChangeColorPallete(12))
 
         #Create map background menu bar
         defaultClear = QAction("&Default (Clear)", self)
@@ -2604,6 +2623,7 @@ class AppForm(QMainWindow):
         menuGOES = dataSetMenu.addMenu('&GOES')
         menuGOES.setStyleSheet(Layout.QMenu())
         menuGOES.addAction(openGOESClass)
+        menuGOES.addAction(openGOESR)
         menuGOES.addAction(openGOESUAH)
 
         #Remaining Datasets
@@ -2664,6 +2684,7 @@ class AppForm(QMainWindow):
         satMenu = colorbarMenu.addMenu('&Satellite')
         satMenu.addAction(satWV)
         satMenu.addAction(satIR)
+        satMenu.addAction(cldA)
  
         #Contour Fill options
         contourMenu = pMenu.addMenu('&Contour Fill Type')
@@ -2805,6 +2826,26 @@ class AppForm(QMainWindow):
             else:
                 self.errorNoFilesFound()
 
+    #Select the files
+    def goesROpen(self):
+        self.dname = 'GOES_R'
+        #self.selectdataset.close()
+        #self.path = QFileDialog.getExistingDirectory(self, 'Select Directory')
+        self.files = QFileDialog.getOpenFileNames(self, 'Select Files')
+        #self.prefix = 'OR*'
+        #files = sorted(glob.glob(os.path.join(str(self.path),self.prefix)))
+        #if self.path:
+        if (len(self.files) > 0):        
+            self.numDset += 1
+            self.dataSet.append(GOESRDataset.GOESRDataset())
+            self.paths.append("GOES R")
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+            #self.dataSet[self.numDset].name(path=str(self.path) , prefix=self.prefix)
+            self.dataSet[self.numDset].name(files=self.files)
+            QApplication.restoreOverrideCursor()
+        else:
+            self.errorNoFilesFound()
+
     #Select the directory
     def goesOpen(self):
         self.dname = 'GOES_UAH'
@@ -2922,6 +2963,18 @@ class AppForm(QMainWindow):
                           (245.-self.min_val)/(self.max_val-self.min_val),
                           (253.-self.min_val)/(self.max_val-self.min_val),
                           (258.-self.min_val)/(self.max_val-self.min_val),1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+        #Create cmap for Cloud Albedo
+        elif (self.cmap == 'cloud_albedo'):
+            self.max_val = 1.0
+            self.min_val = 0.0
+            position = [0,(0.2-self.min_val)/(self.max_val-self.min_val),
+                        (0.4-self.min_val)/(self.max_val-self.min_val),
+                          (0.6-self.min_val)/(self.max_val-self.min_val),
+                          (0.8-self.min_val)/(self.max_val-self.min_val), 
+                          1]
             ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)

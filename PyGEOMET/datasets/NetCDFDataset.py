@@ -184,12 +184,22 @@ class NetCDFDataset:
 
             self.setGrid(i+1)
             self.setTimeIndex(0)
-            self.nx.append(self.ncId.__dict__['WEST-EAST_GRID_DIMENSION'])
-            self.ny.append(self.ncId.__dict__['SOUTH-NORTH_GRID_DIMENSION'])
-            self.nz.append(self.ncId.__dict__['BOTTOM-TOP_GRID_DIMENSION'])
+            #Check if global variables exist
+            if (self.getAttribute('WEST-EAST_GRID_DIMENSION') != None):
+                self.nx.append(self.ncId.__dict__['WEST-EAST_GRID_DIMENSION'])
+                self.ny.append(self.ncId.__dict__['SOUTH-NORTH_GRID_DIMENSION'])
+                self.nz.append(self.ncId.__dict__['BOTTOM-TOP_GRID_DIMENSION'])
+            else:
+                self.nx.append(self.ncId.dimensions['Col'].size)
+                self.ny.append(self.ncId.dimensions['Row'].size)
+                self.nz.append(1)
             #Check if attributes are available
-            self.dx.append(self.getAttribute('DX'))
-            self.dy.append(self.getAttribute('DY'))
+            if (self.getAttribute('DX') != None):
+                self.dx.append(self.getAttribute('DX'))
+                self.dy.append(self.getAttribute('DY'))
+            else:
+                self.dx.append(12000.)
+                self.dy.append(12000.)
             self.lat1.append(self.getAttribute('TRUELAT1'))
             self.lat2.append(self.getAttribute('TRUELAT2'))
             self.lon0.append(self.getAttribute('CEN_LON'))
@@ -335,6 +345,12 @@ class NetCDFDataset:
                                        llcrnrlon=self.ll_lon[i],llcrnrlat=self.ll_lat[i],
                                        urcrnrlat = self.ur_lat[i],urcrnrlon = self.ur_lon[i],
                                        resolution=self.resolution)
+        if self.projectionType == 'cyl':
+            self.map[i] = Basemap(ax=axs,projection=self.projectionType,fix_aspect=False,
+                                       llcrnrlon=self.ll_lon[i],llcrnrlat=self.ll_lat[i],
+                                       urcrnrlat = self.ur_lat[i],urcrnrlon = self.ur_lon[i],
+                                       resolution=self.resolution)
+
 
         x_ll,y_ll = self.map[0](self.ll_lon[i],self.ll_lat[i])
 
