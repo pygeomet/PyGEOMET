@@ -35,6 +35,7 @@ import PyGEOMET.utils
 # 21. mean_layer                                                              #
 # 22. pot_vort (Written by Andrew White - whiteat@nsstc.uah.edu)              #
 # 23. rel_vort                                                                #
+# 24. rel_vortWRF (Written by Andrew White - whiteat@nsstc.uah.edu)
 #                                                                             #
 ###############################################################################
 
@@ -1027,9 +1028,9 @@ def mean_layer(var,hgt,ref1,ref2):
 ##################### 22.Begin function of pot_vort()   #######################
 ## Required libraries: numpy                                                  #
 ##                                                                            #
-## Inputs: u = ndarray of u-component wind values (Units: m/s)                #
+## Inputs: u = ndarray of u-component wind values (staggered) (Units: m/s)    #
 ##                                                                            #
-##         v = ndarray of v-component wind values (Units: m/s)                #
+##         v = ndarray of v-component wind values (staggered) (Units: m/s)    #
 ##                                                                            #
 ##         f = ndarray of Coriolis force (Units: s^-1)                        #
 ##                                                                            #
@@ -1055,6 +1056,11 @@ def pot_vort(u,v,f,dx,dy,press,theta):
     du = np.gradient(u)
     #Change in V
     dv = np.gradient(v)
+
+    #Then unstagger
+    dv = unstaggerY(dv1)
+    du = unstaggerX(du1)    
+
     #Change in Potential Temp
     dtheta = np.gradient(theta)
     #Change in Pressure
@@ -1097,10 +1103,11 @@ def pot_vort(u,v,f,dx,dy,press,theta):
 ###############################################################################
 
 def rel_vort(u,v,dx,dy):
+
     #get the gradient of the wind in the u- and v-directions
     du = np.gradient(u)
     dv = np.gradient(v)
-    
+
     #compute the relative vorticity (units : 10^-5 s^-1)
     vort = ((dv[-1]/dx) - (du[-2]/dy))*pow(10,5) 
 
@@ -1110,7 +1117,6 @@ def rel_vort(u,v,dx,dy):
 ###############################################################################
 ##########################  End function rel_vort()  ##########################
 ###############################################################################
-
 
 ################################################################################
 #                                                                              #

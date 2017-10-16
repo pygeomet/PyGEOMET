@@ -214,7 +214,7 @@ class WRFDerivedVar:
         u_corr = wrf.unstaggerX(u)
         v_corr = wrf.unstaggerY(v)
         height = wrf.unstaggerZ(self.height)
-        ref_val = 50000.
+        ref_val = 50000.     
         #Switched to Cython
         #self.u10 = wrf.loglinear_interpolate(u_corr, self.press, ref_val)
         #self.v10 = wrf.loglinear_interpolate(v_corr, self.press, ref_val)
@@ -334,8 +334,15 @@ class WRFDerivedVar:
         v = self.dataSet.readNCVariable('V')
         u_corr = wrf.unstaggerX(u)
         v_corr = wrf.unstaggerY(v)
-        du = np.gradient(u_corr)[2]
-        dv = np.gradient(v_corr)[1]
+        #For the WRF-ARW Arakawa C grid we don't need to use the unstagger winds
+        # to calculate the gradient at the mass points
+        #du = np.gradient(u_corr)[2]
+        #dv = np.gradient(v_corr)[1]
+        #Get dimensions
+        dimsu = u.shape
+        dimsv = v.shape
+        du = u[:,:,1:dimsu[2]] - u[:,:,0:dimsu[2]-1]
+        dv = v[:,1:dimsv[1],:] - v[:,0:dimsv[1]-1,:]
         dx = self.dataSet.dx[self.dataSet.currentGrid-1]
         dy = self.dataSet.dy[self.dataSet.currentGrid-1]
         self.u10 = u_corr
