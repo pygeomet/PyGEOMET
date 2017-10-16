@@ -319,6 +319,8 @@ class PlotSlab:
         self.appobj.urcrnrlon = None
         #Previous plot type (used to create vertical difference plot)
         self.prevPType = None
+        self.yinterval = 1
+        self.xinterval = 1
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -856,9 +858,9 @@ class PlotSlab:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].contourf(
-                                      self.dataSet.glons[self.currentGrid-1],
-                                      self.dataSet.glats[self.currentGrid-1],
-                                      pltfld,
+                                      self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      pltfld[::self.yinterval,::self.xinterval],
                                       levels=lvls,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha,extend=self.extend)
@@ -872,9 +874,9 @@ class PlotSlab:
                     self.dataSet.glats[self.currentGrid-1].max())
                 else:
                     self.appobj.cs = self.dataSet.map[self.currentGrid-1].contourf(
-                                      self.dataSet.glons[self.currentGrid-1],
-                                      self.dataSet.glats[self.currentGrid-1],
-                                      pltfld,
+                                      self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      pltfld[::self.yinterval,::self.xinterval],
                                       levels=lvls,
                                       latlon=True,extend=self.extend,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
@@ -918,9 +920,9 @@ class PlotSlab:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
                     self.appobj.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
-                                      self.dataSet.glons[self.currentGrid-1],
-                                      self.dataSet.glats[self.currentGrid-1],
-                                      pltfld,
+                                      self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      pltfld[::self.yinterval,::self.xinterval],
                                       norm=norm,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha)
@@ -934,9 +936,9 @@ class PlotSlab:
                     self.dataSet.glats[self.currentGrid-1].max())
                 else:
                     self.appobj.cs = self.dataSet.map[self.currentGrid-1].pcolormesh(
-                                      self.dataSet.glons[self.currentGrid-1],
-                                      self.dataSet.glats[self.currentGrid-1],
-                                      pltfld,
+                                      self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
+                                      pltfld[::self.yinterval,::self.xinterval],
                                       norm=norm,
                                       latlon=True,cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
@@ -2345,6 +2347,17 @@ class PlotSlab:
         self.colormax = np.float(self.selectMax.text())
         self.ncontours = np.float(self.selectcontours.text())
         self.pltFxn(self.pNum)
+
+    #Function to set the subsample interval
+    def enterSubValue(self):
+        self.appobj.subBox.close()
+        self.xinterval = np.int(self.appobj.selectSubsample.text())
+        self.yinterval = np.int(self.appobj.selectSubsample.text())
+        #Reset appobj intervals so that the current interval is displayed
+        # when subsample grid is selected
+        self.appobj.yinterval = self.yinterval
+        self.appobj.xinterval = self.xinterval
+        self.pltFxn(self.pNum)
     
     def error3DVar(self):
         if self.derivedVar == True:
@@ -2637,6 +2650,8 @@ class AppForm(QMainWindow):
         #set up the plot settings menu
         plotMenu = mainMenu.addMenu('&Plot Settings')
         plotMenu.setStyleSheet(Layout.QMenu())
+
+        #Calculations Menu
         calcMenu = mainMenu.addMenu('&Calculations')
         calcMenu.setStyleSheet(Layout.QMenu())
         menuEOM = calcMenu.addAction(getEOM)
@@ -2736,6 +2751,12 @@ class AppForm(QMainWindow):
         overlayMenu.addAction(c2)
         overlayMenu.addAction(wb)
         overlayMenu.addAction(wv)
+
+        #Subsample grid options
+        subsample = QAction("Subsample Grid", self)
+        subsample.triggered.connect(lambda: self.setSubsampleValue())
+        subsample.setStatusTip("Subsample the plot array")
+        plotMenu.addAction(subsample)
         
         #### End Menu ####
         self.dataSet = [None]
@@ -2766,6 +2787,8 @@ class AppForm(QMainWindow):
         self.clear = False
         self.max_val = None
         self.min_val = None
+        self.yinterval = 1
+        self.xinterval = 1
 
         #Path is needed to define CRTM coefficient data location
         self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
@@ -3111,6 +3134,42 @@ class AppForm(QMainWindow):
         else:
             self.userGrid = False
         self.on_draw(self.plotCount)
+    
+    #Function to define subsample interval
+    def setSubsampleValue(self):
+        
+        #Create a box for the user to input the subsample interval
+        self.subBox = QDialog(self)
+        #self.subBox.setTitle('Subsample Control')
+        self.subBox.setStyleSheet(Layout.QGroupBox())
+        subBoxControlLayout = QHBoxLayout(self.subBox)
+  
+        subLabel = QLabel()
+        subLabel.setText('Subsample Interval:')
+        self.selectSubsample = QLineEdit()
+        self.selectSubsample.setStyleSheet(Layout.QLineEdit())
+        self.selectSubsample.setText(str(self.xinterval))
+        #self.selectSubsample.editingFinished.connect(self.cw.plotObj.enterSubValue)
+        self.selectSubsample.returnPressed.connect(self.cw.plotObj.enterSubValue)
+
+        #Replot button
+        #self.subPlotButton = QPushButton('Replot')
+        #self.subPlotButton.setStyleSheet(Layout.QPushButton3())
+        #self.subPlotButton.resize(self.subPlotButton.minimumSizeHint())
+        #self.subPlotButton.clicked.connect(self.enterSubValue)
+
+        #Add widgets
+        subBoxControlLayout.addWidget(subLabel)
+        subBoxControlLayout.addWidget(self.selectSubsample)
+        #subBoxControlLayout.addWidget(self.subPlotButton)
+        self.subBox.show()        
+        
+    #def enterSubValue(self):
+    #    self.subBox.close()
+    #    self.xinterval = np.int(self.selectSubsample.text())
+    #    self.yinterval = np.int(self.selectSubsample.text())
+    #    print (self.xinterval, self.yinterval)
+    #    self.on_draw(self.plotCount)
 
     def plotWindBarbs(self):
         if self.plotbarbs == False:
@@ -3200,7 +3259,6 @@ class AppForm(QMainWindow):
         msg.setWindowTitle("Warning")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
-
 
     def readfxn(self,wrfobj,varname):
         print('numGrids = ',wrfobj.numGrids)
