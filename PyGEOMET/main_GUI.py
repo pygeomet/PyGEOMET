@@ -2245,6 +2245,8 @@ class PlotSlab:
         self.appobj.domain_average = None
         self.ColorBar = None
         self.derivedVar = False
+        self.appobj.parallels = None
+        self.appobj.meridians = None
         self.appobj.recallProjection = True
         #Plus 1 is needed because None is technically the first index
         self.dataSet = self.dSet[self.currentDset]
