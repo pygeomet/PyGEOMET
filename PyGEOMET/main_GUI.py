@@ -88,7 +88,6 @@ class CanvasWidget(QWidget):
                     self.plotObj.cid = self.canvas.mpl_connect('button_press_event', self.onclick)
                 if self.plotObj.col is not None and self.plotObj.row is not None:
                     self.plotObj.getTable(self.plotObj.col,self.plotObj.row)
-            
             self.canvas.draw()
         
         #Vertical Cross section
@@ -347,6 +346,9 @@ class PlotSlab:
             if self.currentVar != None:
                 #self.currentVar = np.where(np.array(self.dataSet.variableList) == "T2")[0][0]
                 #self.nz = 1
+                print("read field",self.dataSet)
+                print(self.dataSet.variableList)
+                print(self.currentVar)
                 self.var = self.dataSet.readNCVariable(self.dataSet.variableList[self.currentVar],
                     barbs=self.appobj.plotbarbs, vectors = self.appobj.plotvectors,
                     contour2=self.appobj.plotcontour2)
@@ -627,7 +629,7 @@ class PlotSlab:
             alpha=0.75
 
         #Recall projection when grid/dataset is changed.
-        if self.appobj.recallProjection == True:    
+        if self.appobj.recallProjection == True:   
             if len(self.appobj.axes1) >= self.appobj.plotCount:
                  if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
                      self.prevPType == 'Vertical Slice')):
@@ -676,7 +678,6 @@ class PlotSlab:
 
         #Determine if a variable was passed - plots grid if not
         if(self.currentVar != None or self.currentdVar != None):
-
             #Determine if the passed variable is 3D
             if(self.nz == 1):
                 #Make sure the variable is 3D for vertical cross section
@@ -686,6 +687,7 @@ class PlotSlab:
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var - self.diffvar
                 else:
+                    print("setting plot field")
                     pltfld = self.var
             else:
                 #If vertical cross section take the whole array
@@ -793,7 +795,7 @@ class PlotSlab:
                     self.colormax = -1.*self.colormin                            
                 #Colormap normalization
                 midpoint = 1 - self.colormax/(self.colormax+abs(self.colormin))
-                self.shiftedColorMap(cmap=matplotlib.cm.RdBu, midpoint=midpoint, name='shifted')
+                self.shiftedColorMap(cmap=matplotlib.cm.seismic, midpoint=midpoint, name='shifted')
                 #self.cmap = self.newmap
                 self.cmap = 'shifted'
 
@@ -840,8 +842,11 @@ class PlotSlab:
             if self.appobj.filltype == "contourf":
                 #Remove old contour before plotting - don't have to recall projection
                 if self.appobj.cs is not None:
+                    print("remove")
                     for coll in self.appobj.cs.collections:
                         coll.remove()
+                print(self.pNum,self.pNum-1)
+                print("Axis",self.appobj.axes1[self.pNum-1])
                 #Create contour on a map
                 #Check if map exists to plot on
                 #Second condition allows the creation of a vertical slice difference plot
@@ -873,6 +878,7 @@ class PlotSlab:
                     self.dataSet.glats[self.currentGrid-1].min(),
                     self.dataSet.glats[self.currentGrid-1].max())
                 else:
+                    print("Calling contour")
                     self.appobj.cs = self.dataSet.map[self.currentGrid-1].contourf(
                                       self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
@@ -965,6 +971,7 @@ class PlotSlab:
            
             #Create colorbar ticks 
             self.ColorBar.ax.tick_params(labelsize=9)                
+            print("Title", self.varTitle)
             self.appobj.axes1[self.pNum-1].set_title(self.varTitle,fontsize = 10)
 
             #Call function to determine values on map while you hoover your mouse
@@ -2312,7 +2319,11 @@ class PlotSlab:
             #Derived vertical profile
             if (self.currentPType == 'Vertical Profile' and self.selecteddVvar != None):
                 self.selectionChangedVerticalVar(self.selecteddVvar)
-        self.readField()
+        #GOES-R dataset handles getting the variable for plotting
+        if (self.dataSet.dsetname == "GOES R"):
+            self.dataSet.advanceTime(self)
+        else:
+            self.readField()
 
         #Difference plot - read in difference data
         if (self.currentPType == 'Difference Plot'):
@@ -3152,7 +3163,7 @@ class AppForm(QMainWindow):
         self.selectSubsample.setStyleSheet(Layout.QLineEdit())
         self.selectSubsample.setText(str(self.xinterval))
         #self.selectSubsample.editingFinished.connect(self.cw.plotObj.enterSubValue)
-        self.selectSubsample.returnPressed.connect(self.cw.plotObj.enterSubValue)
+        self.selectSubsample.returnPressed.connect(self.slbplt.enterSubValue)
 
         #Replot button
         #self.subPlotButton = QPushButton('Replot')
@@ -3362,27 +3373,34 @@ class AppForm(QMainWindow):
     # plot control change
     def plotControlSelected(self,i):
         self.plotAreaTab.setCurrentIndex(i)
+        self.currnetPlot = i + 1
+        #for i in range(1,len(self.slbplt)):
+        #    self.slbplt[i].appobj.currentPlot = i
 
     #Function to change the plot control selected with the
     # plot area change
     def plotAreaSelected(self,i):
         self.plotControlTabs.setCurrentIndex(i)
+        self.currnetPlot = i + 1
+        #for i in range(1,len(self.slbplt)):
+        #    self.slbplt[i].appobj.currentPlot = i
 
     def get_data2(self):
         return np.arange(20).reshape([4, 5]).copy()
     
     def addButtonAction(self):
-        if len(self.dataSet) >= 2:
+        if (len(self.dataSet) >= 2):
             self.plotCount = self.plotCount + 1
+            self.currentPlot = self.plotCount
             self.cw = CanvasWidget(self,self.plotCount)
-            slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
-            slbplt.setConnection(self.on_draw,self.plotCount)
-            slbplt.plotCount = self.plotCount
+            self.slbplt = PlotSlab(dset=self.dataSet,AppWid=self)
+            self.slbplt.setConnection(self.on_draw,self.plotCount)
+            self.slbplt.plotCount = self.plotCount
             self.plotTab.append(QWidget())
             self.tabLayout = QVBoxLayout()
             self.plotTab[self.plotCount].setLayout(self.tabLayout)
-            slbplt.getControlBar()
-            self.cw.setPlot(slbplt)
+            self.slbplt.getControlBar()
+            self.cw.setPlot(self.slbplt)
             #self.plotLayout.addWidget(self.cw)
             self.pltList.append(self.cw)
             tabName = 'Plot #'+ str(self.plotCount)
@@ -3405,7 +3423,7 @@ class AppForm(QMainWindow):
     def on_draw(self,plotnum):
         if len(self.pltList) > 0:
             if self.dname != 'NEXRAD Radar':
-                self.pltList[plotnum-1].drawPlot()
+                self.pltList[plotnum-1].drawPlot() 
             else:
                 self.pltList[plotnum-1].drawPlot()
 

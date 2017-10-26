@@ -22,7 +22,7 @@ class GOESRDataset:
         # Intialize a list to store list containing filenames #
         # for each domain.                                    #
 
-        self.fileList = [None]
+        self.fileList = []
 
         self.timeList = [None]
         # Specify the WRF dataset by calling the function name()#
@@ -192,7 +192,8 @@ class GOESRDataset:
         return(self.fileList[self.currentGrid])
 
     def updateData(self):
-        self.ncId = netCDF4.Dataset(self.fileList[self.currentFileIndex+1],'r')
+        print("Update data", self.fileList[self.currentFileIndex])
+        self.ncId = netCDF4.Dataset(self.fileList[self.currentFileIndex],'r')
         self.variables = self.ncId.variables
         self.attributes = self.ncId.__dict__
         self.variableList = list(sorted(self.variables.keys()))
@@ -200,9 +201,9 @@ class GOESRDataset:
         self.dsets.keys()
 
     def setTimeIndex(self, Indx, update = None):
-   
         self.currentTimeIndex = 0
         self.currentFileIndex = Indx
+        print("File Index", self.currentFileIndex)
         if update is None:
             self.updateData()
 
@@ -326,7 +327,6 @@ class GOESRDataset:
     def getRadiance(self, plot = None):
         
         self.data = self.readNCVariable('Rad')
-     
         #Check if plot is not None then check for connection to GUI for plotting
         if plot is not None:
             if self.pObj is not None:
@@ -337,10 +337,15 @@ class GOESRDataset:
                 varTitle = varTitle + "\nBand=" + str(self.band_num[self.currentGrid])
                 varTitle = varTitle +', Wavelength=' + str(self.band_wave[self.currentGrid])
                 self.pObj.varTitle = varTitle
-                self.pObj.pltFxn(self.pObj.pNum)                
+                #Need to call plotting function to plot when variables are selected in the GUI
+                # If statement is needed to prevent double plotting when time is changed
+                if (self.varChange):
+                    #Reset variable
+                    self.varChange = False
+                    self.pObj.pltFxn(self.pObj.pNum)
 
     #Calculate the brightness temperature
-    def calculateTemperature(self,vaname):
+    def calculateTemperature(self):
         
         #Read in the constants from the netCDF file
         fk1 = self.ncId.variables['planck_fk1'][0]
@@ -359,12 +364,19 @@ class GOESRDataset:
             varTitle = varTitle + "\nBand=" + str(self.band_num[self.currentGrid])
             varTitle = varTitle +', Wavelength=' + str(self.band_wave[self.currentGrid])
             self.pObj.varTitle = varTitle
-            self.pObj.pltFxn(self.pObj.pNum)
+            print("GOES:", self.pObj.varTitle)
+            #Need to call plotting function to plot when variables are selected in the GUI
+            # If statement is needed to prevent double plotting when time is changed
+            if (self.varChange):
+                #Reset variable
+                self.varChange = False
+                self.pObj.pltFxn(self.pObj.pNum)
        
 #####################  End of function setGridCorners() #######################
 #####################  Start connection to GUI #######################
 
     def selectionChangeVar(self,i):
+        self.varChange = True
         #Clear the color bar
         self.pObj.colormax = None
         self.pObj.colormin = None
@@ -382,6 +394,7 @@ class GOESRDataset:
         self.derved = None
          
     def selectionChangeDVar(self,i):
+        self.varChange = True
         #Clear the color bar
         self.pObj.colormax = None
         self.pObj.colormin = None
@@ -393,60 +406,29 @@ class GOESRDataset:
         self.pObj.nz = 1
         #Calculate raw counts
         self.getRadiance()
-        self.calculateTemperature(self.dvarlist[self.currentGrid][i])
+        self.calculateTemperature()
         #Set variable for when time is changed
         self.raw = None
         self.derived = 1
 
-    def selectionChangeTime(self,i):
-        self.pObj.currentTime = i
-        self.setTimeIndex(self.pObj.currentTime)
+    def advanceTime(self,pobj):
+        print("Advance Time")
+        self.pObj = pobj
         if self.raw == 1:
             #Calculate raw counts
             self.getRadiance(plot = True)
         elif self.derived == 1:
-             #Calculate raw counts
-             self.getRadiance()
-             #Calculate derived variable
-             self.calculateTemperature(self.dvarlist[self.currentGrid][self.pObj.currentVar])
-
-    def nxtButtonAction(self):
-         self.pObj.currentTime+=1
-         #Subtract 1 from number of files to remove None from filelist
-         if self.pObj.currentTime == self.getNumFiles()-1:
-             self.pObj.currentTime = 0
-         self.pObj.selectTime.setCurrentIndex(self.pObj.currentTime)
-         self.setTimeIndex(self.pObj.currentTime)
-         if self.raw == 1:
-             #Calculate raw counts
-             self.getRadiance(plot = True)
-         elif self.derived == 1:
-             #Calculate raw counts
-             self.getRadiance()
-             #Calculate derived variable
-             self.calculateTemperature(self.dvarlist[self.currentGrid][self.pObj.currentVar])
-         else:
-             self.pObj.pltFxn(self.pObj.pNum)
-
-    def prevButtonAction(self):
-         self.pObj.currentTime-=1
-         if self.pObj.currentTime == -1:
-             #Subtract 2 to skip None in filelist
-             self.pObj.currentTime = self.getNumFiles()-2
-         self.pObj.selectTime.setCurrentIndex(self.pObj.currentTime)
-         self.setTimeIndex(self.pObj.currentTime)
-         if self.raw == 1:
-             #Calculate raw counts
-             self.getRadiance(plot = True)
-         elif self.derived == 1:
-             #Calculate raw counts
-             self.getRadiance()
-             #Calculate derived variable
-             self.calculateTemperature(self.dvarlist[self.currentGrid][self.pObj.currentVar])
-         else:
-             self.pObj.pltFxn(self.pObj.pNum)
+            print("derived")
+            #Calculate raw counts
+            self.getRadiance()
+            #Calculate derived variable
+            self.calculateTemperature()
 
     def getDsetControlBar(self, plotObj):
+        #Define GUI needed variables
+        self.varChange = False
+        self.ntimes = 1
+
         self.pObj = plotObj
         self.tabbing = QWidget()
         plotObj.tabbingLayout = QVBoxLayout()
@@ -534,7 +516,7 @@ class GOESRDataset:
         plotObj.selectTime.setStyleSheet(Layout.QComboBox())
         plotObj.selectTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectTime.addItems(plotObj.dataSet.timeList[plotObj.dataSet.currentGrid])
-        plotObj.selectTime.activated.connect(self.selectionChangeTime)
+        plotObj.selectTime.activated.connect(plotObj.selectionChangeTime)
         timebarLayout.addWidget(timeWidgetLabel)
         timebarLayout.addWidget(plotObj.selectTime)
         self.gboxLayout.addWidget(timebar)
@@ -547,13 +529,13 @@ class GOESRDataset:
         nxtButton.setText('&Next')
         nxtButton.setFixedWidth(75)
         nxtButtonLayout = QHBoxLayout()
-        nxtButton.clicked.connect(self.nxtButtonAction)
+        nxtButton.clicked.connect(plotObj.nxtButtonAction)
         prevButton = QPushButton()
         prevButton.setStyleSheet(Layout.QPushButton2())
         prevButton.setText('&Prev')
         prevButton.setFixedWidth(75)
         prevButtonLayout = QHBoxLayout()
-        prevButton.clicked.connect(self.prevButtonAction)
+        prevButton.clicked.connect(plotObj.prevButtonAction)
         cpanelLayout.addWidget(prevButton)
         cpanelLayout.addWidget(nxtButton)
         self.gboxLayout.addWidget(cpanel)
