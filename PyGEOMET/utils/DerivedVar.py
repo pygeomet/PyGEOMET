@@ -144,11 +144,18 @@ class WRFDerivedVar:
                 self.crtm_wrapper(req_var)
             elif var == 'RH':
                 self.relative_humidity()
+            elif var == 'Total Pressure':
+                self.total_pressure()
             else:
                 print("Cannot find input variable")
                 self.var = None
                 self.var2 = None
                 self.varTitle = None
+
+    def total_pressure(self):
+        self.var = self.press/100.
+        self.var2 = self.var
+        self.varTitle = "Total Pressure [hPa]\n" + self.dataSet.getTime()
 
     def winds_300mb(self):
         
