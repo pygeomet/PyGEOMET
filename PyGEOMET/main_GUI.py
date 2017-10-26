@@ -297,7 +297,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.resolution = self.dataSet.resolution
-        self.appobj.domain_average = None
+        self.domain_average = None
         self.appobj.coasts = None
         self.appobj.countries = None
         self.appobj.states = None
@@ -346,9 +346,6 @@ class PlotSlab:
             if self.currentVar != None:
                 #self.currentVar = np.where(np.array(self.dataSet.variableList) == "T2")[0][0]
                 #self.nz = 1
-                print("read field",self.dataSet)
-                print(self.dataSet.variableList)
-                print(self.currentVar)
                 self.var = self.dataSet.readNCVariable(self.dataSet.variableList[self.currentVar],
                     barbs=self.appobj.plotbarbs, vectors = self.appobj.plotvectors,
                     contour2=self.appobj.plotcontour2)
@@ -617,7 +614,7 @@ class PlotSlab:
             self.appobj.meridians = None
             self.appobj.parallels = None
             self.ColorBar = None
-            self.appobj.domain_average = None
+            self.domain_average = None
 
         #Set map background
         if self.appobj.background is not None:
@@ -640,7 +637,7 @@ class PlotSlab:
                      self.appobj.barbs = None
                      self.appobj.vectors = None
                      self.appobj.vectorkey = None
-                     self.appobj.domain_average = None
+                     self.domain_average = None
                      self.ColorBar = None
                  self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
                  self.dataSet.resolution = self.appobj.resolution
@@ -656,7 +653,7 @@ class PlotSlab:
                      self.appobj.barbs = None
                      self.appobj.vectors = None
                      self.appobj.vectorkey = None 
-                     self.appobj.domain_average = None
+                     self.domain_average = None
                      self.ColorBar = None                     
                  self.appobj.axes1.append(self.figure.add_subplot(111))
                  self.dataSet.resolution = self.appobj.resolution
@@ -895,7 +892,7 @@ class PlotSlab:
                 #Clear figure if there are masked values - create new axis and set the projection
                 if (np.ma.count_masked(pltfld).any()):
                     self.appobj.axes1[self.pNum-1] = None
-                    self.appobj.domain_average = None
+                    self.domain_average = None
                     self.ColorBar = None
                     self.meridians = None
                     self.parallels = None
@@ -978,11 +975,11 @@ class PlotSlab:
             self.displayValuesXYZ(pltfld)
             
             #Display domain average on the map
-            if self.appobj.domain_average != None:
-                self.appobj.domain_average.remove()
+            if self.domain_average != None:
+                self.domain_average.remove()
             #Calculate domain average
             davg = np.nanmean(pltfld)
-            self.appobj.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.12,
+            self.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.12,
                  ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.appobj.axes1[self.pNum-1].transAxes,
@@ -1742,7 +1739,7 @@ class PlotSlab:
         self.appobj.barbs = None
         self.appobj.vectors = None
         self.appobj.vectorkey = None
-        self.appobj.domain_average = None
+        self.domain_average = None
         #Get the new projection
         self.appobj.recallProjection = True
         self.appobj.coasts = None
@@ -2145,7 +2142,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.cs2label = None
-        self.appobj.domain_average=None
+        self.domain_average=None
         self.appobj.coasts = None
         self.appobj.countries = None
         self.appobj.states = None
@@ -2249,7 +2246,7 @@ class PlotSlab:
         self.appobj.vectors = None
         self.appobj.vectorkey = None
         self.appobj.cs2label = None
-        self.appobj.domain_average = None
+        self.domain_average = None
         self.ColorBar = None
         self.derivedVar = False
         self.appobj.parallels = None
@@ -3058,15 +3055,15 @@ class AppForm(QMainWindow):
                 for coll in self.cs.collections:
                     coll.remove()
         self.cs = None
-        self.domain_average = None
+        self.slbplt.domain_average = None
         self.filltype = "pcolormesh"
         self.on_draw(self.plotCount)
 
     def ContourFPlot(self):
         self.cs = None
-        if self.domain_average != None:
-           self.domain_average.remove()
-        self.domain_average = None
+        if self.slbplt.domain_average != None:
+           self.slbplt.domain_average.remove()
+        self.slbplt.domain_average = None
         self.filltype = "contourf"
         self.on_draw(self.plotCount)
 
