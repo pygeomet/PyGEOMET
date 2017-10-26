@@ -894,8 +894,8 @@ class PlotSlab:
                     self.appobj.axes1[self.pNum-1] = None
                     self.domain_average = None
                     self.ColorBar = None
-                    self.meridians = None
-                    self.parallels = None
+                    self.appobj.meridians = None
+                    self.appobj.parallels = None
                     self.figure.clear()
                     if len(self.appobj.axes1) >= self.pNum:
                         self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
@@ -3054,6 +3054,8 @@ class AppForm(QMainWindow):
             if self.cs != None:
                 for coll in self.cs.collections:
                     coll.remove()
+        self.parallels = None
+        self.meridians = None
         self.cs = None
         self.slbplt.domain_average = None
         self.filltype = "pcolormesh"
@@ -3064,6 +3066,8 @@ class AppForm(QMainWindow):
         if self.slbplt.domain_average != None:
            self.slbplt.domain_average.remove()
         self.slbplt.domain_average = None
+        self.parallels = None
+        self.meridians = None
         self.filltype = "contourf"
         self.on_draw(self.plotCount)
 
