@@ -267,7 +267,7 @@ class PlotSlab:
         self.vslicebox = None
         self.orientList = ['xz','yz','custom']
         self.appobj = AppWid
-        self.appobj.filltype = "contourf"
+        self.filltype = "contourf"
         self.appobj.cmap = 'jet'
         self.appobj.plotbarbs = False
         self.appobj.plotvectors = False
@@ -663,7 +663,7 @@ class PlotSlab:
         #Set/Force NEXRAD settings
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.nz = 1
-            self.appobj.filltype = 'pcolormesh' 
+            self.filltype = 'pcolormesh' 
             #plot the parallels and meridians each time
             self.appobj.parallels = None
             self.appobj.meridians = None       
@@ -836,7 +836,7 @@ class PlotSlab:
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
             #Create plots - either contourf or pcolormesh
-            if self.appobj.filltype == "contourf":
+            if self.filltype == "contourf":
                 #Remove old contour before plotting - don't have to recall projection
                 if self.appobj.cs is not None:
                     print("remove")
@@ -884,7 +884,7 @@ class PlotSlab:
                                       latlon=True,extend=self.extend,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
-            elif self.appobj.filltype == "pcolormesh":
+            elif self.filltype == "pcolormesh":
                 #Mask values less than the minimum for pcolormesh
                 pltfld = np.ma.masked_less_equal(pltfld,self.colormin)
                 #Normalize colors between min and max
@@ -963,7 +963,7 @@ class PlotSlab:
                 self.ColorBar = self.figure.colorbar(self.appobj.cs,cax=cax, orientation='vertical')         
 
             #Extend colorbar if contourf - pcolormesh doesn't allow extend at this point
-            #if self.appobj.filltype == "contourf":
+            #if self.filltype == "contourf":
             self.ColorBar.extend = self.extend
            
             #Create colorbar ticks 
@@ -2778,7 +2778,6 @@ class AppForm(QMainWindow):
         self.on_draw(None)
         self.axes1 = []   
         self.cs = None
-        self.filltype = "contourf"
         self.cmap = 'jet'
         self.plotbarbs = False
         self.plotvectors = False
@@ -3050,7 +3049,7 @@ class AppForm(QMainWindow):
 
     #These two functions change the plot settings
     def PColorMeshPlot(self):
-        if self.filltype == "contourf":
+        if self.slbplt.filltype == "contourf":
             if self.cs != None:
                 for coll in self.cs.collections:
                     coll.remove()
@@ -3058,7 +3057,7 @@ class AppForm(QMainWindow):
         self.meridians = None
         self.cs = None
         self.slbplt.domain_average = None
-        self.filltype = "pcolormesh"
+        self.slbplt.filltype = "pcolormesh"
         self.on_draw(self.plotCount)
 
     def ContourFPlot(self):
@@ -3068,7 +3067,7 @@ class AppForm(QMainWindow):
         self.slbplt.domain_average = None
         self.parallels = None
         self.meridians = None
-        self.filltype = "contourf"
+        self.slbplt.filltype = "contourf"
         self.on_draw(self.plotCount)
 
     def plotCoastlines(self):
