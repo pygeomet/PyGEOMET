@@ -2468,15 +2468,31 @@ class PlotSlab:
         self.ncontours = np.float(self.selectcontours.text())
         self.pltFxn(self.pNum)
 
+    #Function to define subsample interval
+    def setSubsampleValue(self):
+
+        #Create a box for the user to input the subsample interval
+        self.subBox = QDialog(self.appobj)
+        self.subBox.setStyleSheet(Layout.QGroupBox())
+        subBoxControlLayout = QHBoxLayout(self.subBox)
+
+        subLabel = QLabel()
+        subLabel.setText('Subsample Interval:')
+        self.selectSubsample = QLineEdit()
+        self.selectSubsample.setStyleSheet(Layout.QLineEdit())
+        self.selectSubsample.setText(str(self.xinterval))
+        self.selectSubsample.returnPressed.connect(self.enterSubValue)
+
+        #Add widgets
+        subBoxControlLayout.addWidget(subLabel)
+        subBoxControlLayout.addWidget(self.selectSubsample)
+        self.subBox.show()
+
     #Function to set the subsample interval
     def enterSubValue(self):
-        self.appobj.subBox.close()
-        self.xinterval = np.int(self.appobj.selectSubsample.text())
-        self.yinterval = np.int(self.appobj.selectSubsample.text())
-        #Reset appobj intervals so that the current interval is displayed
-        # when subsample grid is selected
-        self.appobj.yinterval = self.yinterval
-        self.appobj.xinterval = self.xinterval
+        self.subBox.close()
+        self.xinterval = np.int(self.selectSubsample.text())
+        self.yinterval = np.int(self.selectSubsample.text())
         self.pltFxn(self.pNum)
     
     def error3DVar(self):
@@ -2874,7 +2890,7 @@ class AppForm(QMainWindow):
 
         #Subsample grid options
         subsample = QAction("Subsample Grid", self)
-        subsample.triggered.connect(lambda: self.setSubsampleValue())
+        subsample.triggered.connect(lambda: self.slbplt[self.currentPlot].setSubsampleValue())
         subsample.setStatusTip("Subsample the plot array")
         plotMenu.addAction(subsample)
         
@@ -2907,8 +2923,8 @@ class AppForm(QMainWindow):
         self.clear = False
         self.max_val = None
         self.min_val = None
-        self.yinterval = 1
-        self.xinterval = 1
+        #self.yinterval = 1
+        #self.xinterval = 1
         #self.currentPlot = 1
 
         #Path is needed to define CRTM coefficient data location
@@ -3222,42 +3238,6 @@ class AppForm(QMainWindow):
             self.userGrid = False
         self.on_draw(self.currentPlot)
     
-    #Function to define subsample interval
-    def setSubsampleValue(self):
-        
-        #Create a box for the user to input the subsample interval
-        self.subBox = QDialog(self)
-        #self.subBox.setTitle('Subsample Control')
-        self.subBox.setStyleSheet(Layout.QGroupBox())
-        subBoxControlLayout = QHBoxLayout(self.subBox)
-  
-        subLabel = QLabel()
-        subLabel.setText('Subsample Interval:')
-        self.selectSubsample = QLineEdit()
-        self.selectSubsample.setStyleSheet(Layout.QLineEdit())
-        self.selectSubsample.setText(str(self.xinterval))
-        #self.selectSubsample.editingFinished.connect(self.cw.plotObj.enterSubValue)
-        self.selectSubsample.returnPressed.connect(self.slbplt[self.currentPlot].enterSubValue)
-
-        #Replot button
-        #self.subPlotButton = QPushButton('Replot')
-        #self.subPlotButton.setStyleSheet(Layout.QPushButton3())
-        #self.subPlotButton.resize(self.subPlotButton.minimumSizeHint())
-        #self.subPlotButton.clicked.connect(self.enterSubValue)
-
-        #Add widgets
-        subBoxControlLayout.addWidget(subLabel)
-        subBoxControlLayout.addWidget(self.selectSubsample)
-        #subBoxControlLayout.addWidget(self.subPlotButton)
-        self.subBox.show()        
-        
-    #def enterSubValue(self):
-    #    self.subBox.close()
-    #    self.xinterval = np.int(self.selectSubsample.text())
-    #    self.yinterval = np.int(self.selectSubsample.text())
-    #    print (self.xinterval, self.yinterval)
-    #    self.on_draw(self.plotCount)
-
     #Create exit pop up window    
     def close_program(self):
        
