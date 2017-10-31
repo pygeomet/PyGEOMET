@@ -115,11 +115,12 @@ class GOESClassDataset:
                         append_time(self.getTime())
                     self.timeList.append(times)
                     self.numGrids += 1
+                    self.setTimeIndex(0,update=False)
                 totalFiles = totalFiles-numFiles
                 i = i+1
                 if totalFiles == 0:
                     break;
-                self.setTimeIndex(0,update=False)
+                #self.setTimeIndex(0,update=False)
             self.setTimeIndex(0,update=False)
             self.setGrid(1)
             self.variableReadFxn = { }
