@@ -54,6 +54,23 @@ def QMenu():
                 """
     return layout
 
+#Menu
+def DisQMenu():
+    layout = """QMenu {
+                     background-color: #d3d3d3;
+                     color: #6495ed}
+                QMenu:item {
+                     spacing: 5px; /* spacing between menu bar items */
+                     padding: 2px 12px;
+                     background: transparent;
+                     border-radius: 4px;}
+                QMenu:item:selected { /* when selected using mouse or keyboard */
+                     background: #ffffff;}
+                QMenu:item:pressed {
+                     background: #d3d3d3;}
+                """
+    return layout
+
 #LineEdit
 def QLineEdit():
     layout = """QLineEdit {
