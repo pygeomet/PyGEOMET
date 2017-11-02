@@ -244,7 +244,6 @@ class PlotSlab:
         self.currentPType = self.dataSet.ptypes[0]
         self.currentOrient = 0
         self.nz = None
-        self.plotCount = 0
         self.CSPlotCount = 0
         self.selectLevel = None
         self.varUpdate = 1
@@ -280,8 +279,9 @@ class PlotSlab:
         self.diffControl = None
         self.selectedParcel = 0
         self.skewParcel = 'SB'
-        self.appobj.background = None
-        self.appobj.recallProjection = True
+        self.background = None
+        self.recallProjection = True
+        self.clear = False
         self.appobj.changeColor = False
         self.ColorBar = None
         self.extend = 'both'
@@ -299,7 +299,9 @@ class PlotSlab:
         self.barbs = None
         self.vectors = None
         self.vectorkey = None
-        self.appobj.resolution = self.dataSet.resolution
+        self.currentGrid = self.dataSet.currentGrid 
+        self.resolution = self.dataSet.resolution
+        self.changeRes = False
         self.domain_average = None
         self.coasts = None
         self.countries = None
@@ -566,7 +568,6 @@ class PlotSlab:
         import time
         t0 = time.clock()
         t1 = time.time()        
-
         #Check if the user has set the lat/lon bounds of the map
         if (self.appobj.userGrid):
             print('setting user grid')
@@ -606,67 +607,51 @@ class PlotSlab:
         #Set background map
         alpha = 1
         #Used for switching back to clear background
-        if self.appobj.clear:
+        if self.clear:
             self.figure.clear()
-            self.appobj.clear = False
+            self.clear = False
             #self.appobj.cs = None
             self.cs = None
-            self.appobj.coasts = None
-            self.appobj.states = None
-            self.appobj.countries = None
-            self.appobj.counties = None
+            self.coasts = None
+            self.states = None
+            self.countries = None
+            self.counties = None
             self.appobj.meridians = None
             self.appobj.parallels = None
             self.ColorBar = None
             self.domain_average = None
 
         #Set map background
-        if self.appobj.background is not None:
+        if self.background is not None:
             pre = 'self.dataSet.map['
             gridnum = str(self.currentGrid-1)+']'
-            end = self.appobj.background+'(ax=self.appobj.axes1['+str(self.pNum-1)+'])'
+            end = self.background+'(ax=self.axes1['+str(self.pNum-1)+'])'
             exec(pre+gridnum+end,None,None)
             #Make variable transparent
             alpha=0.75
 
         #Recall projection when grid/dataset is changed.
-        if self.appobj.recallProjection == True:   
-            if len(self.appobj.axes1) >= self.appobj.plotCount:
-                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
-                     self.prevPType == 'Vertical Slice')):
-                     self.figure.clear()
-                     #Set things to none so we don't try to remove them later
-                     #self.appobj.cs = None
-                     #self.appobj.cs2 = None  
-                     self.cs = None
-                     self.cs2 = None
-                     self.appobj.barbs = None
-                     self.appobj.vectors = None
-                     self.appobj.vectorkey = None
-                     self.domain_average = None
-                     self.ColorBar = None
-                 self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
-                 self.dataSet.resolution = self.appobj.resolution
-                 if self.dataSet.map[self.currentGrid-1] != None: 
-                     self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
+        if self.recallProjection == True: 
+            if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
+                self.prevPType == 'Vertical Slice')):
+                self.figure.clear()
+                #Set things to none so we don't try to remove them later
+                self.cs = None
+                self.cs2 = None
+                self.barbs = None
+                self.vectors = None
+                self.vectorkey = None
+                self.domain_average = None
+                self.ColorBar = None
+            self.axes1 = self.figure.add_subplot(111)
+            self.dataSet.resolution = self.resolution
+            if (self.dataSet.map[self.currentGrid-1] != None and self.changeRes == False):
+                self.dataSet.map[self.currentGrid-1].ax = self.axes1
             else:
-                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
-                     self.prevPType == 'Vertical Slice')):
-                     self.figure.clear()
-                     #Set things to none so we don't try to remove them later
-                     #self.appobj.cs = None
-                     #self.appobj.cs2 = None
-                     self.cs = None
-                     self.cs2 = None
-                     self.appobj.barbs = None
-                     self.appobj.vectors = None
-                     self.appobj.vectorkey = None 
-                     self.domain_average = None
-                     self.ColorBar = None                     
-                 self.appobj.axes1.append(self.figure.add_subplot(111))
-                 self.dataSet.resolution = self.appobj.resolution
-                 if self.dataSet.map[self.currentGrid-1] != None:
-                     self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
+                #Reset projection to change map resolution
+                #Note self.currentGrid-1 is not used because setProjection subtracts 1 from input
+                self.dataSet.setProjection(self.currentGrid,axs=self.axes1)
+                self.changeRes = False
 
         #Set/Force NEXRAD settings
         if self.dataSet.dsetname == 'NEXRAD Radar':
@@ -681,6 +666,19 @@ class PlotSlab:
             self.colormax = self.dataSet.range[1]
             self.ncontours = 41.
 
+        #Remove Geography - have to do it before contouring otherwise it
+        #                   won't be visible
+        # Also, have to do it outside of var plotting loop to allow removal
+        #       of geography before a variable is selected
+        if self.coasts != None :
+            self.coasts.remove()
+        if self.countries != None:
+            self.countries.remove()
+        if self.states != None:
+            self.states.remove()
+        if self.counties != None:
+            self.counties.remove()
+
         #Determine if a variable was passed - plots grid if not
         if(self.currentVar != None or self.currentdVar != None):
             #Determine if the passed variable is 3D
@@ -692,7 +690,6 @@ class PlotSlab:
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var - self.diffvar
                 else:
-                    print("setting plot field")
                     pltfld = self.var
             else:
                 #If vertical cross section take the whole array
@@ -835,34 +832,23 @@ class PlotSlab:
             #Remove vector magnitude legend
             if self.vectorkey != None:
                 self.vectorkey.remove()
-            #Remove Geography - have to do it before contouring otherwise it 
-            #                   won't be visible
-            if self.coasts != None :
-                self.coasts.remove()
-            if self.countries != None:
-                self.countries.remove()
-            if self.states != None:
-                self.states.remove()
-            if self.counties != None:
-                self.counties.remove()
                 
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
+            print("\n shade var:", pltfld.shape, "\n")
+            print("\n shade lons:", self.dataSet.glons[self.currentGrid-1].shape, "\n")
             #Create plots - either contourf or pcolormesh
             if self.filltype == "contourf":
                 #Remove old contour before plotting - don't have to recall projection
                 if (self.cs is not None):
-                    print("remove")
                     for coll in self.cs.collections:
                         coll.remove()
-                print(self.pNum,self.pNum-1)
-                print("Axis",self.appobj.axes1[self.pNum-1])
                 #Create contour on a map
                 #Check if map exists to plot on
                 #Second condition allows the creation of a vertical slice difference plot
                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
                     self.prevPType == 'Vertical Slice')):
-                    self.cs = self.appobj.axes1[self.pNum-1].contourf(
+                    self.cs = self.axes1.contourf(
                                       horiz,
                                       plevs, pltfld,
                                       levels=lvls,
@@ -872,7 +858,7 @@ class PlotSlab:
                 # created in the Dataset object. Note:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
-                    self.cs = self.appobj.axes1[self.pNum-1].contourf(
+                    self.cs = self.axes1.contourf(
                                       self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       pltfld[::self.yinterval,::self.xinterval],
@@ -880,15 +866,14 @@ class PlotSlab:
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha,extend=self.extend)
                     #restrict the axes for visual appeal
-                    self.appobj.axes1[self.currentGrid-1].set_xlim(
-                    self.dataSet.glons[self.currentGrid-1].min(),
-                    self.dataSet.glons[self.currentGrid-1].max())
+                    #self.appobj.axes1[self.currentGrid-1].set_xlim(
+                    #self.dataSet.glons[self.currentGrid-1].min(),
+                    #self.dataSet.glons[self.currentGrid-1].max())
                     #restrict the axes for visual appeal
-                    self.appobj.axes1[self.currentGrid-1].set_ylim(
-                    self.dataSet.glats[self.currentGrid-1].min(),
-                    self.dataSet.glats[self.currentGrid-1].max())
+                    #self.appobj.axes1[self.currentGrid-1].set_ylim(
+                    #self.dataSet.glats[self.currentGrid-1].min(),
+                    #self.dataSet.glats[self.currentGrid-1].max())
                 else:
-                    print("Calling contour")
                     self.cs = self.dataSet.map[self.currentGrid-1].contourf(
                                       self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
@@ -896,7 +881,7 @@ class PlotSlab:
                                       levels=lvls,
                                       latlon=True,extend=self.extend,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
-                                      alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
+                                      alpha=alpha, ax=self.axes1)
             elif self.filltype == "pcolormesh":
                 #Mask values less than the minimum for pcolormesh
                 pltfld = np.ma.masked_less_equal(pltfld,self.colormin)
@@ -904,29 +889,34 @@ class PlotSlab:
                 norm = matplotlib.colors.Normalize(vmin=np.amin(lvls),vmax=np.amax(lvls))
                 #Clear figure if there are masked values - create new axis and set the projection
                 if (np.ma.count_masked(pltfld).any()):
-                    self.appobj.axes1[self.pNum-1] = None
+                    self.axes1 = None
                     self.domain_average = None
                     self.ColorBar = None
                     self.appobj.meridians = None
                     self.appobj.parallels = None
                     self.figure.clear()
+                    self.axes1 = self.figure.add_subplot(111)
+                    self.dataSet.resolution = self.resolution
+                    if (self.dataSet.map[self.currentGrid-1] != None):
+                        self.dataSet.map[self.currentGrid-1].ax = self.axes1
+                    """
                     if len(self.appobj.axes1) >= self.pNum:
                         self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
-                        self.dataSet.resolution = self.appobj.resolution
+                        self.dataSet.resolution = self.resolution
                         if (self.dataSet.map[self.currentGrid-1] != None):
                             self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
                     else:
                         self.appobj.axes1.append(self.figure.add_subplot(111))
-                        self.dataSet.resolution = self.appobj.resolution
+                        self.dataSet.resolution = self.resolution
                         if (self.dataSet.map[self.currentGrid-1] != None):
                             self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
-  
+                    """
                 #Create pcolormesh on a map
                 #Check if map exists to plot on
                 #Second condition allows the creation of a vertical slice difference plot
                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
                     self.prevPType == 'Vertical Slice')):
-                    self.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
+                    self.cs = self.axes1.pcolormesh(
                                       horiz, 
                                       plevs, pltfld, 
                                       norm=norm,
@@ -935,7 +925,7 @@ class PlotSlab:
                 # created in the Dataset object. Note:
                 # the x,y grid needs to be glons, glats here
                 elif (self.dataSet.map[self.currentGrid-1] == None):
-                    self.cs = self.appobj.axes1[self.pNum-1].pcolormesh(
+                    self.cs = self.axes1.pcolormesh(
                                       self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       self.dataSet.glats[self.currentGrid-1][::self.yinterval,::self.xinterval],
                                       pltfld[::self.yinterval,::self.xinterval],
@@ -943,13 +933,13 @@ class PlotSlab:
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha)
                     #restrict the axes for visual appeal
-                    self.appobj.axes1[self.currentGrid-1].set_xlim(
-                    self.dataSet.glons[self.currentGrid-1].min(),
-                    self.dataSet.glons[self.currentGrid-1].max())
+                    #self.appobj.axes1[self.currentGrid-1].set_xlim(
+                    #self.dataSet.glons[self.currentGrid-1].min(),
+                    #self.dataSet.glons[self.currentGrid-1].max())
                     #restrict the axes for visual appeal
-                    self.appobj.axes1[self.currentGrid-1].set_ylim(
-                    self.dataSet.glats[self.currentGrid-1].min(),
-                    self.dataSet.glats[self.currentGrid-1].max())
+                    #self.appobj.axes1[self.currentGrid-1].set_ylim(
+                    #self.dataSet.glats[self.currentGrid-1].min(),
+                    #self.dataSet.glats[self.currentGrid-1].max())
                 else:
                     self.cs = self.dataSet.map[self.currentGrid-1].pcolormesh(
                                       self.dataSet.glons[self.currentGrid-1][::self.yinterval,::self.xinterval],
@@ -957,7 +947,7 @@ class PlotSlab:
                                       pltfld[::self.yinterval,::self.xinterval],
                                       norm=norm,
                                       latlon=True,cmap=plt.cm.get_cmap(str(self.cmap)),
-                                      alpha=alpha, ax=self.appobj.axes1[self.pNum-1])
+                                      alpha=alpha, ax=self.axes1)
                   
             #Clear old colorbar
             if self.ColorBar != None:
@@ -967,11 +957,11 @@ class PlotSlab:
             #Second condition allows the creation of a vertical slice difference plot colorbar
             if (self.currentPType ==  'Vertical Slice' or (self.currentPType == 'Difference Plot' and
                 self.prevPType == 'Vertical Slice')):
-                self.ColorBar = self.figure.colorbar(self.cs, ax=self.appobj.axes1[self.pNum-1], 
+                self.ColorBar = self.figure.colorbar(self.cs, ax=self.axes1, 
                                                      orientation='horizontal', pad=0.1)  
             else:
                 #Create colorbar axis    
-                divider = make_axes_locatable(self.appobj.axes1[self.pNum-1])
+                divider = make_axes_locatable(self.axes1)
                 cax = divider.append_axes('right', size="5%", pad=0.1)
                 self.ColorBar = self.figure.colorbar(self.cs,cax=cax, orientation='vertical')         
 
@@ -981,8 +971,7 @@ class PlotSlab:
            
             #Create colorbar ticks 
             self.ColorBar.ax.tick_params(labelsize=9)                
-            print("Title", self.varTitle)
-            self.appobj.axes1[self.pNum-1].set_title(self.varTitle,fontsize = 10)
+            self.axes1.set_title(self.varTitle,fontsize = 10)
 
             #Call function to determine values on map while you hoover your mouse
             self.displayValuesXYZ(pltfld)
@@ -992,10 +981,10 @@ class PlotSlab:
                 self.domain_average.remove()
             #Calculate domain average
             davg = np.nanmean(pltfld)
-            self.domain_average = self.appobj.axes1[self.pNum-1].text(0.95, -0.12,
+            self.domain_average = self.axes1.text(0.95, -0.12,
                  ("Domain Average: " + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
-                 transform = self.appobj.axes1[self.pNum-1].transAxes,
+                 transform = self.axes1.transAxes,
                  color='k',fontsize=10)
 
             #Plot wind barbs or vectors
@@ -1066,7 +1055,7 @@ class PlotSlab:
                     self.plotbarbs = False ; self.plotvectors = False
                 #Plot wind barbs
                 if (self.plotbarbs == True):
-                    self.barbs = self.appobj.axes1[self.pNum-1].barbs(
+                    self.barbs = self.axes1.barbs(
                         xb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2], 
                         yb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2], 
                         self.u10[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2], 
@@ -1076,7 +1065,7 @@ class PlotSlab:
                     #Create less than 5 m/s wind direction vectors 
                     unorm = self.u10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
                     vnorm = self.v10/np.sqrt(np.power(self.u10,2) + np.power(self.v10,2))
-                    self.vectors2 = self.appobj.axes1[self.pNum-1].quiver(
+                    self.vectors2 = self.axes1.quiver(
                         xb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2],
                         yb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2],
                         unorm[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-1-int(interval2/2.):interval2],
@@ -1087,21 +1076,21 @@ class PlotSlab:
                 if self.plotvectors == True:
                         #Calculate the max wind speed based on the selected grid points - used for scaling and legend
                         maxspeed = np.nanmax((self.u10[::interval,::interval2]**2+self.v10[::interval,::interval2]**2)**(1./2.))
-                        self.appobj.vectors = self.appobj.axes1[self.pNum-1].quiver(
+                        self.appobj.vectors = self.axes1.quiver(
                         xb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2],
                         yb[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2],
                         self.u10[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-1-int(interval2/2.):interval2],
                         self.v10[int(interval/2.):ydim-int(interval/2.):int(interval/2.),interval2:xdim-int(interval2/2.):interval2],                        
                         color='k',units='inches',pivot='mid',scale=maxspeed*4)
                         #Plot vector legend
-                        self.vectorkey = self.appobj.axes1[self.pNum-1].quiverkey(self.appobj.vectors, 0.05, -0.08, 
+                        self.vectorkey = self.axes1.quiverkey(self.appobj.vectors, 0.05, -0.08, 
                                                 int(maxspeed*.75), str(int(maxspeed*.75))+' $m s^{-1}$',labelpos='E')
 
             #Second contour
             if (self.plotcontour2 == True and self.dataSet.dsetname != 'CMAQ'):
                 if (self.currentPType == 'Vertical Slice'):
                     if (self.appobj.dname != 'MET'):
-                        self.cs2 = self.appobj.axes1[self.pNum-1].contour(horiz, plevs,
+                        self.cs2 = self.axes1.contour(horiz, plevs,
                                           pvar2, colors='k', linewidths=1.5)
                     else:
                         self.plotcontour2 = False
@@ -1119,7 +1108,7 @@ class PlotSlab:
                                       latlon=True,
                                       colors='k',
                                       linewidths=1.5,
-                                      ax = self.appobj.axes1[self.pNum-1])
+                                      ax = self.axes1)
                      
                 #Sets up displayed values
                 if self.plotcontour2 == True:
@@ -1141,15 +1130,25 @@ class PlotSlab:
         if ((self.currentPType != 'Vertical Slice' 
             or (self.currentVar == None and self.currentdVar == None))
             and self.dataSet.map[self.currentGrid-1] != None and not flag): 
-            print ("here", self.currentPType, self.prevPType)
+            #print ("here", self.currentPType, self.prevPType)
+            #print ("Map resolution:", self.dataSet.map[self.currentGrid-1].resolution)
+            #print ("Current Grid:", self.currentGrid-1, self.currentGrid)
+            #for i in range(len(self.dataSet.map)):
+            #   print ("All Map resolution:", i, self.dataSet.map[i].resolution)
+            #print ("\n Coasts:", self.coasts, "\n")
+            #print ("\n Countries:", self.countries, "\n")
+            #print ("\n Counties:", self.counties, "\n")
+            #print ("\n States:", self.states, "\n")
             if self.plotcoasts:
-                self.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.appobj.axes1[self.pNum-1])
+                #print("Plot coasts:",self.dataSet.map[self.currentGrid-1].resolution)
+                self.coasts = self.dataSet.map[self.currentGrid-1].drawcoastlines(ax=self.axes1)
             if self.plotcountries:
-                self.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.appobj.axes1[self.pNum-1])
+                self.countries = self.dataSet.map[self.currentGrid-1].drawcountries(ax=self.axes1)
             if self.plotstates:
-                self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.appobj.axes1[self.pNum-1])
+                #print("plotting states")
+                self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.axes1)
             if self.plotcounties:
-                self.counties = self.dataSet.map[self.currentGrid-1].drawcounties(ax=self.appobj.axes1[self.pNum-1],linewidth=0.5)
+                self.counties = self.dataSet.map[self.currentGrid-1].drawcounties(ax=self.axes1,linewidth=0.5)
             # draw parallels
             if self.dataSet.projectionType == "robin" or self.dataSet.projectionType == "geos" or \
                self.dataSet.projectionType == "ortho" or self.dataSet.projectionType == "aeqd":
@@ -1171,9 +1170,9 @@ class PlotSlab:
                 else:
                     linewidth=0
                 # draw parallels
-                self.dataSet.map[self.currentGrid-1].drawparallels(parallels,ax=self.appobj.axes1[self.pNum-1])
+                self.dataSet.map[self.currentGrid-1].drawparallels(parallels,ax=self.axes1)
                 # draw meridians
-                self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.appobj.axes1[self.pNum-1])
+                self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.axes1)
             else:	
                 if self.appobj.plotlatlon:
                     linewidth=0.5
@@ -1182,17 +1181,17 @@ class PlotSlab:
                 # draw parallels
                 if self.appobj.parallels == None:
                     self.appobj.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=10,
-                                 ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
+                                 ax=self.axes1,linewidth=linewidth)
                 # draw meridians
                 if self.appobj.meridians == None:
                     self.appobj.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,
-                                 ax=self.appobj.axes1[self.pNum-1],linewidth=linewidth)
+                                 ax=self.axes1,linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
-            self.appobj.recallProjection = False
+            self.recallProjection = False
         elif ((self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and 
                self.prevPType == 'Vertical Slice')) and (self.currentVar != None or
               self.currentdVar != None)):
-            ax1 = self.appobj.axes1[self.pNum-1]
+            ax1 = self.axes1
             #Have to handle vertical slice of CMAQ differently because Pressure/height
             #  isn't in the standard output
             if (self.dataSet.dsetname == 'CMAQ'):
@@ -1222,7 +1221,7 @@ class PlotSlab:
                     min_ind = 0
                 ax1.fill_between(horiz[min_ind,:],1100., plevs[0,:], facecolor='peru')
                 ax1.plot(horiz[min_ind,:],plevs[0,:],color='black')  
-                ax2 = self.appobj.axes1[self.pNum-1].twinx()
+                ax2 = self.axes1.twinx()
                 ax2.set_ylabel("Altitude [km]")
                 diff = abs(plevs[:,0] - self.minpress)
                 ind = np.argsort(diff)
@@ -1253,12 +1252,12 @@ class PlotSlab:
                     xx, yy = map2(horiz2[0,:],horiz[0,:])
                 map2.plot(xx,yy,color='red',linewidth=2)
             #Have to delete the axis everytime
-            self.appobj.recallProjection = True
+            self.recallProjection = True
 
         #Add radar location as a black dot - cone of silence
         if self.dataSet.dsetname == 'NEXRAD Radar':
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.lon0[0],
-                    self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.appobj.axes1[self.pNum-1])
+                    self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.axes1)
 
         #Plot sounding locations on the map and add a title
         if (self.appobj.dname == 'SOUNDING'):
@@ -1268,12 +1267,12 @@ class PlotSlab:
                                                       'bo',markersize=6,latlon=True)
             #Add Title
             soundingTitle = 'Click on a Sounding Location to Create a Plot'
-            self.appobj.axes1[self.pNum-1].set_title(soundingTitle,fontsize = 12)
+            self.axes1.set_title(soundingTitle,fontsize = 12)
         #Keep the same colormap
         self.appobj.changeColor = False
         
         # Nair
-        line, = self.appobj.axes1[self.pNum-1].plot([0], [0])  # empty line
+        line, = self.axes1.plot([0], [0])  # empty line
         self.dataSelector = DataSelector(line)
         
         import time
@@ -1493,7 +1492,7 @@ class PlotSlab:
         #print(time.time() - t1, "Seconds wall time")
 
     def displayValuesXYZ(self,var):
-        self.appobj.axes1[self.pNum-1].imshow(var, interpolation='nearest')
+        self.axes1.imshow(var, interpolation='nearest')
         #numrows, numcols = var.shape
         def format_coord(x, y):
             if self.dataSet.dsetname == "GOES Class":
@@ -1539,7 +1538,7 @@ class PlotSlab:
             #else:
             return 'lon=%6.2f, lat=%6.2f, i=%5i, j=%5i, value=%10.6f'%(x1, y1, col, row, z)
         if self.dataSet.dsetname != 'NEXRAD Radar':
-            self.appobj.axes1[self.pNum-1].format_coord = format_coord
+            self.axes1.format_coord = format_coord
 
     def getTable(self,col,row):
         self.table = QTableView()
@@ -1749,16 +1748,16 @@ class PlotSlab:
         self.cs = None
         self.cs2 = None
         self.cs2label = None
-        self.appobj.barbs = None
-        self.appobj.vectors = None
-        self.appobj.vectorkey = None
+        self.barbs = None
+        self.vectors = None
+        self.vectorkey = None
         self.domain_average = None
         #Get the new projection
-        self.appobj.recallProjection = True
-        self.appobj.coasts = None
-        self.appobj.countries = None
-        self.appobj.states = None
-        self.appobj.counties = None
+        self.recallProjection = True
+        self.coasts = None
+        self.countries = None
+        self.states = None
+        self.counties = None
         self.appobj.parallels = None
         self.appobj.meridians = None
         #Removes the colorbar
@@ -1779,7 +1778,7 @@ class PlotSlab:
                     self.ncontours = None
         
         #Remove the plotting axes and clear the figure
-        self.appobj.axes1[self.pNum-1] = None
+        self.axes1 = None
         self.figure.clear()
 
         #Remove vertical slice controls if necessary
@@ -2151,19 +2150,22 @@ class PlotSlab:
         self.ColorBar = None
         self.cs = None
         self.cs2 = None
-        self.appobj.barbs = None
-        self.appobj.vectors = None
-        self.appobj.vectorkey = None
+        self.barbs = None
+        self.vectors = None
+        self.vectorkey = None
         self.cs2label = None
         self.domain_average=None
-        self.appobj.coasts = None
-        self.appobj.countries = None
-        self.appobj.states = None
-        self.appobj.counties = None
+        self.coasts = None
+        self.countries = None
+        self.states = None
+        self.counties = None
         self.appobj.meridians = None
         self.appobj.parallels = None
-        self.appobj.recallProjection = True
+        self.recallProjection = True
         self.currentGrid = i+1
+        #Check if we need to change the map resolution
+        if (self.dataSet.map[self.currentGrid-1].resolution != self.resolution):
+            self.changeRes = True
         self.currentTime = 0
         if self.colorlock == False:
             #Reset colorbar settings
@@ -2207,7 +2209,7 @@ class PlotSlab:
             self.diffdata.setTimeIndex(self.currentTime)
             self.diffdata.setGrid(self.currentGrid)
             self.readDiffField()
-        self.appobj.axes1[self.pNum-1] = None
+        self.axes1 = None
         self.figure.clear()
         #Need double conditional since var will be None if a variable
         # has not been selected
@@ -2255,16 +2257,16 @@ class PlotSlab:
         self.appobj.cbar = None
         self.cs = None
         self.cs2 = None
-        self.appobj.barbs = None
-        self.appobj.vectors = None
-        self.appobj.vectorkey = None
+        self.barbs = None
+        self.vectors = None
+        self.vectorkey = None
         self.cs2label = None
         self.domain_average = None
         self.ColorBar = None
         self.derivedVar = False
         self.appobj.parallels = None
         self.appobj.meridians = None
-        self.appobj.recallProjection = True
+        self.recallProjection = True
         #Plus 1 is needed because None is technically the first index
         self.dataSet = self.dSet[self.currentDset]
         self.getControlBar()
@@ -2276,8 +2278,7 @@ class PlotSlab:
         self.currentdVar = None
         self.selectVar.clear()
         self.selectVar.addItems(self.dataSet.variableList)
-        #self.appobj.axes1.remove(self.appobj.axes1[self.pNum-1])
-        self.appobj.axes1[self.pNum-1] = None
+        self.axes1 = None
         self.figure.clear()
         self.pltFxn(self.pNum)
 
@@ -2455,6 +2456,38 @@ class PlotSlab:
                 self.counties.remove()
                 self.counties = None
         self.pltFxn(self.pNum)
+
+    #Function that changes the background color option when user selected
+    def changeBackground(self,i):
+        #self.ColorBar = None
+        self.recallProjection = True
+        if i == 0:
+            self.background = None
+            self.clear = True
+            #self.axes1[self.slbplt.pNum-1] = None
+            #self.slbplt.figure.clear()
+        elif i == 1:
+            self.background = '.bluemarble'
+        elif i == 2:
+            self.background = '.shadedrelief'
+        else:
+            self.background = '.etopo'
+        self.pltFxn(self.pNum)
+
+    def changeResolution(self,i):
+        self.recallProjection = True
+        self.changeRes = True
+        if i == 0:
+            self.resolution = 'c'
+        elif i == 1:
+            self.resolution = 'l'
+        elif i == 2:
+            self.resolution = 'i'
+        elif i == 3:
+            self.resolution = 'h'
+        else:
+            self.resolution = 'f'
+        self.pltFxn(self.pNum)
         
     def enterPress(self):
         self.ref_pt = np.float(self.refbox.text())
@@ -2598,8 +2631,9 @@ class AppForm(QMainWindow):
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
         #self.data = self.get_data2()
+        self.currentPlot = 0
         self.plotCount = 0
-        self.plotTab = []
+        #self.plotTab = []
         self.create_main_frame()
         self.setWindowTitle('PyGEOMET')
         
@@ -2683,9 +2717,11 @@ class AppForm(QMainWindow):
         ####End Dataset menu bar ##############################
 
         # Get EOM
-        getEOM = QAction('&Eq. of Motion', self)
-        getEOM.setStatusTip("Calculate EOM Components")
-        getEOM.triggered.connect(self.EOMget)
+        self.getEOM = QAction('&Eq. of Motion', self)
+        #Disable until a plot is added
+        self.getEOM.setEnabled(False)
+        self.getEOM.setStatusTip("Calculate EOM Components")
+        self.getEOM.triggered.connect(self.EOMget)
 
         #Color Palettes
         self.colorlist = ['jet','brg','rainbow','bwr','RdBu','YlOrRd',
@@ -2720,31 +2756,31 @@ class AppForm(QMainWindow):
 
         #Create map background menu bar
         defaultClear = QAction("&Default (Clear)", self)
-        defaultClear.triggered.connect(lambda: self.changeBackground(0))
+        defaultClear.triggered.connect(lambda: self.slbplt[self.currentPlot].changeBackground(0))
 
         blueMarble = QAction("&Blue Marble", self)
-        blueMarble.triggered.connect(lambda: self.changeBackground(1))
+        blueMarble.triggered.connect(lambda: self.slbplt[self.currentPlot].changeBackground(1))
 
         shadedRelief = QAction("&Shaded Relief", self)
-        shadedRelief.triggered.connect(lambda: self.changeBackground(2))
+        shadedRelief.triggered.connect(lambda: self.slbplt[self.currentPlot].changeBackground(2))
 
         topo = QAction("&Topo Map", self)
-        topo.triggered.connect(lambda: self.changeBackground(3))
+        topo.triggered.connect(lambda: self.slbplt[self.currentPlot].changeBackground(3))
 
         coarse = QAction("&Coarse", self)
-        coarse.triggered.connect(lambda: self.changeResolution(0))
+        coarse.triggered.connect(lambda: self.slbplt[self.currentPlot].changeResolution(0))
 
         low = QAction("&Low", self)
-        low.triggered.connect(lambda: self.changeResolution(1))
+        low.triggered.connect(lambda: self.slbplt[self.currentPlot].changeResolution(1))
 
         intermediate = QAction("&Intermediate", self)
-        intermediate.triggered.connect(lambda: self.changeResolution(2))
+        intermediate.triggered.connect(lambda: self.slbplt[self.currentPlot].changeResolution(2))
 
         high = QAction("&High", self)
-        high.triggered.connect(lambda: self.changeResolution(3))
+        high.triggered.connect(lambda: self.slbplt[self.currentPlot].changeResolution(3))
 
         full = QAction("&Full", self)
-        full.triggered.connect(lambda: self.changeResolution(4))
+        full.triggered.connect(lambda: self.slbplt[self.currentPlot].changeResolution(4))
 
         self.statusBar()
 
@@ -2784,19 +2820,23 @@ class AppForm(QMainWindow):
         dataSetMenu.addAction(openNetCDF)
 
         #set up the plot settings menu
-        plotMenu = mainMenu.addMenu('&Plot Settings')
-        plotMenu.setStyleSheet(Layout.QMenu())
+        self.plotMenu = mainMenu.addMenu('&Plotting Options')
+        #Use the disable style sheet to make the text look "Grayed out"
+        self.plotMenu.setStyleSheet(Layout.DisQMenu())
 
         #Calculations Menu
-        calcMenu = mainMenu.addMenu('&Calculations')
-        calcMenu.setStyleSheet(Layout.QMenu())
-        menuEOM = calcMenu.addAction(getEOM)
+        self.calcMenu = mainMenu.addMenu('&Calculations')
+        #Use the disable style sheet to make the text look "Grayed out"
+        self.calcMenu.setStyleSheet(Layout.DisQMenu())
+        menuEOM = self.calcMenu.addAction(self.getEOM)
 
         #Map settings
-        mapMenu = plotMenu.addMenu('&Map Settings')
+        self.mapMenu = self.plotMenu.addMenu('&Map Settings')
+        #Disable until a plot is added
+        self.mapMenu.setEnabled(False)
 
         #Map background options
-        bckMenu = mapMenu.addMenu('&Change Map Background')
+        bckMenu = self.mapMenu.addMenu('&Change Map Background')
         bckMenu.setStyleSheet(Layout.QMenu())
         bckMenu.addAction(defaultClear)
         bckMenu.addAction(blueMarble)
@@ -2804,7 +2844,7 @@ class AppForm(QMainWindow):
         bckMenu.addAction(topo)
 
         #Map Resolution options
-        resMenu = mapMenu.addMenu('&Change Map Resolution')
+        resMenu = self.mapMenu.addMenu('&Change Map Resolution')
         resMenu.setStyleSheet(Layout.QMenu())
         resMenu.addAction(coarse)
         resMenu.addAction(low)
@@ -2816,11 +2856,13 @@ class AppForm(QMainWindow):
         mc = QAction("Map Boundaries",self)
         mc.triggered.connect(lambda: self.setMapBoundaries())
         mc.setStatusTip("Set the Lat/Lon boundaries for the Basemap")
-        mapMenu.addAction(mc)
+        self.mapMenu.addAction(mc)
 
-        pMenu  = plotMenu.addMenu('&Plot Settings')
+        self.pMenu  = self.plotMenu.addMenu('&Plot Settings')
+        #Disable until a plot is added
+        self.pMenu.setEnabled(False)
         #Colorbar options
-        colorbarMenu = pMenu.addMenu('&Change Colorbar')
+        colorbarMenu = self.pMenu.addMenu('&Change Colorbar')
         colorbarMenu.setStyleSheet(Layout.QMenu())
         colorbarMenu.addAction(jet)
         colorbarMenu.addAction(brg)
@@ -2838,7 +2880,7 @@ class AppForm(QMainWindow):
         satMenu.addAction(cldA)
  
         #Contour Fill options
-        contourMenu = pMenu.addMenu('&Contour Fill Type')
+        contourMenu = self.pMenu.addMenu('&Contour Fill Type')
         contourMenu.setStyleSheet(Layout.QMenu())
         cf = QAction("ContourF",self)
         cf.triggered.connect(lambda: self.ContourFPlot())
@@ -2848,9 +2890,11 @@ class AppForm(QMainWindow):
         contourMenu.addAction(pc)
          
         #Overlay options
-        overlayMenu = plotMenu.addMenu('&Overlays')
-        overlayMenu.setStyleSheet(Layout.QMenu())
-        geogMenu = overlayMenu.addMenu('&Geography')
+        self.overlayMenu = self.plotMenu.addMenu('&Overlays')
+        #Disable until a plot is added
+        self.overlayMenu.setEnabled(False)
+        self.overlayMenu.setStyleSheet(Layout.QMenu())
+        geogMenu = self.overlayMenu.addMenu('&Geography')
         geogMenu.setStyleSheet(Layout.QMenu())
         coast = QAction("Coastlines",self)
         coast.triggered.connect(lambda: self.slbplt[self.currentPlot].plotCoastlines())
@@ -2884,15 +2928,17 @@ class AppForm(QMainWindow):
         geogMenu.addAction(states)
         geogMenu.addAction(county)
         geogMenu.addAction(llgrid)
-        overlayMenu.addAction(c2)
-        overlayMenu.addAction(wb)
-        overlayMenu.addAction(wv)
+        self.overlayMenu.addAction(c2)
+        self.overlayMenu.addAction(wb)
+        self.overlayMenu.addAction(wv)
 
         #Subsample grid options
-        subsample = QAction("Subsample Grid", self)
-        subsample.triggered.connect(lambda: self.slbplt[self.currentPlot].setSubsampleValue())
-        subsample.setStatusTip("Subsample the plot array")
-        plotMenu.addAction(subsample)
+        self.subsample = QAction("Subsample Grid", self)
+        #Disable until a plot is added
+        self.subsample.setEnabled(False)
+        self.subsample.triggered.connect(lambda: self.slbplt[self.currentPlot].setSubsampleValue())
+        self.subsample.setStatusTip("Subsample the plot array")
+        self.plotMenu.addAction(self.subsample)
         
         #### End Menu ####
         self.dataSet = [None]
@@ -2903,29 +2949,11 @@ class AppForm(QMainWindow):
         self.cbar = None
         self.numDset = 0
         self.on_draw(None)
-        self.axes1 = []   
-        #self.cs = None
+        #self.axes1 = []   
         self.cmap = 'jet'
-        #self.plotbarbs = False
-        #self.plotvectors = False
-        #self.plotcontour2 = False
-        self.background = None
-        self.recallProjection = True
         self.changeColor = False
-        #self.cs = None
-        #self.cs2 = None
-        #self.cs2label = None
-        #self.barbs = None
-        #self.vectors = None
-        #self.vectors2 = None
-        #self.vectorkey = None
-        self.resolution = 'l'
-        self.clear = False
         self.max_val = None
         self.min_val = None
-        #self.yinterval = 1
-        #self.xinterval = 1
-        #self.currentPlot = 1
 
         #Path is needed to define CRTM coefficient data location
         self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
@@ -3144,37 +3172,6 @@ class AppForm(QMainWindow):
             
         self.on_draw(self.currentPlot)
 
-    #Function that changes the background color option when user selected
-    def changeBackground(self,i):
-        self.ColorBar = None
-        self.recallProjection = True
-        if i == 0:
-            self.background = None
-            self.clear = True
-            #self.axes1[self.slbplt.pNum-1] = None
-            #self.slbplt.figure.clear()
-        elif i == 1:
-            self.background = '.bluemarble'
-        elif i == 2:
-            self.background = '.shadedrelief'
-        else:
-            self.background = '.etopo'
-        self.on_draw(self.currentPlot)
-
-    def changeResolution(self,i):
-        self.recallProjection = True
-        if i == 0:
-            self.resolution = 'c'
-        elif i == 1:
-            self.resolution = 'l'
-        elif i == 2:
-            self.resolution = 'i'
-        elif i == 3:
-            self.resolution = 'h'
-        else:
-            self.resolution = 'f'
-        self.on_draw(self.currentPlot)
-
     #These two functions change the plot settings
     def PColorMeshPlot(self):
         if self.slbplt[self.currentPlot].filltype== "contourf":
@@ -3186,7 +3183,6 @@ class AppForm(QMainWindow):
         self.slbplt[self.currentPlot].cs = None
         self.slbplt[self.currentPlot].domain_average = None
         self.slbplt[self.currentPlot].filltype = "pcolormesh"
-        #self.on_draw(self.plotCount)
         self.on_draw(self.currentPlot)
 
     def ContourFPlot(self):
@@ -3197,7 +3193,6 @@ class AppForm(QMainWindow):
         self.parallels = None
         self.meridians = None
         self.slbplt[self.currentPlot].filltype = "contourf"
-        #self.on_draw(self.plotCount)
         self.on_draw(self.currentPlot)
 
     def plotLatlonGrid(self):
@@ -3336,7 +3331,7 @@ class AppForm(QMainWindow):
         #self.cpLayout.addWidget(self.DsetButton)
         self.cpLayout.addWidget(selectPlotControlWidget)
         self.plotControlTabs = QTabWidget(self.controlPanel)
-        self.plotTab.append(QWidget())
+        #self.plotTab.append(QWidget())
         #self.plotControlTabs.addTab(self.plotTab[0],'GridView')
         self.cpLayout.addWidget(self.plotControlTabs)
  
@@ -3375,61 +3370,78 @@ class AppForm(QMainWindow):
     #Function to change the plot area selected with the
     # plot control change
     def plotControlSelected(self,i):
-        #print (" ")
-        #print ("Before:", self.currentPlot)
         self.plotAreaTab.setCurrentIndex(i)
         self.currentPlot = i + 1
-        #print ("After:", self.currentPlot)
-        #print (" ")
-        #for i in range(1,len(self.slbplt)):
-        #    self.slbplt[i].appobj.currentPlot = i
 
     #Function to change the plot control selected with the
     # plot area change
     def plotAreaSelected(self,i):
-        #print (" ")
-        #print ("Before:", self.currentPlot)
         self.plotControlTabs.setCurrentIndex(i)
         self.currentPlot = i + 1
-        #print ("After:", self.currentPlot)
-        #print (" ")
-        #for i in range(1,len(self.slbplt)):
-        #    self.slbplt[i].appobj.currentPlot = i
 
     def get_data2(self):
         return np.arange(20).reshape([4, 5]).copy()
     
     def addButtonAction(self):
         if (len(self.dataSet) >= 2):
+            #Activate menu items and change layout
+            if (self.plotControlTabs.count() == 0):
+                self.mapMenu.setEnabled(True)
+                self.pMenu.setEnabled(True)
+                self.overlayMenu.setEnabled(True)
+                self.subsample.setEnabled(True)
+                self.getEOM.setEnabled(True)
+                self.plotMenu.setStyleSheet(Layout.QMenu())
+                self.calcMenu.setStyleSheet(Layout.QMenu())
+
             self.plotCount = self.plotCount + 1
-            self.currentPlot = self.plotCount
+            self.currentPlot = self.currentPlot + 1
             self.cw = CanvasWidget(self,self.plotCount)
             self.slbplt.append(PlotSlab(dset=self.dataSet,AppWid=self))
             self.slbplt[self.currentPlot].setConnection(self.on_draw,self.plotCount)
             self.slbplt[self.currentPlot].plotCount = self.plotCount
-            self.plotTab.append(QWidget())
+            #self.plotTab.append(QWidget())
+            plotTab = QWidget()
             self.tabLayout = QVBoxLayout()
-            self.plotTab[self.plotCount].setLayout(self.tabLayout)
+            #self.plotTab[self.plotCount].setLayout(self.tabLayout)
+            plotTab.setLayout(self.tabLayout)
             self.slbplt[self.currentPlot].getControlBar()
             self.cw.setPlot(self.slbplt[self.currentPlot])
             #self.plotLayout.addWidget(self.cw)
             self.pltList.append(self.cw)
             tabName = 'Plot #'+ str(self.plotCount)
             self.plotAreaTab.addTab(self.cw,tabName)
-            self.plotControlTabs.addTab(self.plotTab[self.plotCount],tabName)
-            self.plotControlTabs.setCurrentIndex(self.plotCount)
+            #self.plotControlTabs.addTab(self.plotTab[self.plotCount],tabName)
+            self.plotControlTabs.addTab(plotTab,tabName)
+            #Tab index starts at 0 so subtract 1 from currentPlot which starts at 1
+            self.plotControlTabs.setCurrentIndex(self.currentPlot-1)
+            self.plotAreaTab.setCurrentIndex(self.currentPlot-1)
             self.on_draw(self.plotCount)
         else:
             self.errorDset()
 
     def deleteButtonAction(self):
-        if (self.plotCount != 0):
-            #self.plotLayout.itemAt(self.plotControlTabs.currentIndex()).widget().deleteLater()
-            #self.plotTab[self.plotControlTabs.currentIndex()] = None
-            #self.pltList[self.plotControlTabs.currentIndex()] = None
-            self.plotAreaTab.removeTab(self.plotControlTabs.currentIndex())
-            self.plotControlTabs.removeTab(self.plotControlTabs.currentIndex())
-            self.on_draw(self.plotCount)
+        if (self.plotControlTabs.count() != 0):
+            #Delete the PlotObj from the list
+            delete_ind = self.plotControlTabs.currentIndex()
+            del self.slbplt[self.currentPlot]
+            #Get number of tabs
+            numtabs = self.plotAreaTab.count()
+            self.plotAreaTab.removeTab(delete_ind)
+            self.plotControlTabs.removeTab(delete_ind)
+            #After tab removal, set the current index to the last tab if possible
+            #If all tabs have been removed, disable some menu features
+            if (self.plotControlTabs.count() != 0): 
+                self.plotControlTabs.setCurrentIndex(self.plotControlTabs.count()-1)
+                self.plotAreaTab.setCurrentIndex(self.plotAreaTab.count()-1)
+            else:
+                self.mapMenu.setEnabled(False)
+                self.pMenu.setEnabled(False)
+                self.overlayMenu.setEnabled(False)
+                self.subsample.setEnabled(False)
+                self.getEOM.setEnabled(False)
+                self.plotMenu.setStyleSheet(Layout.DisQMenu())
+                self.calcMenu.setStyleSheet(Layout.DisQMenu())
 
     def on_draw(self,plotnum):
         print("\n On draw: ", plotnum, "\n")
