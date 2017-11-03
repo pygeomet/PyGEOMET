@@ -199,7 +199,8 @@ class WrfDataset:
                 else:
                     self.twoDVars.append(varname)
             self.setGridDefinition()
-
+            self.setTimeIndex(0,update=False)
+            self.setGrid(1)            
             self.dvarlist = wrf.getDvarList(self.variableList,self.runType)
 
     def readNCVariable(self,vname,barbs=None, vectors=None, contour2=None,varonly=False):
@@ -294,15 +295,12 @@ class WrfDataset:
         cg = self.currentGrid
         indx = self.currentFileIndex
         for i in range(0,self.numGrids):
-            if i == 0:
-                self.setTimeIndex(0,update=False)
-                self.setGrid(i+1)
+            #Grid one is already loaded in so pass
+            if (i == 0):
+                pass
             else:
                 self.setGrid(i+1,update=False)
-                self.setTimeIndex(indx)
-
-            self.setGrid(i+1)
-            self.setTimeIndex(0)
+                self.setTimeIndex(0)
             self.gridRatio.append(self.ncId.__dict__['PARENT_GRID_RATIO'])
             self.pID.append(self.ncId.__dict__['PARENT_ID'])
             self.nx.append(self.ncId.__dict__['WEST-EAST_GRID_DIMENSION'])
@@ -425,7 +423,7 @@ class WrfDataset:
 
     def setProjection(self,gid,axs=None,i0=None,i1=None,j0=None, j1=None):
         i = gid-1
-
+       
         if(i0 != None and j0 != 0):
             self.ll_lon[i] = self.glons[i][i0,j0]
             self.ll_lat[i] = self.glats[i][i0,j0]
@@ -481,9 +479,9 @@ class WrfDataset:
         self.xs[i] = (x_ll, x_ur, x_ur, x_ll, x_ll)
         self.ys[i] = (y_ll, y_ll, y_ur, y_ur, y_ll)
         self.test = axs
-        
-    def setGridCorners(self):
 
+    def setGridCorners(self):
+        
         # Save current state.
 
         cg = self.currentGrid
@@ -500,12 +498,8 @@ class WrfDataset:
 
         for i in range(0,self.numGrids):
 
-            if i == 0:
-                self.setTimeIndex(0,update=False)
-                self.setGrid(i+1)
-            else:
-                self.setGrid(i+1,update=False)
-                self.setTimeIndex(indx)
+            self.setGrid(i+1,update=False)
+            self.setTimeIndex(0)
             
             if self.runType == 'REAL':
                 self.glons[i] = self.readNCVariable('XLONG')
@@ -532,9 +526,6 @@ class WrfDataset:
                       ' PyGEOMET has not been configured to work with this file' +
                        '. Exiting Now')
                 exit()
-
-        self.setGrid(cg,update=False)
-        self.setTimeIndex(indx)
 
 #####################  End of function setGridCorners() #######################
 
