@@ -430,7 +430,7 @@ class GOESDataset:
         plotObj.selectTime.setStyleSheet(Layout.QComboBox())
         plotObj.selectTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectTime.addItems(plotObj.dataSet.timeList[plotObj.dataSet.currentGrid])
-        plotObj.selectTime.currentIndexChanged.connect(plotObj.selectionChangeTime)
+        plotObj.selectTime.activated.connect(plotObj.selectionChangeTime)
         timebarLayout.addWidget(timeWidgetLabel)
         timebarLayout.addWidget(plotObj.selectTime)
         self.gboxLayout.addWidget(timebar)

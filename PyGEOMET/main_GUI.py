@@ -569,7 +569,6 @@ class PlotSlab:
         self.tabbingLayout.addWidget(self.optionTabs)
  
     def plot(self):
-        
         import time
         t0 = time.clock()
         t1 = time.time()        
@@ -3445,12 +3444,13 @@ class AppForm(QMainWindow):
     def on_draw(self,plotnum):
         print("\n On draw: ", plotnum, "\n")
         if len(self.pltList) > 0:
-            if self.dname != 'NEXRAD Radar':
-                self.pltList[plotnum-1].drawPlot() 
-            else:
-                self.pltList[plotnum-1].drawPlot()
+            #if self.dname != 'NEXRAD Radar':
+            #    self.pltList[plotnum-1].drawPlot() 
+            #else:
+            #    self.pltList[plotnum-1].drawPlot()
+            self.pltList[plotnum-1].drawPlot()
 
-        self.main_frame.show()
+        #self.main_frame.show()
         
     def on_key_press(self, event):
         print('you pressed', event.key)
