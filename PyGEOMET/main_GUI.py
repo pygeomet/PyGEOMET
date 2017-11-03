@@ -289,17 +289,14 @@ class PlotSlab:
         self.plotcountries = True
         self.plotstates = True
         self.plotcounties = False
-        self.appobj.plotlatlon = True
-        #self.appobj.cs = None
-        #self.appobj.cs2 = None
-        #self.appobj.cs2label = None
+        self.plotlatlon = True
         self.cs = None
         self.cs2 = None
         self.cs2label = None
         self.barbs = None
         self.vectors = None
         self.vectorkey = None
-        self.currentGrid = self.dataSet.currentGrid 
+        self.currentGrid = 1
         self.resolution = self.dataSet.resolution
         self.changeRes = False
         self.domain_average = None
@@ -307,8 +304,8 @@ class PlotSlab:
         self.countries = None
         self.states = None
         self.counties = None
-        self.appobj.parallels = None
-        self.appobj.meridians = None
+        self.parallels = None
+        self.meridians = None
         self.cmap = self.appobj.cmap
         self.appobj.eom = None
         self.colorlock = False
@@ -316,11 +313,11 @@ class PlotSlab:
         self.crtmSensor = None
         self.crtmChannel = None
         self.crtmVar = None
-        self.appobj.userGrid = False
-        self.appobj.llcrnrlat = None
-        self.appobj.urcrnrlat = None
-        self.appobj.llcrnrlon = None
-        self.appobj.urcrnrlon = None
+        self.userGrid = False
+        self.llcrnrlat = None
+        self.urcrnrlat = None
+        self.llcrnrlon = None
+        self.urcrnrlon = None
         #Previous plot type (used to create vertical difference plot)
         self.prevPType = None
         self.yinterval = 1
@@ -351,6 +348,8 @@ class PlotSlab:
             if self.currentVar != None:
                 #self.currentVar = np.where(np.array(self.dataSet.variableList) == "T2")[0][0]
                 #self.nz = 1
+                #Updata data here to accomidate multiple grids with multiple plots
+                self.dataSet.setGrid(self.currentGrid)
                 self.var = self.dataSet.readNCVariable(self.dataSet.variableList[self.currentVar],
                     barbs=self.plotbarbs, vectors = self.plotvectors,
                     contour2=self.plotcontour2)
@@ -361,23 +360,25 @@ class PlotSlab:
                 #account for unstaggering of the grids in 3-dimensional variables
                 if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
                     if len(self.var.shape) == 3:
-                        if self.var.shape[0] == self.dataSet.nz[self.dataSet.currentGrid-1]:
+                        if self.var.shape[0] == self.dataSet.nz[self.currentGrid-1]:
                             self.var = wrf.unstaggerZ(self.var)
-                        if self.var.shape[1] == self.dataSet.ny[self.dataSet.currentGrid-1]:
+                        if self.var.shape[1] == self.dataSet.ny[self.currentGrid-1]:
                             self.var = wrf.unstaggerY(self.var)
-                        if self.var.shape[2] == self. dataSet.nx[self.dataSet.currentGrid-1]:
+                        if self.var.shape[2] == self. dataSet.nx[self.currentGrid-1]:
                             self.var = wrf.unstaggerX(self.var) 
                         self.varTitle = self.varTitle + ', Level=' + str(self.dataSet.levelList[self.currentLevel])
                     else:
-                        if self.var.shape[0] == self.dataSet.ny[self.dataSet.currentGrid-1]:
+                        if self.var.shape[0] == self.dataSet.ny[self.currentGrid-1]:
                             plotself.var = wrf.unstaggerY(self.var)
-                        if self.var.shape[1] == self.dataSet.nx[self.dataSet.currentGrid-1]:
+                        if self.var.shape[1] == self.dataSet.nx[self.currentGrid-1]:
                             self.var = wrf.unstaggerX(self.var)
                 self.diffvar = self.var
             else:
                 pass
         else:
             if self.currentdVar != None:
+                #Updata data here to accomidate multiple grids with multiple plots
+                self.dataSet.setGrid(self.currentGrid)
                 t0 = time.clock()
                 t1 = time.time()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -414,6 +415,8 @@ class PlotSlab:
  
     def readDiffField(self):
         if not self.derivedVar:
+            #Updata data here to accomidate multiple grids with multiple plots
+            self.dataSet.setGrid(self.currentGrid)
             ind = np.where(np.array(self.diffdata.variableList) == self.dataSet.variableList[self.currentVar])[0]
             self.diffvar = self.diffdata.readNCVariable(self.diffdata.variableList[ind],
                 barbs=self.plotbarbs, vectors = self.plotvectors,
@@ -421,18 +424,20 @@ class PlotSlab:
             #account for unstaggering of the grids in 3-dimensional variables
             if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
                 if len(self.diffvar.shape) == 3:
-                    if self.diffvar.shape[0] == self.diffdata.nz[self.diffdata.currentGrid-1]:
+                    if self.diffvar.shape[0] == self.diffdata.nz[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerZ(self.diffvar)
-                    if self.diffvar.shape[1] == self.diffdata.ny[self.diffdata.currentGrid-1]:
+                    if self.diffvar.shape[1] == self.diffdata.ny[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerY(self.diffvar)
-                    if self.diffvar.shape[2] == self. diffdata.nx[self.diffdata.currentGrid-1]:
+                    if self.diffvar.shape[2] == self. diffdata.nx[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerX(self.diffvar)
                 else:
-                    if self.diffvar.shape[0] == self.diffdata.ny[self.diffdata.currentGrid-1]:
+                    if self.diffvar.shape[0] == self.diffdata.ny[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerY(self.diffvar)
-                    if self.diffvar.shape[1] == self.diffdata.nx[self.diffdata.currentGrid-1]:
+                    if self.diffvar.shape[1] == self.diffdata.nx[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerX(self.diffvar)
         else:
+            #Updata data here to accomidate multiple grids with multiple plots
+            self.dataSet.setGrid(self.currentGrid)
             dvar = wrf_dvar.WRFDerivedVar(dset = self.diffdata,
                                             var = self.dataSet.dvarlist[self.currentdVar],
                                             ptype = self.currentPType)
@@ -569,12 +574,12 @@ class PlotSlab:
         t0 = time.clock()
         t1 = time.time()        
         #Check if the user has set the lat/lon bounds of the map
-        if (self.appobj.userGrid):
+        if (self.userGrid):
             print('setting user grid')
-            self.dataSet.ll_lat[self.currentGrid-1] = self.appobj.llcrnrlat
-            self.dataSet.ll_lon[self.currentGrid-1] = self.appobj.llcrnrlon
-            self.dataSet.ur_lat[self.currentGrid-1] = self.appobj.urcrnrlat
-            self.dataSet.ur_lon[self.currentGrid-1] = self.appobj.urcrnrlon
+            self.dataSet.ll_lat[self.currentGrid-1] = self.llcrnrlat
+            self.dataSet.ll_lon[self.currentGrid-1] = self.llcrnrlon
+            self.dataSet.ur_lat[self.currentGrid-1] = self.urcrnrlat
+            self.dataSet.ur_lon[self.currentGrid-1] = self.urcrnrlon
         if (self.dataSet.map[self.currentGrid-1] != None):
             print(self.dataSet.map[self.currentGrid-1].llcrnrlat,self.dataSet.map[self.currentGrid-1].llcrnrlon)
 
@@ -616,8 +621,8 @@ class PlotSlab:
             self.states = None
             self.countries = None
             self.counties = None
-            self.appobj.meridians = None
-            self.appobj.parallels = None
+            self.meridians = None
+            self.parallels = None
             self.ColorBar = None
             self.domain_average = None
 
@@ -658,8 +663,8 @@ class PlotSlab:
             self.nz = 1
             self.filltype = 'pcolormesh' 
             #plot the parallels and meridians each time
-            self.appobj.parallels = None
-            self.appobj.meridians = None       
+            self.parallels = None
+            self.meridians = None       
             #Based on called variable color and range from pyART
             self.cmap = self.dataSet.cmap
             self.colormin = self.dataSet.range[0]
@@ -733,10 +738,10 @@ class PlotSlab:
 
                 #Get xz orientation values
                 if self.orientList[self.currentOrient] == 'xz':
-                    diff = abs(self.dataSet.glats[self.dataSet.currentGrid-1][:,0] - self.ref_pt)
+                    diff = abs(self.dataSet.glats[self.currentGrid-1][:,0] - self.ref_pt)
                     ind = np.argsort(diff)
-                    horiz = np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
-                    horiz2 = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
+                    horiz = np.tile(np.sum(self.dataSet.glons[self.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
+                    horiz2 = np.tile(np.sum(self.dataSet.glats[self.currentGrid-1][ind[0:4],:],axis=0)/4.,(dims[0],1))
                     pltfld = np.squeeze(np.sum(var[:,ind[0:4],:],axis=1)/4.)
                     if (self.dataSet.dsetname != 'CMAQ'):
                         plevs = np.squeeze(np.sum(press[:,ind[0:4],:],axis=1)/4.)
@@ -752,10 +757,10 @@ class PlotSlab:
 
                 #Get yz orientation values
                 if self.orientList[self.currentOrient] == 'yz':
-                    diff = abs(self.dataSet.glons[self.dataSet.currentGrid-1][0,:]-self.ref_pt)
+                    diff = abs(self.dataSet.glons[self.currentGrid-1][0,:]-self.ref_pt)
                     ind = np.argsort(diff)
-                    horiz = np.tile(np.sum(self.dataSet.glats[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
-                    horiz2 =np.tile(np.sum(self.dataSet.glons[self.dataSet.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
+                    horiz = np.tile(np.sum(self.dataSet.glats[self.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
+                    horiz2 =np.tile(np.sum(self.dataSet.glons[self.currentGrid-1][:,ind[0:4]],axis=1)/4.,(dims[0],1))
                     pltfld = np.squeeze(np.sum(var[:,:,ind[0:4]],axis=2)/4.)
                     if (self.dataSet.dsetname != 'CMAQ'):
                         plevs = np.squeeze(np.sum(press[:,:,ind[0:4]],axis=2)/4.)
@@ -835,8 +840,6 @@ class PlotSlab:
                 
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
-            print("\n shade var:", pltfld.shape, "\n")
-            print("\n shade lons:", self.dataSet.glons[self.currentGrid-1].shape, "\n")
             #Create plots - either contourf or pcolormesh
             if self.filltype == "contourf":
                 #Remove old contour before plotting - don't have to recall projection
@@ -892,25 +895,14 @@ class PlotSlab:
                     self.axes1 = None
                     self.domain_average = None
                     self.ColorBar = None
-                    self.appobj.meridians = None
-                    self.appobj.parallels = None
+                    self.meridians = None
+                    self.parallels = None
                     self.figure.clear()
                     self.axes1 = self.figure.add_subplot(111)
                     self.dataSet.resolution = self.resolution
                     if (self.dataSet.map[self.currentGrid-1] != None):
                         self.dataSet.map[self.currentGrid-1].ax = self.axes1
-                    """
-                    if len(self.appobj.axes1) >= self.pNum:
-                        self.appobj.axes1[self.pNum-1] = self.figure.add_subplot(111)
-                        self.dataSet.resolution = self.resolution
-                        if (self.dataSet.map[self.currentGrid-1] != None):
-                            self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
-                    else:
-                        self.appobj.axes1.append(self.figure.add_subplot(111))
-                        self.dataSet.resolution = self.resolution
-                        if (self.dataSet.map[self.currentGrid-1] != None):
-                            self.dataSet.map[self.currentGrid-1].ax = self.appobj.axes1[self.pNum-1]
-                    """
+                
                 #Create pcolormesh on a map
                 #Check if map exists to plot on
                 #Second condition allows the creation of a vertical slice difference plot
@@ -1165,7 +1157,7 @@ class PlotSlab:
 
             #Can't put labels on Geostationary, Orthographic or Azimuthal Equidistant basemaps 	
             if self.dataSet.projectionType == "ortho" and self.dataSet.projectionType == "aeqd" and self.dataSet.projectionType == "geos":
-                if self.appobj.plotlatlon:
+                if self.plotlatlon:
                     linewidth=0.5
                 else:
                     linewidth=0
@@ -1174,17 +1166,17 @@ class PlotSlab:
                 # draw meridians
                 self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,ax=self.axes1)
             else:	
-                if self.appobj.plotlatlon:
+                if self.plotlatlon:
                     linewidth=0.5
                 else:
                     linewidth=0
                 # draw parallels
-                if self.appobj.parallels == None:
-                    self.appobj.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=10,
+                if self.parallels == None:
+                    self.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=10,
                                  ax=self.axes1,linewidth=linewidth)
                 # draw meridians
-                if self.appobj.meridians == None:
-                    self.appobj.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,
+                if self.meridians == None:
+                    self.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,
                                  ax=self.axes1,linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.recallProjection = False
@@ -1758,8 +1750,8 @@ class PlotSlab:
         self.countries = None
         self.states = None
         self.counties = None
-        self.appobj.parallels = None
-        self.appobj.meridians = None
+        self.parallels = None
+        self.meridians = None
         #Removes the colorbar
         self.ColorBar = None
         #Reset the color scale unless plotting WRF reflectivity
@@ -2159,8 +2151,8 @@ class PlotSlab:
         self.countries = None
         self.states = None
         self.counties = None
-        self.appobj.meridians = None
-        self.appobj.parallels = None
+        self.meridians = None
+        self.parallels = None
         self.recallProjection = True
         self.currentGrid = i+1
         #Check if we need to change the map resolution
@@ -2180,9 +2172,9 @@ class PlotSlab:
             if self.currentVar != None:
                 varname = self.dataSet.variableList[self.currentVar]
         self.dataSet.setTimeIndex(self.currentTime)
-        self.dataSet.setGrid(self.currentGrid)
+        #self.dataSet.setGrid(self.currentGrid)
         self.selectTime.clear()
-        self.selectTime.addItems(self.dataSet.timeList[self.dataSet.currentGrid])
+        self.selectTime.addItems(self.dataSet.timeList[self.currentGrid])
         self.selectVar.clear()
         self.selectVar.addItems(self.dataSet.variableList)
         if varname != None and self.derivedVar == True:
@@ -2263,9 +2255,13 @@ class PlotSlab:
         self.cs2label = None
         self.domain_average = None
         self.ColorBar = None
+        self.coasts = None
+        self.countries = None
+        self.counties = None
+        self.states = None
         self.derivedVar = False
-        self.appobj.parallels = None
-        self.appobj.meridians = None
+        self.parallels = None
+        self.meridians = None
         self.recallProjection = True
         #Plus 1 is needed because None is technically the first index
         self.dataSet = self.dSet[self.currentDset]
@@ -2285,7 +2281,7 @@ class PlotSlab:
     #Function connected to the time list combobox
     def selectionChangeTime(self,i):
         self.currentTime = i
-        self.dataSet.setTimeIndex(self.currentTime)
+        self.dataSet.setTimeIndex(self.currentTime,update=False)
         self.timeChangeSettings()
 
     #Function connected to the next button
@@ -2294,7 +2290,7 @@ class PlotSlab:
         if self.currentTime == self.dataSet.ntimes*self.dataSet.getNumFiles():
             self.currentTime = 0
         self.selectTime.setCurrentIndex(self.currentTime)
-        self.dataSet.setTimeIndex(self.currentTime)
+        self.dataSet.setTimeIndex(self.currentTime,update=False)
         self.timeChangeSettings()	
  
     #Function connected to the previous button
@@ -2303,7 +2299,7 @@ class PlotSlab:
         if self.currentTime == -1:
             self.currentTime = self.dataSet.getNumFiles()*self.dataSet.ntimes-1
         self.selectTime.setCurrentIndex(self.currentTime)
-        self.dataSet.setTimeIndex(self.currentTime)
+        self.dataSet.setTimeIndex(self.currentTime,update=False)
         self.timeChangeSettings()
 
     #All time change functions call this
@@ -2526,6 +2522,70 @@ class PlotSlab:
         self.subBox.close()
         self.xinterval = np.int(self.selectSubsample.text())
         self.yinterval = np.int(self.selectSubsample.text())
+        self.pltFxn(self.pNum)
+
+    #Change from contourf to pcolormesh
+    def PColorMeshPlot(self):
+        if self.filltype== "contourf":
+            if self.cs != None:
+                for coll in self.cs.collections:
+                    coll.remove()
+        self.parallels = None
+        self.meridians = None
+        self.cs = None
+        self.domain_average = None
+        self.filltype = "pcolormesh"
+        self.pltFxn(self.pNum)
+
+    #Change plot from pcolormesh to contour
+    def ContourFPlot(self):
+        self.cs = None
+        if self.domain_average != None:
+           self.domain_average.remove()
+        self.domain_average = None
+        self.parallels = None
+        self.meridians = None
+        self.filltype = "contourf"
+        self.pltFxn(self.pNum)
+
+    #Function to allow the user to turn on and off the lat/lon grid
+    def plotLatLonGrid(self):
+        if self.plotlatlon == False:
+            self.plotlatlon = True
+            for par in self.parallels:
+                self.parallels[par][0][0].remove()
+                if (len(self.parallels[par][1]) != 0):
+                    self.parallels[par][1][0].remove()
+            for mer in self.meridians:
+                self.meridians[mer][0][0].remove()
+                if (len(self.meridians[mer][1]) != 0):
+                    self.meridians[mer][1][0].remove()
+        else:
+            self.plotlatlon = False
+            for par in self.parallels:
+                self.parallels[par][0][0].remove()
+                if (len(self.parallels[par][1]) != 0):
+                    self.parallels[par][1][0].remove()
+            for mer in self.meridians:
+                self.meridians[mer][0][0].remove()
+                if (len(self.meridians[mer][1]) != 0):
+                    self.meridians[mer][1][0].remove()
+        self.parallels = None
+        self.meridians = None
+        self.pltFxn(self.pNum)
+
+    #Function to allow the user to set the map lat/lon boundaries
+    def setMapBoundaries(self):
+        if self.userGrid == False:
+            self.userGrid = True
+            self.llcrnrlat = 35
+            self.llcrnrlon = -110
+            self.urcrnrlat = 50
+            self.urcrnrlon = -95
+            self.recallProjection = True
+
+        else:
+            self.userGrid = False
         self.pltFxn(self.pNum)
     
     def error3DVar(self):
@@ -2854,7 +2914,7 @@ class AppForm(QMainWindow):
 
         #User-defined Map Boundaries
         mc = QAction("Map Boundaries",self)
-        mc.triggered.connect(lambda: self.setMapBoundaries())
+        mc.triggered.connect(lambda: self.self.slbplt[self.currentPlot].setMapBoundaries())
         mc.setStatusTip("Set the Lat/Lon boundaries for the Basemap")
         self.mapMenu.addAction(mc)
 
@@ -2883,9 +2943,9 @@ class AppForm(QMainWindow):
         contourMenu = self.pMenu.addMenu('&Contour Fill Type')
         contourMenu.setStyleSheet(Layout.QMenu())
         cf = QAction("ContourF",self)
-        cf.triggered.connect(lambda: self.ContourFPlot())
+        cf.triggered.connect(lambda: self.slbplt[self.currentPlot].ContourFPlot())
         pc = QAction("PColorMesh",self)
-        pc.triggered.connect(lambda: self.PColorMeshPlot())
+        pc.triggered.connect(lambda: self.slbplt[self.currentPlot].PColorMeshPlot())
         contourMenu.addAction(cf)
         contourMenu.addAction(pc)
          
@@ -2909,7 +2969,7 @@ class AppForm(QMainWindow):
         county.triggered.connect(lambda: self.slbplt[self.currentPlot].plotCounties())
         county.setStatusTip('Overlay County Boundaries')
         llgrid = QAction("Lat/Lon Grid",self)
-        llgrid.triggered.connect(lambda: self.plotLatlonGrid())
+        llgrid.triggered.connect(lambda: self.slbplt[self.currentPlot].plotLatLonGrid())
         llgrid.setStatusTip('Overlay Lat/Lon Grid')
         wb = QAction("Wind Barbs",self)
         wb.triggered.connect(lambda: self.slbplt[self.currentPlot].plotWindBarbs())
@@ -3172,67 +3232,6 @@ class AppForm(QMainWindow):
             
         self.on_draw(self.currentPlot)
 
-    #These two functions change the plot settings
-    def PColorMeshPlot(self):
-        if self.slbplt[self.currentPlot].filltype== "contourf":
-            if self.slbplt[self.currentPlot].cs != None:
-                for coll in self.slbplt[self.currentPlot].cs.collections:
-                    coll.remove()
-        self.parallels = None
-        self.meridians = None
-        self.slbplt[self.currentPlot].cs = None
-        self.slbplt[self.currentPlot].domain_average = None
-        self.slbplt[self.currentPlot].filltype = "pcolormesh"
-        self.on_draw(self.currentPlot)
-
-    def ContourFPlot(self):
-        self.slbplt[self.currentPlot].cs = None
-        if self.slbplt[self.currentPlot].domain_average != None:
-           self.slbplt[self.currentPlot].domain_average.remove()
-        self.slbplt[self.currentPlot].domain_average = None
-        self.parallels = None
-        self.meridians = None
-        self.slbplt[self.currentPlot].filltype = "contourf"
-        self.on_draw(self.currentPlot)
-
-    def plotLatlonGrid(self):
-        if self.plotlatlon == False:
-            self.plotlatlon = True
-            for par in self.parallels:
-                self.parallels[par][0][0].remove()
-                if (len(self.parallels[par][1]) != 0):
-                    self.parallels[par][1][0].remove()
-            for mer in self.meridians:
-                self.meridians[mer][0][0].remove()
-                if (len(self.meridians[mer][1]) != 0):
-                    self.meridians[mer][1][0].remove()
-        else:
-            self.plotlatlon = False
-            for par in self.parallels:
-                self.parallels[par][0][0].remove()
-                if (len(self.parallels[par][1]) != 0):
-                    self.parallels[par][1][0].remove()
-            for mer in self.meridians:
-                self.meridians[mer][0][0].remove()
-                if (len(self.meridians[mer][1]) != 0):
-                    self.meridians[mer][1][0].remove()
-        self.parallels = None
-        self.meridians = None
-        self.on_draw(self.currentPlot)
-
-    def setMapBoundaries(self):
-        if self.userGrid == False:
-            self.userGrid = True
-            self.llcrnrlat = 35
-            self.llcrnrlon = -110
-            self.urcrnrlat = 50
-            self.urcrnrlon = -95
-            self.recallProjection = True
-
-        else:
-            self.userGrid = False
-        self.on_draw(self.currentPlot)
-    
     #Create exit pop up window    
     def close_program(self):
        
