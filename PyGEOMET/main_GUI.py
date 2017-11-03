@@ -2326,7 +2326,9 @@ class PlotSlab:
             if (self.currentPType == 'Vertical Profile' and self.selecteddVvar != None):
                 self.selectionChangedVerticalVar(self.selecteddVvar)
         #GOES-R dataset handles getting the variable for plotting
-        if (self.dataSet.dsetname == "GOES R"):
+        if (self.dataSet.dsetname == "GOES R" or self.dataSet.dsetname == "GOES Class"):
+            #Have to update data here because readField isn't called
+            self.dataSet.updateData(self.currentTime)
             self.dataSet.advanceTime(self)
         else:
             self.readField()
@@ -2338,7 +2340,7 @@ class PlotSlab:
             self.readDiffField()
                         
         #Make sure a variable is selected before plotting
-        #Needed to allow changing of plot type         
+        #Needed to allow changing of plot type 
         if (self.currentVar != None or self.currentdVar != None):
             self.pltFxn(self.pNum)
 

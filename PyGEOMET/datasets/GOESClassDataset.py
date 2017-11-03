@@ -328,7 +328,7 @@ class GOESClassDataset:
                 varTitle = varTitle + "\n"+self.getTime()
                 varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
                 self.pObj.varTitle = varTitle
-                self.pObj.pltFxn(self.pObj.pNum)                
+                #self.pObj.pltFxn(self.pObj.pNum)                
 
 
     def calculateVariables(self,vaname):
@@ -463,7 +463,7 @@ class GOESClassDataset:
         if self.pObj is not None:
             self.pObj.var = pltvar
             self.pObj.varTitle = varTitle
-            self.pObj.pltFxn(self.pObj.pNum)
+            #self.pObj.pltFxn(self.pObj.pNum)
 
         
 
@@ -544,6 +544,19 @@ class GOESClassDataset:
             self.selectionChangeDVar(self.pObj.currentVar)
         else:
             self.pObj.pltFxn(self.pObj.pNum)        
+
+    def advanceTime(self,pobj):
+         self.pObj = pobj
+         if self.raw == 1:
+             #Calculate raw counts
+             self.convertToCounts(plot = True)
+         elif self.derived == 1:
+             #Calculate raw counts
+             self.convertToCounts()
+             #Calculate derived variable
+             self.calculateVariables(self.dvarlist[self.currentGrid][self.pObj.currentVar])
+#         else:
+#             self.pObj.pltFxn(self.pObj.pNum)
 
     def nxtButtonAction(self):
          self.pObj.currentTime+=1
@@ -683,7 +696,7 @@ class GOESClassDataset:
         plotObj.selectTime.setStyleSheet(Layout.QComboBox())
         plotObj.selectTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         plotObj.selectTime.addItems(plotObj.dataSet.timeList[plotObj.dataSet.currentGrid])
-        plotObj.selectTime.activated.connect(self.selectionChangeTime)
+        plotObj.selectTime.activated.connect(self.pObj.selectionChangeTime)
         timebarLayout.addWidget(timeWidgetLabel)
         timebarLayout.addWidget(plotObj.selectTime)
         self.gboxLayout.addWidget(timebar)
@@ -696,13 +709,13 @@ class GOESClassDataset:
         nxtButton.setText('&Next')
         nxtButton.setFixedWidth(75)
         nxtButtonLayout = QHBoxLayout()
-        nxtButton.clicked.connect(self.nxtButtonAction)
+        nxtButton.clicked.connect(self.pObj.nxtButtonAction)
         prevButton = QPushButton()
         prevButton.setStyleSheet(Layout.QPushButton2())
         prevButton.setText('&Prev')
         prevButton.setFixedWidth(75)
         prevButtonLayout = QHBoxLayout()
-        prevButton.clicked.connect(self.prevButtonAction)
+        prevButton.clicked.connect(self.pObj.prevButtonAction)
         cpanelLayout.addWidget(prevButton)
         cpanelLayout.addWidget(nxtButton)
         self.gboxLayout.addWidget(cpanel)
