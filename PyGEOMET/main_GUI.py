@@ -157,7 +157,7 @@ class CanvasWidget(QWidget):
                 lon, lat  = self.plotObj.dataSet.map[self.plotObj.currentGrid-1](
                             self.plotObj.dataSet.glons[self.plotObj.currentGrid-1],
                             self.plotObj.dataSet.glats[self.plotObj.currentGrid-1])
-                if (self.plotObj.appobj.dname == 'SOUNDING'):
+                if (self.plotObj.dataSet.dsetname == 'Sounding'):
                     a = np.vstack((lat,lon)).T
                     pt = [iy, ix]
                     distance, index = spatial.KDTree(a).query(pt)
@@ -358,7 +358,7 @@ class PlotSlab:
                 #print(self.varTitle)
                 #print(self.var.shape)
                 #account for unstaggering of the grids in 3-dimensional variables
-                if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
+                if self.dataSet.dsetname == 'WRF' or self.dataSet.dsetname == 'MET':
                     if len(self.var.shape) == 3:
                         if self.var.shape[0] == self.dataSet.nz[self.currentGrid-1]:
                             self.var = wrf.unstaggerZ(self.var)
@@ -422,7 +422,7 @@ class PlotSlab:
                 barbs=self.plotbarbs, vectors = self.plotvectors,
                 contour2=self.plotcontour2)
             #account for unstaggering of the grids in 3-dimensional variables
-            if self.appobj.dname == 'WRF' or self.appobj.dname == 'MET':
+            if self.dataSet.dsetname == 'WRF' or self.dataSet.dsetname == 'MET':
                 if len(self.diffvar.shape) == 3:
                     if self.diffvar.shape[0] == self.diffdata.nz[self.currentGrid-1]:
                         self.diffvar = wrf.unstaggerZ(self.diffvar)
@@ -589,8 +589,8 @@ class PlotSlab:
             #Check if derived var is set first because not every data set has
             # a derived variable list
             if (self.appobj.max_val != None and self.appobj.min_val != None
-                and (self.currentdVar != None or self.appobj.dname == 'GOES_R' 
-                or self.appobj.dname == 'GOES_Class' or self.appobj.dname == 'GOES_UAH')):
+                and (self.currentdVar != None or self.dataSet.dsetname == 'GOES R' 
+                or self.dataSet.dsetname == 'GOES Class' or self.dataSet.dsetname == 'GOES UAH')):
                 #Next check if brightness temp/radiance
                 if (self.currentdVar != None):
                     if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
@@ -599,8 +599,8 @@ class PlotSlab:
                         self.ncontours = 41
                         self.colorlock = True
                         self.lock.setChecked(True)
-                if (self.appobj.dname == 'GOES_R' or self.appobj.dname == 'GOES_Class' 
-                    or self.appobj.dname == 'GOES_UAH'):
+                if (self.dataSet.dsetname == 'GOES R' or self.dataSet.dsetname == 'GOES Class' 
+                    or self.dataSet.dsetname == 'GOES UAH'):
                         self.colormin = self.appobj.min_val
                         self.colormax = self.appobj.max_val
                         self.ncontours = 41
@@ -744,7 +744,7 @@ class PlotSlab:
                     pltfld = np.squeeze(np.sum(var[:,ind[0:4],:],axis=1)/4.)
                     if (self.dataSet.dsetname != 'CMAQ'):
                         plevs = np.squeeze(np.sum(press[:,ind[0:4],:],axis=1)/4.)
-                        if self.appobj.dname != 'MET':
+                        if self.dataSet.dsetname != 'MET':
                             pvar2 = np.squeeze(np.sum(var2[:,ind[0:4],:],axis=1)/4.)
                             wwind = np.squeeze(np.sum(w[:,ind[0:4],:],axis=1)/4.)
                         hgt = np.squeeze(np.sum(height[:,ind[0:4],:],axis=1)/4.)
@@ -763,7 +763,7 @@ class PlotSlab:
                     pltfld = np.squeeze(np.sum(var[:,:,ind[0:4]],axis=2)/4.)
                     if (self.dataSet.dsetname != 'CMAQ'):
                         plevs = np.squeeze(np.sum(press[:,:,ind[0:4]],axis=2)/4.)
-                        if self.appobj.dname != 'MET':
+                        if self.dataSet.dsetname != 'MET':
                             pvar2 = np.squeeze(np.sum(var2[:,:,ind[0:4]],axis=2)/4.)
                             wwind = np.squeeze(np.sum(w[:,:,ind[0:4]],axis=2)/4.)
                         hgt = np.squeeze(np.sum(height[:,:,ind[0:4]],axis=2)/4.)
@@ -981,7 +981,7 @@ class PlotSlab:
             #Plot wind barbs or vectors
             if ((self.plotbarbs == True or self.plotvectors == True) and self.dataSet.dsetname != 'CMAQ'):
                 #Create map coordinates for wind barbs and vectors
-                if (self.currentPType == 'Vertical Slice' and self.appobj.dname != 'MET'):
+                if (self.currentPType == 'Vertical Slice' and self.dataSet.dsetname != 'MET'):
                     xb = horiz
                     yb = plevs
                     self.u10 = hwind
@@ -1080,7 +1080,7 @@ class PlotSlab:
             #Second contour
             if (self.plotcontour2 == True and self.dataSet.dsetname != 'CMAQ'):
                 if (self.currentPType == 'Vertical Slice'):
-                    if (self.appobj.dname != 'MET'):
+                    if (self.dataSet.dsetname != 'MET'):
                         self.cs2 = self.axes1.contour(horiz, plevs,
                                           pvar2, colors='k', linewidths=1.5)
                     else:
@@ -1251,7 +1251,9 @@ class PlotSlab:
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.axes1)
 
         #Plot sounding locations on the map and add a title
-        if (self.appobj.dname == 'SOUNDING'):
+        print(self.dataSet.dsetname)
+        if (self.dataSet.dsetname == 'Sounding'):
+            print("In here")
             #Plot station markers
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.glons[self.currentGrid-1],
                                                       self.dataSet.glats[self.currentGrid-1],
@@ -1273,7 +1275,7 @@ class PlotSlab:
     def plotSkewT(self,i,j):
 
         #Determine the Dataset Type     
-        if (self.appobj.dname == 'SOUNDING'):
+        if (self.dataSet.dsetname == 'Sounding'):
             self.dataSet.getObsFile(ind = i,year = self.dataSet.year, month = self.dataSet.month,
                                     day = self.dataSet.day, hour = self.dataSet.hour)
             #Get above ground level height
@@ -1284,7 +1286,7 @@ class PlotSlab:
                                         u = self.dataSet.u, v = self.dataSet.v )
 
         #The WRF MET files have different pressure, temp and humidity variables
-        elif (self.appobj.dname == 'MET'):
+        elif (self.dataSet.dsetname == 'MET'):
             #Get Variables
             p = np.squeeze(self.dataSet.readNCVariable('PRES'))/100. #Convert from pascal
             t = np.squeeze(self.dataSet.readNCVariable('TT'))-273.15 #Convert from K
@@ -1333,7 +1335,7 @@ class PlotSlab:
                                         u = u[:,j,i], v = v[:,j,i])
 
         #Add Sounding Station Name to Title
-        if (self.appobj.dname == 'SOUNDING'):
+        if (self.dataSet.dsetname == 'Sounding'):
             self.skewt.fig.suptitle(self.dataSet.stat_id[i]+ ' : ' +self.dataSet.getTime())
         else: 
             self.skewt.fig.suptitle(self.dataSet.getTime())
@@ -2262,17 +2264,33 @@ class PlotSlab:
         self.parallels = None
         self.meridians = None
         self.recallProjection = True
-        #Plus 1 is needed because None is technically the first index
-        self.dataSet = self.dSet[self.currentDset]
-        self.getControlBar()
         self.currentGrid = 1
         self.currentTime = 0
-        self.dataSet.setTimeIndex(self.currentTime)
-        self.dataSet.setGrid(self.currentGrid, update=None)
         self.currentVar = None
         self.currentdVar = None
-        self.selectVar.clear()
-        self.selectVar.addItems(self.dataSet.variableList)
+        #Check if switching from the Soundings dataset
+        # Will have to change the plot type as Soundings only plot a Skew-T
+        if (self.dataSet.dsetname == "Sounding"):
+            #Switch to horizontal plot
+            self.currentPType = 'Horizontal Slice' 
+        #Plus 1 is needed because None is technically the first index
+        self.dataSet = self.dSet[self.currentDset]
+        #Check if switching to Soundings dataset
+        # Will have to change the plot type as Soundings only plot a Skew-T
+        if (self.dataSet.dsetname == "Sounding"):
+            #Also replot map with station locations
+            self.replot2d = True
+            #Switch to horizontal plot
+            self.currentPType = 'SkewT/Hodograph'
+            #Need to call this after setting the plot
+            # in order to initialize correctly
+            self.getControlBar()        
+        else:
+            self.getControlBar()
+            self.dataSet.setTimeIndex(self.currentTime)
+            self.dataSet.setGrid(self.currentGrid, update=None)
+            self.selectVar.clear()
+            self.selectVar.addItems(self.dataSet.variableList)
         self.axes1 = None
         self.figure.clear()
         self.pltFxn(self.pNum)
@@ -3059,7 +3077,7 @@ class AppForm(QMainWindow):
 
     #Select the directory
     def goesClassOpen(self):
-        self.dname = 'GOES_Class'
+        self.dname = 'GOES Class'
         #self.selectdataset.close()
         self.path = QFileDialog.getExistingDirectory(self, 'Select Directory')
         self.prefix = 'goes*'
@@ -3077,7 +3095,7 @@ class AppForm(QMainWindow):
 
     #Select the files
     def goesROpen(self):
-        self.dname = 'GOES_R'
+        self.dname = 'GOES R'
         #self.selectdataset.close()
         #self.path = QFileDialog.getExistingDirectory(self, 'Select Directory')
         self.files = QFileDialog.getOpenFileNames(self, 'Select Files')
@@ -3097,7 +3115,7 @@ class AppForm(QMainWindow):
 
     #Select the directory
     def goesOpen(self):
-        self.dname = 'GOES_UAH'
+        self.dname = 'GOES UAH'
         #self.selectdataset.close()
         self.path = QFileDialog.getExistingDirectory(self, 'Select Directory')
         self.prefix = 'wrf??km*'
@@ -3157,7 +3175,7 @@ class AppForm(QMainWindow):
 
     #Open the sounding dataset
     def soundingOpen(self):
-        self.dname = 'SOUNDING'
+        self.dname = 'Sounding'
         #self.selectdataset.close()
         self.numDset += 1
         QApplication.setOverrideCursor(Qt.WaitCursor)

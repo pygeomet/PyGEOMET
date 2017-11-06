@@ -24,6 +24,7 @@ class SoundingDataset:
         self.currentGrid = 1
         self.currentVarIndex = 1
         self.currentGridIndex = 67
+        self.runType = 'Sound'
         self.dsetname = "Sounding"
         self.projectionType = "lcc"
         self.resolution = 'l'
@@ -195,9 +196,10 @@ class SoundingDataset:
                           ' ' + self.hour + ':00 UTC'
         return self.timeString
 
-    def setGrid(self, Indx):
+    #Note Update is a dummy variable to fit within GUI framework
+    def setGrid(self, Indx, update = None):
         self.currentGridIndex = Indx
-        self.grid = self.gridList[self.currentGridIndex]
+        #self.grid = self.gridList[self.currentGridIndex]
 
     def setProjection(self,gid=None,axs=None):
         self.map = [None]*1

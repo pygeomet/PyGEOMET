@@ -33,7 +33,7 @@ class NCARdataset:
         self.currentGridIndex = 1
         self.currentExtIndex = 0
         self.description = None
-        self.dsetname = "NCEP/NCAR Reanalysis II"
+        self.dsetname = "NCEP"
         self.gridList = ['gaussian_grid', 'pressure', 'surface']
         self.glons = [None]*1
         self.glats = [None]*1
