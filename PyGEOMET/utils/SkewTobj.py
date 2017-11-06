@@ -49,7 +49,7 @@ class SkewTobj:
                 pressure /= 100.
             #Guess input mixing ratio units (g/kg or kg/kg)
             #Mixing ratio should be in kg/kg
-            if (np.any(qv > 5.)):
+            if (np.any(qv > 0.8)):
                 print("Input mixing ratio in g/kg --> converting to kg/kg")
                 qv /= 1000.
             #Guess input dew point temperature units (Celsius or Kelvin)
@@ -219,7 +219,8 @@ class SkewTobj:
         vp = self.VaporPressure(td[ind])
         t_lcl = self.TempLCL(t[ind]+273.15,td[ind])
         thetae = self.theta[ind] * np.exp((3.376/t_lcl - 0.00254)*1000*q[ind]*(1. + 0.81 * q[ind]))
-        indmax = np.where(thetae == np.amax(thetae))
+        #thetae = self.theta[ind] * np.exp((3036/t_lcl - 1.78)*(q[ind]/1000.)*(1. + (0.448/1000.) * q[ind]))
+        indmax = np.where(thetae == np.nanmax(thetae))
         
         #Define parcel        
         self.t_parcel = t[indmax]
