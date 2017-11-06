@@ -314,7 +314,7 @@ class GOESClassDataset:
         self.setGrid(cg,update=False)
         self.setTimeIndex(indx)
 
-    def convertToCounts(self, plot = None):
+    def convertToCounts(self, plot = None, directPlot = None):
         
         self.data = self.readNCVariable('data')/32.
         self.data[self.j_bad[self.currentGrid-1],self.i_bad[self.currentGrid-1]] = np.nan
@@ -328,10 +328,13 @@ class GOESClassDataset:
                 varTitle = varTitle + "\n"+self.getTime()
                 varTitle = varTitle + ', Band=' + str(self.band_num[self.currentGrid])
                 self.pObj.varTitle = varTitle
-                #self.pObj.pltFxn(self.pObj.pNum)                
+                #Needed because advance time plots in Plot Object but
+                # plotting when changing variables is handled in this dataset
+                if (directPlot is not None):
+                    self.pObj.pltFxn(self.pObj.pNum)                
 
 
-    def calculateVariables(self,vaname):
+    def calculateVariables(self,vaname,directPlot = None):
         print(self.band_num[self.currentGrid],vaname)
         if self.band_num[self.currentGrid] == 1:
             #Radiance is needed for all calculations so calculate it first            
@@ -463,7 +466,10 @@ class GOESClassDataset:
         if self.pObj is not None:
             self.pObj.var = pltvar
             self.pObj.varTitle = varTitle
-            #self.pObj.pltFxn(self.pObj.pNum)
+            #Needed because advance time plots in Plot Object but
+            # plotting when changing variables is handled in this dataset
+            if directPlot is not None:
+                self.pObj.pltFxn(self.pObj.pNum)
 
         
 
@@ -482,7 +488,7 @@ class GOESClassDataset:
         self.pObj.currentVar = i
         self.pObj.nz = 1
         #Calculate raw counts
-        self.convertToCounts(plot = True)
+        self.convertToCounts(plot = True, directPlot = True)
         #Set variable for when time is changed
         self.raw = 1  
         self.derved = None
@@ -499,7 +505,7 @@ class GOESClassDataset:
         self.pObj.nz = 1
         #Calculate raw counts
         self.convertToCounts()
-        self.calculateVariables(self.dvarlist[self.currentGrid][i])
+        self.calculateVariables(self.dvarlist[self.currentGrid][i], directPlot = True)
         #Set variable for when time is changed
         self.raw = None
         self.derived = 1

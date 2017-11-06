@@ -2328,7 +2328,7 @@ class PlotSlab:
         #GOES-R dataset handles getting the variable for plotting
         if (self.dataSet.dsetname == "GOES R" or self.dataSet.dsetname == "GOES Class"):
             #Have to update data here because readField isn't called
-            self.dataSet.updateData(self.currentTime)
+            self.dataSet.updateData()
             self.dataSet.advanceTime(self)
         else:
             self.readField()
