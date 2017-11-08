@@ -1,5 +1,4 @@
-# PyGEOMET
-Python GUI of Earth Observations and Model Evaluation Toolkit
+# PyGEOMET: Python GUI of Earth Observations and Model Evaluation Toolkit
 
 PyGEOMET is designed to be a cross-platform (Windows, Mac, Linux) Python package for viewing and analyzing a variety of meteorological datasets. PyGEOMET currently supports the following datasets: 
 
