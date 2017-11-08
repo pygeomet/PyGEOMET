@@ -273,7 +273,7 @@ class MERRAdataset:
         w = -tmp1/(rho*9.81)
         return u, v, w, press, height
  
-    def setProjection(self,gid=None,axs=None):
+    def setProjection(self,gid=None,axs=None,west=None,north=None,east=None,south=None):
         self.map = [None]*1
         lon = self.variables['lon']
         lat = self.variables['lat']

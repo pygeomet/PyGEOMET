@@ -201,22 +201,36 @@ class SoundingDataset:
         self.currentGridIndex = Indx
         #self.grid = self.gridList[self.currentGridIndex]
 
-    def setProjection(self,gid=None,axs=None):
+    def setProjection(self,gid=None,axs=None,west=None,north=None,east=None,south=None):
+
+        #If there is input on grid extent change the corners
+        if (west != None and north != None and east != None and south != None):
+            llcrnrlon = west
+            llcrnrlat = south
+            urcrnrlon = east
+            urcrnrlat = north
+        else:
+            #Hardcode for U.S. for now
+            self.ll_lon = -122.0
+            self.ll_lat = 20.0
+            self.ur_lon = -63.0
+            self.ur_lat = 50.0
+            llcrnrlon = self.ll_lon
+            llcrnrlat = self.ll_lat
+            urcrnrlon = self.ur_lon
+            urcrnrlat = self.ur_lat
+
         self.map = [None]*1
         self.nx = [None]
         self.ny = [None]
         #Hardcode for U.S.
         self.lat0 = [38.0]
         self.lon0 = [-95.0] 
-        self.ll_lon = -122.0
-        self.ll_lat = 20.0
-        self.ur_lon = -63.0
-        self.ur_lat = 50.0
         self.map[0] = Basemap(projection=self.projectionType,
                       lat_0 = self.lat0[0],
-                      lon_0 = self.lon0[0], llcrnrlon = self.ll_lon,
-                      llcrnrlat = self.ll_lat, urcrnrlon = self.ur_lon,
-                      urcrnrlat = self.ur_lat, resolution=self.resolution,
+                      lon_0 = self.lon0[0], llcrnrlon = llcrnrlon,
+                      llcrnrlat = llcrnrlat, urcrnrlon = urcrnrlon,
+                      urcrnrlat = urcrnrlat, resolution=self.resolution,
                       ax = axs)
 
 ############# GUI Related Functions ##################

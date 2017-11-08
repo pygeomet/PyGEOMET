@@ -244,27 +244,31 @@ class GOESClassDataset:
         else:
             return None
 
-    def setProjection(self,gid,axs=None,i0=None,i1=None,j0=None, j1=None):
+    def setProjection(self,gid,axs=None,west=None,north=None,east=None,south=None):
         i = gid-1
-
-        if(i0 != None and j0 != 0):
-            self.ll_lon[i] = self.glons[i][i0,j0]
-            self.ll_lat[i] = self.glats[i][i0,j0]
-
-        if(i1 != None and j1 != 0):
-            self.ur_lon[i] = self.glons[i][i1,j1]
-            self.ur_lat[i] = self.glats[i][i1,j1]
 	    
-	    
+        #If there is input on grid extent change the corners
+        if (west != None and north != None and east != None and south != None):
+            llcrnrlon = west
+            llcrnrlat = south
+            urcrnrlon = east
+            urcrnrlat = north
+        else:
+            llcrnrlon = self.ll_lon[i]
+            llcrnrlat = self.ll_lat[i]
+            urcrnrlon = self.ur_lon[i]
+            urcrnrlat = self.ur_lat[i]        
+
+
 	#GOES is not in a specific projection so using cyl    
 #        self.map[i] = Basemap(ax=axs,projection=self.projectionType,
 #                                   llcrnrlon=self.ll_lon[i],llcrnrlat=self.ll_lat[i],
 #                                   urcrnrlat = self.ur_lat[i],urcrnrlon = self.ur_lon[i],
 #                                   resolution=self.resolution)
         self.map[i] = Basemap(ax=axs, projection=self.projectionType,
-                      lat_ts = self.lat0[i], llcrnrlon = self.ll_lon[i],
-                      llcrnrlat = self.ll_lat[i], urcrnrlon = self.ur_lon[i],
-                      urcrnrlat = self.ur_lat[i], resolution=self.resolution)
+                      lat_ts = self.lat0[i], llcrnrlon = llcrnrlon,
+                      llcrnrlat = llcrnrlat, urcrnrlon = urcrnrlon,
+                      urcrnrlat = llcrnrlon, resolution=self.resolution)
 
         self.maplon[i],self.maplat[i] = self.map[i].makegrid(self.nx[i],self.ny[i])
 

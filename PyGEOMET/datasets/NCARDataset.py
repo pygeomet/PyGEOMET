@@ -229,7 +229,7 @@ class NCARdataset:
                 self.v10 = np.squeeze(tmp.variables['vwnd'][self.currentTimeIndex])
         return variable
 
-    def setProjection(self,gid=None,axs=None):
+    def setProjection(self,gid=None,axs=None,west=None,north=None,east=None,south=None):
         self.map = [None]*1
         lon = self.variables['lon']
         lat = self.variables['lat']

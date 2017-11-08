@@ -251,7 +251,7 @@ class Radardataset:
         print(np.nanmax(variable),np.nanmin(variable))
         return variable 
 
-    def setProjection(self,gid=None,axs=None):
+    def setProjection(self,gid=None,axs=None,west=None,north=None,east=None,south=None):
         self.map = [None]*1
         self.nx = [None]
         self.ny = [None]

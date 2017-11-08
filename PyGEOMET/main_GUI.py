@@ -314,10 +314,10 @@ class PlotSlab:
         self.crtmChannel = None
         self.crtmVar = None
         self.userGrid = False
-        self.llcrnrlat = None
-        self.urcrnrlat = None
-        self.llcrnrlon = None
-        self.urcrnrlon = None
+        self.east = None
+        self.north = None
+        self.west = None
+        self.south = None
         #Previous plot type (used to create vertical difference plot)
         self.prevPType = None
         self.yinterval = 1
@@ -572,16 +572,6 @@ class PlotSlab:
         import time
         t0 = time.clock()
         t1 = time.time()        
-        #Check if the user has set the lat/lon bounds of the map
-        if (self.userGrid):
-            print('setting user grid')
-            self.dataSet.ll_lat[self.currentGrid-1] = self.llcrnrlat
-            self.dataSet.ll_lon[self.currentGrid-1] = self.llcrnrlon
-            self.dataSet.ur_lat[self.currentGrid-1] = self.urcrnrlat
-            self.dataSet.ur_lon[self.currentGrid-1] = self.urcrnrlon
-        if (self.dataSet.map[self.currentGrid-1] != None):
-            print(self.dataSet.map[self.currentGrid-1].llcrnrlat,self.dataSet.map[self.currentGrid-1].llcrnrlon)
-
         #Check if colormap was changed
         if self.appobj.changeColor == True:
             #Need to have the values set = satellite color tables
@@ -649,12 +639,15 @@ class PlotSlab:
                 self.ColorBar = None
             self.axes1 = self.figure.add_subplot(111)
             self.dataSet.resolution = self.resolution
-            if (self.dataSet.map[self.currentGrid-1] != None and self.changeRes == False):
+            if (self.dataSet.map[self.currentGrid-1] != None and self.changeRes == False and self.userGrid == False):
                 self.dataSet.map[self.currentGrid-1].ax = self.axes1
             else:
-                #Reset projection to change map resolution
+                #Reset projection to change map resolution and define map boundaries
                 #Note self.currentGrid-1 is not used because setProjection subtracts 1 from input
-                self.dataSet.setProjection(self.currentGrid,axs=self.axes1)
+                self.dataSet.setProjection(self.currentGrid,axs=self.axes1,west=self.west,north=self.north,
+                                           east=self.east,south=self.south)
+                #Reset to false so set projection isnt called again
+                self.userGrid = False
                 self.changeRes = False
 
         #Set/Force NEXRAD settings
@@ -2147,7 +2140,7 @@ class PlotSlab:
         self.vectors = None
         self.vectorkey = None
         self.cs2label = None
-        self.domain_average=None
+        self.domain_average = None
         self.coasts = None
         self.countries = None
         self.states = None
@@ -2593,20 +2586,183 @@ class PlotSlab:
         self.meridians = None
         self.pltFxn(self.pNum)
 
+    #This function creates the popup so users can input
+    # a map boundaries
+    def createMapBoundaries(self):
+        #Create a selection box
+        self.mapBoundary = QDialog(self.appobj)
+        self.mapBoundary.resize(self.mapBoundary.minimumSizeHint())
+        self.mapBoundary.setMinimumHeight(self.appobj.screeny*.25)
+        self.mapBoundary.setMinimumWidth(self.appobj.screenx*.25)
+        self.mapBoundary.setWindowTitle("Set the map boundary")
+        mapControlLayout = QGridLayout()
+        self.mapBoundary.setLayout(mapControlLayout)
+
+        #Create North/East/South/West Boxes
+        northControl = QWidget()
+        northLayout = QVBoxLayout()
+        northControl.setLayout(northLayout)        
+        northBox = QLabel()
+        northBox.setText('North (latitude):')
+        self.northLat = QLineEdit()
+        self.northLat.setStyleSheet(Layout.QLineEdit())
+        self.northLat.setText(str(self.north))
+        northLayout.addWidget(northBox)
+        northLayout.addWidget(self.northLat)
+
+        eastControl = QWidget()
+        eastLayout = QVBoxLayout()
+        eastControl.setLayout(eastLayout)
+        eastBox = QLabel()
+        eastBox.setText('East (longitude):')
+        self.eastLon = QLineEdit()
+        self.eastLon.setStyleSheet(Layout.QLineEdit())
+        self.eastLon.setText(str(self.east))
+        eastLayout.addWidget(eastBox)
+        eastLayout.addWidget(self.eastLon)
+
+        southControl = QWidget()
+        southLayout = QVBoxLayout()
+        southControl.setLayout(southLayout)
+        southBox = QLabel()
+        southBox.setText('South (latitude):')
+        self.southLat = QLineEdit()
+        self.southLat.setStyleSheet(Layout.QLineEdit())
+        self.southLat.setText(str(self.south))
+        southLayout.addWidget(southBox)
+        southLayout.addWidget(self.southLat)
+
+        westControl = QWidget()
+        westLayout = QVBoxLayout()
+        westControl.setLayout(westLayout)
+        westBox = QLabel()
+        westBox.setText('West (longitude):')
+        self.westLon = QLineEdit()
+        self.westLon.setStyleSheet(Layout.QLineEdit())
+        self.westLon.setText(str(self.west))
+        westLayout.addWidget(westBox)
+        westLayout.addWidget(self.westLon)        
+
+        #Create an enter button
+        enterButton = QPushButton('Enter')
+        enterButton.setStyleSheet(Layout.QPushButton3())
+        enterButton.resize(enterButton.minimumSizeHint())
+        enterButton.clicked.connect(self.setMapBoundaries)
+
+        #Create a button to set default values
+        resetButton = QPushButton('Reset Domain')
+        resetButton.setStyleSheet(Layout.QPushButton3())
+        resetButton.resize(resetButton.minimumSizeHint())
+        resetButton.clicked.connect(self.resetMapBoundaries)
+
+        #Connect widgets
+        mapControlLayout.addWidget(northControl,0,1)
+        mapControlLayout.addWidget(westControl,1,0)
+        mapControlLayout.addWidget(eastControl,1,2)
+        mapControlLayout.addWidget(southControl,2,1)
+        mapControlLayout.addWidget(enterButton,3,0)
+        mapControlLayout.addWidget(resetButton,3,2)
+
+        #Display the selection window
+        self.mapBoundary.show()
+
     #Function to allow the user to set the map lat/lon boundaries
     def setMapBoundaries(self):
-        if self.userGrid == False:
-            self.userGrid = True
-            self.llcrnrlat = 35
-            self.llcrnrlon = -110
-            self.urcrnrlat = 50
-            self.urcrnrlon = -95
-            self.recallProjection = True
-
+        #Check for input errors
+        if (self.southLat.text() == 'None' or self.northLat.text() == 'None' or 
+            self.westLon.text() == 'None' or self.eastLon.text() == 'None'): 
+            #Display error message
+            msg = QMessageBox(self.appobj)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('Please set all values before hitting enter')
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        elif (np.float(self.southLat.text()) > 90. or np.float(self.southLat.text()) < -90. or
+              np.float(self.northLat.text()) > 90. or np.float(self.northLat.text()) < -90.):
+            #Display error message
+            msg = QMessageBox(self.appobj)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('North and South must be between -90 and 90')
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        elif (np.float(self.northLat.text()) <  np.float(self.southLat.text())):
+            #Display error message
+            msg = QMessageBox(self.appobj)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('North must be greater than South')
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        elif (np.float(self.eastLon.text()) > 180. or np.float(self.eastLon.text()) < -180. or
+              np.float(self.westLon.text()) > 180. or np.float(self.westLon.text()) < -180.):
+            #Display error message
+            msg = QMessageBox(self.appobj)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('East and West must be between -180 and 180')
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        elif (np.float(self.eastLon.text()) <  np.float(self.westLon.text())):
+            #Display error message
+            msg = QMessageBox(self.appobj)
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('East must be greater than West')
+            msg.setWindowTitle("Warning")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
         else:
-            self.userGrid = False
+            self.userGrid = True
+            self.south = np.float(self.southLat.text())
+            self.north = np.float(self.northLat.text())
+            self.west = np.float(self.westLon.text())
+            self.east = np.float(self.eastLon.text())
+            self.mapBoundary.close()
+            self.recallProjection = True
+            self.figure.clear()
+            self.ColorBar = None
+            self.cs = None
+            self.cs2 = None
+            self.barbs = None
+            self.vectors = None
+            self.vectorkey = None
+            self.cs2label = None
+            self.domain_average = None
+            self.coasts = None
+            self.countries = None
+            self.states = None
+            self.counties = None
+            self.meridians = None
+            self.parallels = None
+            self.pltFxn(self.pNum)
+
+    #Function to set values back to default of None
+    def resetMapBoundaries(self):
+        self.mapBoundary.close()
+        self.userGrid = True
+        self.south = None
+        self.west = None
+        self.north = None
+        self.east = None
+        self.recallProjection = True
+        self.figure.clear()
+        self.ColorBar = None
+        self.cs = None
+        self.cs2 = None
+        self.barbs = None
+        self.vectors = None
+        self.vectorkey = None
+        self.cs2label = None
+        self.domain_average = None
+        self.coasts = None
+        self.countries = None
+        self.states = None
+        self.counties = None
+        self.meridians = None
+        self.parallels = None
         self.pltFxn(self.pNum)
-    
+
     def error3DVar(self):
         if self.derivedVar == True:
             varname = self.dataSet.dvarlist[self.currentdVar]
@@ -2933,7 +3089,7 @@ class AppForm(QMainWindow):
 
         #User-defined Map Boundaries
         mc = QAction("Map Boundaries",self)
-        mc.triggered.connect(lambda: self.self.slbplt[self.currentPlot].setMapBoundaries())
+        mc.triggered.connect(lambda: self.slbplt[self.currentPlot].createMapBoundaries())
         mc.setStatusTip("Set the Lat/Lon boundaries for the Basemap")
         self.mapMenu.addAction(mc)
 

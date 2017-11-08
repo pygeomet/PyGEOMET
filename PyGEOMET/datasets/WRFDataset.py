@@ -421,33 +421,40 @@ class WrfDataset:
             self.pad[:] = [pad]*self.numGrids
         self.setGridCorners()
 
-    def setProjection(self,gid,axs=None,i0=None,i1=None,j0=None, j1=None):
+    def setProjection(self,gid,axs=None,west=None,north=None,east=None,south=None):
         i = gid-1
-       
-        if(i0 != None and j0 != 0):
-            self.ll_lon[i] = self.glons[i][i0,j0]
-            self.ll_lat[i] = self.glats[i][i0,j0]
+      
+        #If there is input on grid extent change the corners 
+        if (west != None and north != None and east != None and south != None):
+            llcrnrlon = west
+            llcrnrlat = south
+            urcrnrlon = east
+            urcrnrlat = north
+        else:
+            llcrnrlon = self.ll_lon[i] 
+            llcrnrlat = self.ll_lat[i] 
+            urcrnrlon = self.ur_lon[i] 
+            urcrnrlat = self.ur_lat[i] 
 
-        if(i1 != None and j1 != 0):
-            self.ur_lon[i] = self.glons[i][i1,j1]
-            self.ur_lat[i] = self.glats[i][i1,j1]
 
-        if self.projectionType == 'lcc':
-            self.map[i] = Basemap(ax=axs,projection=self.projectionType,lon_0=self.lon0[i],
-                                 lat_0 =self.lat0[i], lat_1=self.lat1[i], lat_2=self.lat2[i],
-                                 width=self.wd[i],height=self.ht[i],resolution=self.resolution)
-        if self.projectionType == 'npstere':
+        if (self.projectionType == 'lcc'):
+            #Use corners to define map instead of width/height
+            if (west != None and north != None and east != None and south != None):
+                self.map[i] = Basemap(ax=axs,projection=self.projectionType,
+                                      lat_0=self.lat0[i],lon_0=self.lon0[i],
+                                      llcrnrlon=llcrnrlon,llcrnrlat=llcrnrlat,
+                                      urcrnrlat=urcrnrlat,urcrnrlon=urcrnrlon,
+                                      resolution=self.resolution)
+            else:
+                self.map[i] = Basemap(ax=axs,projection=self.projectionType,lon_0=self.lon0[i],
+                                     lat_0=self.lat0[i],lat_1=self.lat1[i],lat_2=self.lat2[i],
+                                     width=self.wd[i],height=self.ht[i],resolution=self.resolution)
+        if (self.projectionType == 'npstere' or self.projectionType == 'merc'):
             self.map[i] = Basemap(ax=axs,projection=self.projectionType,
-                                       lat_0=self.lat0[i], lon_0=self.lon0[i],
-                                       llcrnrlon=self.ll_lon[i],llcrnrlat=self.ll_lat[i],
-                                       urcrnrlat = self.ur_lat[i],urcrnrlon = self.ur_lon[i],
-                                       resolution=self.resolution)
-        if self.projectionType == 'merc':
-            self.map[i] = Basemap(ax=axs,projection=self.projectionType,
-                                       lat_0=self.lat0[i], lon_0=self.lon0[i],
-                                       llcrnrlon=self.ll_lon[i],llcrnrlat=self.ll_lat[i],
-                                       urcrnrlat = self.ur_lat[i],urcrnrlon = self.ur_lon[i],
-                                       resolution=self.resolution)
+                                  lat_0=self.lat0[i],lon_0=self.lon0[i],
+                                  llcrnrlon=llcrnrlon,llcrnrlat=llcrnrlat,
+                                  urcrnrlat=urcrnrlat,urcrnrlon=urcrnrlon,
+                                  resolution=self.resolution)
 
         x_ll,y_ll = self.map[0](self.ll_lon[i],self.ll_lat[i])
 
