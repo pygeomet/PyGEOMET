@@ -1246,7 +1246,6 @@ class PlotSlab:
         #Plot sounding locations on the map and add a title
         print(self.dataSet.dsetname)
         if (self.dataSet.dsetname == 'Sounding'):
-            print("In here")
             #Plot station markers
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.glons[self.currentGrid-1],
                                                       self.dataSet.glats[self.currentGrid-1],
@@ -1259,7 +1258,7 @@ class PlotSlab:
         
         # Nair
         line, = self.axes1.plot([0], [0])  # empty line
-        self.dataSelector = DataSelector(line)
+        self.dataSelector = DataSelector(self,line)
         
         import time
         print( time.clock() - t0,"seconds process time plots")
@@ -1395,6 +1394,12 @@ class PlotSlab:
 
     def plotTimeSeries(self):
         
+        #Get start and end time
+        start = self.time_series[0].strftime("%b %d %Y, %H:%M:%S")
+        end = self.time_series[-1].strftime("%b %d %Y, %H:%M:%S UTC")
+        varTitle = self.dataSet.description +' ('+self.dataSet.units+')'
+        varTitle = varTitle + '\n' + start + '  -  ' + end
+        varTitle = varTitle + '\n i = '+ str(self.col) + ', j = ' + str(self.row) 
         #Create new figure that will pop-up when called
         fig = plt.figure(figsize=(12, 8))
         fig.canvas.set_window_title('Time Series Plot')
@@ -1408,10 +1413,13 @@ class PlotSlab:
         if len(self.var_series.shape) > 1:
             #3D Variable
             ax.plot_date(ind,self.var_series[:,self.currentLevel],'bo-')
+            varTitle = varTitle + '\n Level=' + str(self.dataSet.levelList[self.currentLevel])
         else:
             #2D Variable
             ax.plot_date(ind,self.var_series,'bo-')
         
+        ax.set_title(varTitle)        
+
         #Create date-time tick marks
         plt.xticks(fontsize=10)
         #Make conditional spacing options
@@ -2190,6 +2198,13 @@ class PlotSlab:
                 self.currentVar = None
                 self.currentdVar = None
         self.readField()
+        #If in time series - need to replot 2D field
+        if (self.currentPType == 'Time Series'):
+            self.replot2d = True  
+            #Setting these to None keeps the previous plot from being
+            # created again
+            self.col = None
+            self.row = None
         #Difference plot - read in difference data
         if (self.currentPType == 'Difference Plot'):
             self.diffdata.setTimeIndex(self.currentTime)
@@ -2327,7 +2342,8 @@ class PlotSlab:
         #If we want to change the pop with time remove setting
         # self.col and self.row to None
         if (self.currentPType == 'SkewT/Hodograph' or
-            self.currentPType == 'Vertical Profile'):
+            self.currentPType == 'Vertical Profile' or 
+            self.currentPType == 'Time Series'):
             self.replot2d = True
             self.col = None
             self.row = None
@@ -3650,12 +3666,15 @@ class AppForm(QMainWindow):
 ####                       Begin DataSelector() Object                     ####
 ###############################################################################
 
-class DataSelector:
+class DataSelector():
     def testfxn(self,event):
         print ('leave_figure', event.canvas.figure)
         event.canvas.figure.patch.set_facecolor('blue')
-    def __init__(self, line):
+    def __init__(self, plotobj, line):
+        self.plotObj = plotobj
         self.points = 0
+        self.marker = None
+        self.markerEvent = None
         self.startMark = None
         self.visible = False
         self.line = line
@@ -3663,7 +3682,7 @@ class DataSelector:
         self.numSelection = 0
         self.mode = 'None'
         self.modeDefs = {'s':'Select', 'S':'Select','d':'Delete','D':'Delete',
-                         'v':'View','V': 'View', 'escape': 'None'}
+                         'v':'View','V': 'View', 'm': 'Marker', 'escape': 'None'}
         self.subMode = 'None'
         self.subModeDefs = {'l':'Line', 'L':'Line','p':'Polygon','P':'Polygon'}
         #self.xs = list(line.get_xdata())
@@ -3671,16 +3690,25 @@ class DataSelector:
         self.xs = []
         self.ys = []
         #print('init',self.xs)
+        print("data selector")
         line.figure.canvas.setFocusPolicy( Qt.ClickFocus )
         line.figure.canvas.setFocus()
-        self.cid = line.figure.canvas.mpl_connect('button_press_event',self)
+        #self.cid = line.figure.canvas.mpl_connect('button_press_event',self)
         self.cid = line.figure.canvas.mpl_connect('key_press_event', self.keyPress)
+
+    def placeMarker(self,event):
+        ix, iy = event.xdata, event.ydata
+        print(ix,iy)
+        self.marker = self.plotObj.dataSet.map[self.plotObj.currentGrid-1].plot(ix,iy,'bo',markersize=6)      
+        self.plotObj.pltFxn(self.plotObj.pNum)
         
     def keyPress(self, event):
         print('in keypress')
-        if event.key in self.modeDefs and 1:
+        if event.key in self.modeDefs:
             self.mode = self.modeDefs[event.key]
             print('Mode = ',self.mode)
+            if (self.mode == 'Marker'):
+                self.markerEvent = self.line.figure.canvas.mpl_connect('button_press_event',self.placeMarker)
         if event.key in self.subModeDefs and self.mode != 'None':
             self.subMode = self.subModeDefs[event.key]
             print('sub Mode = ',self.subMode)
