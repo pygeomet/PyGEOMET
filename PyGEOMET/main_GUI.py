@@ -2135,15 +2135,36 @@ class PlotSlab:
             #Force plotting of WRF radar reflectivity to pyART colors/scale
             #Not all datasets have a dvarlist so only check if WRF at the moment
             #Revist this as additional datasets are added (if they have derived vars)
-            if (self.dataSet.dsetname == 'WRF' and self.currentdVar != None):
-                #Clear CRTM controls if necessary
-                if (self.crtmbox is not None and 
-                    self.dataSet.dvarlist[self.currentdVar] != 'BrightTemp/Radiance'):
-                    self.crtmbox.setParent(None)
-                    self.crtmbox = None
-                if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' or 
-                   (self.dataSet.dvarlist[self.currentdVar] == 'refl' and 
-                     self.derivedVar == True)):
+            if (self.dataSet.dsetname == 'WRF'):
+                #Need to check if a derived var has been selected before calling
+                # something based on its index
+                if (self.currentdVar != None):
+                    #Clear CRTM controls if necessary
+                    if (self.crtmbox is not None and 
+                        self.dataSet.dvarlist[self.currentdVar] != 'BrightTemp/Radiance'):
+                        self.crtmbox.setParent(None)
+                        self.crtmbox = None
+                    if (self.dataSet.dvarlist[self.currentdVar] == 'refl' and self.derivedVar == True):
+                        self.extend = 'max'
+                        self.colormin = 0
+                        self.colormax = 80
+                        self.ncontours = 41
+                        #Lock the colorbar
+                        self.colorlock = True
+                        #Sets up user colorbar control if this is first variable
+                        # Need it to initialize self.lock
+                        if self.colorbox is None:
+                            self.controlColorBar()
+                        self.lock.setChecked(True)
+                        if self.cmap != 'pyart_NWSRef':
+                            self.cmap2 = self.cmap
+                        self.cmap = 'pyart_NWSRef'
+                    #Else is needed to change color back after being in reflectivity mode
+                    else:
+                        self.extend = 'both'
+                        self.cmap = self.cmap2
+                #Need an additional check for the non-derived reflectivity in WRF
+                if (self.dataSet.variableList[self.currentVar] == 'REFL_10CM' and self.derivedVar == False):
                     self.extend = 'max'
                     self.colormin = 0
                     self.colormax = 80
@@ -2151,17 +2172,17 @@ class PlotSlab:
                     #Lock the colorbar
                     self.colorlock = True
                     #Sets up user colorbar control if this is first variable
-                    # Need the it to initialize self.lock
+                    # Need it to initialize self.lock
                     if self.colorbox is None:
                         self.controlColorBar()
-                        self.lock.setChecked(True)
+                    self.lock.setChecked(True)
                     if self.cmap != 'pyart_NWSRef':
                         self.cmap2 = self.cmap
                     self.cmap = 'pyart_NWSRef'
                 #Else is needed to change color back after being in reflectivity mode
                 else:
                     self.extend = 'both'
-                    self.cmap = self.cmap2 
+                    self.cmap = self.cmap2
 
             #Get the dimensions of the new variable
             ndim   = len(self.var.shape)
@@ -3363,11 +3384,6 @@ class AppForm(QMainWindow):
         self.cbar = None
         self.numDset = 0
         self.on_draw(None)
-        #self.axes1 = []   
-        #self.cmap = 'jet'
-        #self.changeColor = False
-        #self.max_val = None
-        #self.min_val = None
 
         #Path is needed to define CRTM coefficient data location
         self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
