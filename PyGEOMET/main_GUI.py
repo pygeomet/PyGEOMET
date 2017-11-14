@@ -277,6 +277,7 @@ class PlotSlab:
         self.vertControl = None
         self.pControl = None
         self.diffControl = None
+        self.seriesControl = None
         self.selectedParcel = 0
         self.skewParcel = 'SB'
         self.background = None
@@ -395,6 +396,8 @@ class PlotSlab:
                 self.var = dvar.var
                 self.var2 = dvar.var2
                 self.varTitle = dvar.varTitle
+                #Short title used in time series plot
+                self.sTitle = dvar.sTitle
                 if len(self.var.shape) == 3:
                     self.varTitle = self.varTitle + ', Level=' + str(self.dataSet.levelList[self.currentLevel])
                 if len(self.var.shape) == 3:
@@ -409,6 +412,7 @@ class PlotSlab:
                 self.diffvar = self.var
             else:
                 pass
+
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex() 
         #self.cPIndex = 1 
         #print("After pindex:", self.cPIndex)
@@ -1393,11 +1397,23 @@ class PlotSlab:
            self.errorSelectVVar()
 
     def plotTimeSeries(self):
+
+        #Check if the time indices were changed
+        sind = self.startTime.currentIndex()
+        eind = self.endTime.currentIndex()
+        #If the time indices changed, get the variable over the new
+        # time range
+        if (sind != self.timeSeriesStart and eind != self.timeSeriesEnd):
+            self.createTimeSeries(self.timeI,self.timeJ)
         
         #Get start and end time
         start = self.time_series[0].strftime("%b %d %Y, %H:%M:%S")
         end = self.time_series[-1].strftime("%b %d %Y, %H:%M:%S UTC")
-        varTitle = self.dataSet.description +' ('+self.dataSet.units+')'
+        #If plotting a derived variable, use the set short title
+        if (not self.derivedVar):
+            varTitle = self.dataSet.description +' ('+self.dataSet.units+')'
+        else:
+            varTitle = self.sTitle
         varTitle = varTitle + '\n' + start + '  -  ' + end
         varTitle = varTitle + '\n i = '+ str(self.col) + ', j = ' + str(self.row) 
         #Create new figure that will pop-up when called
@@ -1456,24 +1472,33 @@ class PlotSlab:
         #t0 = time.clock()
         #t1 = time.time()
         QApplication.setOverrideCursor(Qt.WaitCursor) 
+        #Save the indices so function can be called within the plotobj
+        self.timeI = i
+        self.timeJ = j
         #Create list to hold values at selected point and time
         var_series = []
         self.time_series = []
         append_var = var_series.append
         append_time = self.time_series.append
-        numfiles = self.dataSet.getNumFiles()
-        ntimes = self.dataSet.ntimes
+        #numfiles = self.dataSet.getNumFiles()
+        #ntimes = self.dataSet.ntimes
         input_time_index = self.dataSet.currentTimeIndex
+        #Start time
+        self.timeSeriesStart = self.startTime.currentIndex()
+        #End Time
+        self.timeSeriesEnd = self.endTime.currentIndex()
         #If the number of dimensions is less than 3 then the selected variable is 2D
         if len(self.var.shape) < 3:
-            for ii in range(numfiles*ntimes):
+            #for ii in range(numfiles*ntimes):
+             for ii in range(self.timeSeriesStart,self.timeSeriesEnd+1):
                 timeIndex = self.dataSet.setTimeIndex(ii)
                 self.dataSet.getTime()
                 append_time(self.dataSet.timeObj)#.strftime("%Y-%m-%d %H:%M:%S"))
                 self.readField()
                 append_var(self.var[j,i])
         else:
-            for ii in range(numfiles*ntimes):
+            #for ii in range(numfiles*ntimes):
+             for ii in range(self.timeSeriesStart,self.timeSeriesEnd+1):
                 timeIndex = self.dataSet.setTimeIndex(ii)
                 self.dataSet.getTime()
                 append_time(self.dataSet.timeObj)
@@ -1653,6 +1678,69 @@ class PlotSlab:
         #Time Series
         if (self.currentPType == 'Time Series'):
             self.replot2d = True
+
+            #Create tab to control the time series time options
+            self.seriesControl = QGroupBox()
+            sTitle = 'Time Series Plot Control'
+            self.seriesControlLayout = QVBoxLayout(self.seriesControl)
+
+            #Start time control
+            startWidget = QWidget()
+            startWidgetLayout = QHBoxLayout(startWidget)
+
+            startLabel = QLabel()
+            startLabel.setText('Start Time:')
+
+            self.startTime = QComboBox()
+            self.startTime.setStyleSheet(Layout.QComboBox())
+            self.startTime.addItems(self.dataSet.timeList[self.currentGrid])
+            self.startTime.setCurrentIndex(0)
+            self.startTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            #startTime.activated.connect(self.selectionChangeTimeSeriesStart)
+
+            #End time control
+            endWidget = QWidget()
+            endWidgetLayout = QHBoxLayout(endWidget)
+
+            endLabel = QLabel()
+            endLabel.setText('End Time:')
+
+            self.endTime = QComboBox()
+            self.endTime.setStyleSheet(Layout.QComboBox())
+            self.endTime.addItems(self.dataSet.timeList[self.currentGrid])
+            self.endTime.setCurrentIndex(len(self.dataSet.timeList[self.currentGrid])-1)
+            self.endTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            #endTime.activated.connect(self.selectionChangeTimeSeriesEnd)
+
+            #Plot button
+            SeriesPlotButton = QPushButton('Replot')
+            SeriesPlotButton.setStyleSheet(Layout.QPushButton3())
+            SeriesPlotButton.resize(SeriesPlotButton.minimumSizeHint())
+            SeriesPlotButton.clicked.connect(self.getTimeSeriesStartEnd)
+
+            #Add widgets and create Tab
+            startWidgetLayout.addWidget(startLabel)
+            startWidgetLayout.addWidget(self.startTime)
+            endWidgetLayout.addWidget(endLabel)
+            endWidgetLayout.addWidget(self.endTime)
+            self.seriesControlLayout.addWidget(startWidget)
+            self.seriesControlLayout.addWidget(endWidget)
+            self.seriesControlLayout.addWidget(SeriesPlotButton)
+            self.optionTabs.addTab(self.seriesControl,sTitle)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)
+
+            #Popup to select the initial start and end time
+            #self.tsControl = QDialog(self.appobj)
+            #self.tsControl.resize(self.tsControl.minimumSizeHint())
+            #self.tsControl.setWindowTitle("Time Series Start and End Time")
+            #tsControlLayout = QVBoxLayout(self.tsControl)
+
+            #Add widgets to the popup
+            #tsControlLayout.addWidget(self.startWidget)
+            #tsControlLayout.addWidget(self.endWidget)
+
+            #self.tsControl.show()
         
         #Difference plot
         if (self.currentPType == 'Difference Plot' or (self.currentPType == 'Difference Plot' and
@@ -1794,6 +1882,11 @@ class PlotSlab:
         if self.diffControl != None:
             self.diffControl.setParent(None)
             self.diffControl = None     
+
+        #Time series plot control widget if necessary
+        if self.seriesControl != None:
+            self.seriesControl.setParent(None)
+            self.seriesControl = None
                  
         #Initialize the plot options    
         self.initializePlotOptions()    
@@ -2011,6 +2104,14 @@ class PlotSlab:
         self.readField()
         self.setPlotVars()
 
+    #This function controls the Times Series start selection
+    def selectionChangeTimeSeriesStart(self,i):
+       self.timeSeriesStart = i
+
+    #This function controls the Times Series end selection
+    def selectionChangeTimeSeriesEnd(self,i):
+       self.timeSeriesEnd = i
+
     #This function is called to set plotting variables
     #  after a varaible (var or dvar) is changed.
     #  Also sets selections after the plot type is changed
@@ -2178,6 +2279,7 @@ class PlotSlab:
         self.selectTime.clear()
         self.selectTime.addItems(self.dataSet.timeList[self.currentGrid])
         self.selectVar.clear()
+        self.dataSet.updateData()
         self.selectVar.addItems(self.dataSet.variableList)
         if varname != None and self.derivedVar == True:
             self.currentdVar = np.where(np.array(self.dataSet.dvarlist) == varname)[0]
@@ -2512,6 +2614,17 @@ class PlotSlab:
         else:
             self.resolution = 'f'
         self.pltFxn(self.pNum)
+
+    #This function calls plotting routine after change the time index
+    # Needed so the user doesn't have to click the map again just to 
+    # change the time
+    def getTimeSeriesStartEnd(self):
+        #Start time
+        #self.timeSeriesStart = self.startTime.getCurrentIndex()
+        #End Time        
+        #self.timeSeriesEnd = self.endTime.getCurrentIndex()
+        self.pltFxn(self.pNum)
+
         
     def enterPress(self):
         self.ref_pt = np.float(self.refbox.text())

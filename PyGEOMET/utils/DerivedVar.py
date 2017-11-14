@@ -156,6 +156,8 @@ class WRFDerivedVar:
         self.var = self.press/100.
         self.var2 = self.var
         self.varTitle = "Total Pressure [hPa]\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Pressure [hPa]"
 
     def winds_300mb(self):
         
@@ -175,6 +177,8 @@ class WRFDerivedVar:
         #self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
         self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "300-mb Wind\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "300-mb Wind"
 
     def hgt_500mb(self):
 
@@ -193,6 +197,8 @@ class WRFDerivedVar:
         self.var = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.var2 = self.var
         self.varTitle = "500-mb Geopotential Height (m)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "500-mb Geopotential Height (m)"
 
     def temp_500mb(self):
        
@@ -213,6 +219,8 @@ class WRFDerivedVar:
         #self.var2 = wrf.hypsometric(height, self.press, ref_val, self.temp)
         self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "500-mb Temperature ($^{\circ}$C)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "500-mb Temperature ($^{\circ}$C)"
 
     def vort_500mb(self):
 
@@ -234,6 +242,8 @@ class WRFDerivedVar:
         self.var2 = np.array(wrf_cython.hypsometric(height, self.press, ref_val, self.temp))
         self.varTitle = "500-mb Relative Vorticity ($10^{-5}$ $s^{-1}$)\n" +\
                          self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "500-mb Relative Vorticity ($10^{-5}$ $s^{-1}$)"
 
     def rh_700mb(self):
 
@@ -252,6 +262,8 @@ class WRFDerivedVar:
         self.var = np.array(wrf_cython.loglinear_interpolate(var1, self.press, ref_val))
         self.var2 = self.var
         self.varTitle = "700-mb Relative Humidity (%)\n" + self.dataSet.getTime() 
+        #Set short variable title for time series
+        self.sTitle = "700-mb Relative Humidity (%)"
 
     def temp_850mb(self):
 
@@ -270,6 +282,8 @@ class WRFDerivedVar:
         self.var = wrf.convertT_KtoC(var1)
         self.var2 = wrf.get_mslp(self.height, self.press, self.temp, self.qvapor)
         self.varTitle = "850-mb Temperature\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "850-mb Temperature"
 
     def vort_850mb(self):
         
@@ -289,6 +303,8 @@ class WRFDerivedVar:
         self.var2 = wrf.get_mslp(self.height, self.press, self.temp, self.qvapor)
         self.varTitle = "850-mb Relative Voriticity ($10^{-5}$ $s^{-1}$)\n" +\
                         self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "850-mb Relative Voriticity ($10^{-5}$ $s^{-1}$)"
 
     def acc_pcp(self):
 
@@ -299,6 +315,8 @@ class WRFDerivedVar:
         #self.var = wrf.convertP_MMtoIN(var1)
         self.var2 = self.var
         self.varTitle = "Total Accumulated Precipitation (mm)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Accumulated Precipitation (mm)"
 
     def clwp(self):
 
@@ -311,6 +329,8 @@ class WRFDerivedVar:
                                qsnow, qrain, 'liquid')
         self.var2 = self.var
         self.varTitle = "Cloud Water Path (g m$^{-2}$)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Cloud Water Path (g m$^{-2}$)"
 
     def iwp(self):
 
@@ -323,6 +343,8 @@ class WRFDerivedVar:
                                qsnow, qrain, 'ice')
         self.var2 = self.var
         self.varTitle = "Ice Water Path (g m$^{-2}$)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Ice Water Path (g m$^{-2}$)"
 
     def twp(self):
 
@@ -335,6 +357,8 @@ class WRFDerivedVar:
                                qsnow, qrain, 'total')
         self.var2 = self.var
         self.varTitle = "Total Water Path (g m$^{-2}$)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Water Path (g m$^{-2}$)"
 
     def divergence(self):
         u = self.dataSet.readNCVariable('U')
@@ -357,6 +381,8 @@ class WRFDerivedVar:
         self.var = (du/dx + dv/dy)*pow(10,5)
         self.var2 = self.var
         self.varTitle = "Divergence (10$^{-5}$ s$^{-1}$)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Divergence (10$^{-5}$ s$^{-1}$)"
 
     def froude(self):
         u = self.dataSet.readNCVariable('U')
@@ -382,6 +408,8 @@ class WRFDerivedVar:
         self.var = wind/(height*N)
         self.var2 = self.var
         self.varTitle = "Froude Number\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Froude Number"
 
     def lcl_hgt(self):
  
@@ -393,12 +421,16 @@ class WRFDerivedVar:
         self.var = wrf.get_lcl(t2,rh)
         self.var2 = self.var
         self.varTitle = "LCL Height (m)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "LCL Height (m)"
 
     def mslp(self):
         
         self.var = wrf.get_mslp(self.height,self.press,self.temp,self.qvapor)
         self.var2 = self.var
         self.varTitle = "Mean Sea Level Pressure (hPa)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Mean Sea Level Pressure (hPa)"
 
     def precip_rate(self):
         if self.dataSet.ntimes == 1:
@@ -439,13 +471,16 @@ class WRFDerivedVar:
             self.var = (current - prev)/(dt/60.)
         self.var2 = self.var
         self.varTitle = "Rain Rate (mm hr$^{-1}$)\n" + self.dataSet.getTime() 
-
+        #Set short variable title for time series
+        self.sTitle = "Rain Rate (mm hr$^{-1}$)"
 
     def pwat(self):
 
         self.var = wrf.get_pwat(self.qvapor, self.rho, self.height)
         self.var2 = wrf.get_mslp(self.height, self.press, self.temp, self.qvapor)
         self.varTitle = "Total Precipitable Water (in)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Precipitable Water (in)"
 
     def refl(self):
 
@@ -468,6 +503,8 @@ class WRFDerivedVar:
                  self.var = np.amax(tmp,axis=0)
             self.var2 = self.var
         self.varTitle = "0-1km Simulated Radar Reflectivity (dBZ)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "0-1km Simulated Radar Reflectivity (dBZ)"
 
     def richardson(self):
         u = self.dataSet.readNCVariable('U')
@@ -488,6 +525,8 @@ class WRFDerivedVar:
         self.var = ((self.g/self.theta)*(dtheta/dz))/(du/dz)**(2)
         self.var2 = self.var
         self.varTitle = "Richardson Number\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Richardson Number"
 
     def bulk_rich(self):
         u = self.dataSet.readNCVariable('U')
@@ -513,6 +552,8 @@ class WRFDerivedVar:
         self.var = ((self.g/tv)*(dtheta)*dz)/((du)**2+(dv)**2)
         self.var2 = self.var
         self.varTitle = 'Bulk Richardson number\n' + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = 'Bulk Richardson number'
 
     def shear0_1km(self):
 
@@ -525,6 +566,8 @@ class WRFDerivedVar:
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-1km Shear(knots)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "0-1km Shear(knots)"
 
     def shear0_3km(self):
 
@@ -537,6 +580,8 @@ class WRFDerivedVar:
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-3km Shear (knots)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "0-3km Shear (knots)"
 
     def shear0_6km(self):
 
@@ -549,6 +594,8 @@ class WRFDerivedVar:
         self.var = wrf.convertWind_MStoKT(var1)
         self.var2 = self.var
         self.varTitle = "0-6km Shear (knots)\n" + self.dataSet.getTime()        
+        #Set short variable title for time series
+        self.sTitle = "0-6km Shear (knots)"
 
     def t2m(self):
     
@@ -556,6 +603,8 @@ class WRFDerivedVar:
         self.var = wrf.convertT_KtoF(t2)
         self.var2 = self.var
         self.varTitle = "2-meter Temperature ($^{\circ}$ F)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "2-meter Temperature ($^{\circ}$ F)"
 
     def td2m(self):
 
@@ -566,6 +615,8 @@ class WRFDerivedVar:
         self.var = wrf.convertT_KtoF(var1)
         self.var2 = self.var
         self.varTitle = "2-meter Dewpoint Temperature ($^{\circ}$ F)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "2-meter Dewpoint Temperature ($^{\circ}$ F)"
 
     def temp_3d(self):
 
@@ -578,6 +629,8 @@ class WRFDerivedVar:
         self.var = self.temp
         self.var2 = self.var
         self.varTitle = "Temperature (K)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Temperature (K)"
 
     def wind10m(self):
 
@@ -587,6 +640,8 @@ class WRFDerivedVar:
         self.var2 = self.var
         #self.varTitle = "10-meter Wind (knots)\n"+ self.dataSet.getTime()
         self.varTitle = "10-meter Wind (m s$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "10-meter Wind (m s$^{-1}$)"
 
     def wind_3d(self):
 
@@ -602,6 +657,8 @@ class WRFDerivedVar:
         self.var2 = self.var
         #self.varTitle = "Total Wind (knots)\n"+ self.dataSet.getTime()
         self.varTitle = "Total Wind (m s$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Wind (m s$^{-1}$)"
 
     def cape_SB(self):
 
@@ -612,6 +669,8 @@ class WRFDerivedVar:
         self.var, self.var2 = wrf_cython.cape_sb(self.temp,self.qvapor,
                               self.press,height)        
         self.varTitle = "Surface-Based CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Surface-Based CAPE (J kg$^{-1}$)"
 
     def cape_ML(self):
 
@@ -622,6 +681,8 @@ class WRFDerivedVar:
         self.var, self.var2 = wrf_cython.cape_ml(self.temp,self.qvapor,
                               self.press,height)
         self.varTitle = "Mixed Layer CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Mixed Layer CAPE (J kg$^{-1}$)"
 
     def cape_MU(self):
         #Switched to Cython
@@ -631,6 +692,8 @@ class WRFDerivedVar:
         self.var, self.var2 = wrf_cython.cape_mu(self.temp,self.qvapor,
                               self.press,height)
         self.varTitle = "Most Unstable CAPE (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Most Unstable CAPE (J kg$^{-1}$)"
 
     def cin_SB(self):
         #Switched to Cython
@@ -641,6 +704,8 @@ class WRFDerivedVar:
                               self.press,height))        
         self.var *= -1
         self.varTitle = "Surface-Based CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Surface-Based CIN (J kg$^{-1}$)"
 
     def cin_ML(self):
         #Sitched to Cython
@@ -651,6 +716,8 @@ class WRFDerivedVar:
                               self.press,height))
         self.var *= -1
         self.varTitle = "Mixed Layer CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Mixed Layer CIN (J kg$^{-1}$)"
 
     def cin_MU(self):
         #Switched to Cython
@@ -661,11 +728,15 @@ class WRFDerivedVar:
                               self.press,height))
         self.var *= -1
         self.varTitle = "Most Unstable CIN (J kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Most Unstable CIN (J kg$^{-1}$)"
 
     def ptheta(self):
         self.var = self.theta
         self.var2 = self.theta
         self.varTitle = "$\mathsf{\Theta}$ (K)\n" + self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "$\mathsf{\Theta}$ (K)"
 
     def theta_e(self):
         
@@ -678,6 +749,8 @@ class WRFDerivedVar:
         self.var = wrf.get_thetae(self.temp,self.qvapor,self.press)
         self.var2 = self.var
         self.varTitle = "$\mathsf{\Theta_{e}\, (K)}$\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "$\mathsf{\Theta_{e}\, (K)}$"
 
     def PotentialVorticity(self):
 
@@ -697,6 +770,8 @@ class WRFDerivedVar:
         self.var = wrf.pot_vort(u,v,f,dx,dy,self.press,self.theta)
         self.var2 = self.var
         self.varTitle = "Potential Voricity (PVU)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Potential Voricity (PVU)"
 
     def cloud_water(self):
         
@@ -712,7 +787,9 @@ class WRFDerivedVar:
         self.var = qcloud + qrain
         self.var2 = self.var
         self.varTitle = "Total Cloud Water Mixing Ratio (kg kg$^{-1}$)\n"+ self.dataSet.getTime()
-        
+        #Set short variable title for time series
+        self.sTitle = "Total Cloud Water Mixing Ratio (kg kg$^{-1}$)"        
+
     def ice_water(self):
 
         #3D ice water --> qice, qsnow, qgraup
@@ -728,6 +805,8 @@ class WRFDerivedVar:
         self.var = qice + qsnow + qgraup
         self.var2 = self.var
         self.varTitle = "Total Ice Mixing Ratio (kg kg$^{-1}$)\n"+ self.dataSet.getTime()  
+        #Set short variable title for time series
+        self.sTitle = "Total Ice Mixing Ratio (kg kg$^{-1}$)"
 
     def total_water(self):
  
@@ -746,6 +825,8 @@ class WRFDerivedVar:
         self.var = qice + qsnow + qgraup + qcloud + qrain
         self.var2 = self.var
         self.varTitle = "Total Water Mixing Ratio (kg kg$^{-1}$)\n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Total Water Mixing Ratio (kg kg$^{-1}$)"
 
     def cloud_albedo(self):
         
@@ -761,6 +842,8 @@ class WRFDerivedVar:
         self.var = ((swupt - swuptc) / swdnt) * 100.
         self.var2 = self.var
         self.varTitle = "Cloud Albedo \n"+ self.dataSet.getTime() 
+        #Set short variable title for time series
+        self.sTitle = "Total Water Mixing Ratio (kg kg$^{-1}$)"
 
     def mean_layer_temp(self):
         height = wrf.unstaggerZ(self.height)
@@ -773,6 +856,8 @@ class WRFDerivedVar:
         self.var = wrf_cython.mean_layer(self.temp,height,ref1,pblh)
         self.var2 = self.var
         self.varTitle = "Mean Layer Temperature (K) \n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Mean Layer Temperature (K)"
 
     #Function to calculate the relative humidity
     def relative_humidity(self):
@@ -780,7 +865,9 @@ class WRFDerivedVar:
         self.var = wrf.get_rh(self.temp, self.qvapor, self.press)
         self.var2 = self.var
         self.varTitle = "Relative Humidity (%) \n"+ self.dataSet.getTime()
- 
+        #Set short variable title for time series
+        self.sTitle = "Relative Humidity (%)" 
+
     #Function to determine the brightness temperature or radiance
     def crtm_wrapper(self,request_var):
          
@@ -843,14 +930,24 @@ class WRFDerivedVar:
         self.var2 = self.var
         if (request_var == "Radiance"):
             self.varTitle = "Simulated Radiance [mW $m^{-2}$ $sr^{-1}$ cm] \n"
+            #Set short variable title for time series
+            self.sTitle = "Simulated Radiance [mW $m^{-2}$ $sr^{-1}$ cm]"
         elif (request_var == "Brightness Temperature"):
             self.varTitle = "Simulated Brightness Temperature [K]\n"
+            #Set short variable title for time series
+            self.sTitle = "Simulated Brightness Temperature [K]"
         elif (request_var == "Up Radiance"):
             self.varTitle = "Simulated Atm Upward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"
+            #Set short variable title for time series
+            self.sTitle = "Simulated Atm Upward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]"
         elif (request_var == "Down Radiance"):
             self.varTitle = "Simulated Atm Downward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"
+            #Set short variable title for time series
+            self.sTitle = "Simulated Atm Downward Radiance [mW $m^{-2}$ $sr^{-1}$ cm]"
         else:
             self.varTitle = "Simulated Downward Solar Radiance [mW $m^{-2}$ $sr^{-1}$ cm]\n"        
+            #Set short variable title for time series
+            self.sTitle = "Simulated Downward Solar Radiance [mW $m^{-2}$ $sr^{-1}$ cm]"
         self.varTitle = self.varTitle + "(Sensor : "+self.sensor+"    Channel : "+self.channel+")\n"
         self.varTitle = self.varTitle + self.dataSet.getTime()        
           
