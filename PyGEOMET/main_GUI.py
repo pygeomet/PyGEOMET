@@ -267,7 +267,7 @@ class PlotSlab:
         self.orientList = ['xz','yz','custom']
         self.appobj = AppWid
         self.filltype = "contourf"
-        self.appobj.cmap = 'jet'
+        self.cmap2 = 'jet'
         self.plotbarbs = False
         self.plotvectors = False
         self.plotcontour2 = False
@@ -283,7 +283,7 @@ class PlotSlab:
         self.background = None
         self.recallProjection = True
         self.clear = False
-        self.appobj.changeColor = False
+        self.changeColor = False
         self.ColorBar = None
         self.extend = 'both'
         self.plotcoasts = True
@@ -307,7 +307,7 @@ class PlotSlab:
         self.counties = None
         self.parallels = None
         self.meridians = None
-        self.cmap = self.appobj.cmap
+        self.cmap = self.cmap2
         self.appobj.eom = None
         self.colorlock = False
         self.crtmbox = None
@@ -323,6 +323,8 @@ class PlotSlab:
         self.prevPType = None
         self.yinterval = 1
         self.xinterval = 1
+        self.max_val = None
+        self.min_val = None
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -577,30 +579,30 @@ class PlotSlab:
         t0 = time.clock()
         t1 = time.time()        
         #Check if colormap was changed
-        if self.appobj.changeColor == True:
+        if self.changeColor == True:
             #Need to have the values set = satellite color tables
             #Need to be brightness temperature or radiance
             #Check if derived var is set first because not every data set has
             # a derived variable list
-            if (self.appobj.max_val != None and self.appobj.min_val != None
+            if (self.max_val != None and self.min_val != None
                 and (self.currentdVar != None or self.dataSet.dsetname == 'GOES R' 
                 or self.dataSet.dsetname == 'GOES Class' or self.dataSet.dsetname == 'GOES UAH')):
                 #Next check if brightness temp/radiance
                 if (self.currentdVar != None):
                     if (self.dataSet.dvarlist[self.currentdVar] == 'BrightTemp/Radiance'):
-                        self.colormin = self.appobj.min_val
-                        self.colormax = self.appobj.max_val
+                        self.colormin = self.min_val
+                        self.colormax = self.max_val
                         self.ncontours = 41
                         self.colorlock = True
                         self.lock.setChecked(True)
                 if (self.dataSet.dsetname == 'GOES R' or self.dataSet.dsetname == 'GOES Class' 
                     or self.dataSet.dsetname == 'GOES UAH'):
-                        self.colormin = self.appobj.min_val
-                        self.colormax = self.appobj.max_val
+                        self.colormin = self.min_val
+                        self.colormax = self.max_val
                         self.ncontours = 41
                         self.colorlock = True
                         self.lock.setChecked(True)
-            self.cmap = self.appobj.cmap      
+            self.cmap = self.cmap2      
 
         #Set background map
         alpha = 1
@@ -1258,7 +1260,7 @@ class PlotSlab:
             soundingTitle = 'Click on a Sounding Location to Create a Plot'
             self.axes1.set_title(soundingTitle,fontsize = 12)
         #Keep the same colormap
-        self.appobj.changeColor = False
+        self.changeColor = False
         
         # Nair
         line, = self.axes1.plot([0], [0])  # empty line
@@ -1749,7 +1751,7 @@ class PlotSlab:
             self.colormax = None
             self.colormin = None
             self.ncontours = None
-            self.appobj.cmap = self.cmap
+            self.cmap2 = self.cmap
             #Create tab to control the difference plot options
             self.diffControl = QGroupBox()
             diffTitle = 'Difference Plot Control'
@@ -1819,7 +1821,7 @@ class PlotSlab:
 
         #If changed from difference plot - get the old colormap back
         if (self.currentPType == 'Difference Plot'):
-            self.cmap = self.appobj.cmap
+            self.cmap = self.cmap2
             
         #Set the new plot type
         self.currentPType = self.dataSet.ptypes[i]
@@ -2154,12 +2156,12 @@ class PlotSlab:
                         self.controlColorBar()
                         self.lock.setChecked(True)
                     if self.cmap != 'pyart_NWSRef':
-                        self.appobj.cmap = self.cmap
+                        self.cmap2 = self.cmap
                     self.cmap = 'pyart_NWSRef'
                 #Else is needed to change color back after being in reflectivity mode
                 else:
                     self.extend = 'both'
-                    self.cmap = self.appobj.cmap 
+                    self.cmap = self.cmap2 
 
             #Get the dimensions of the new variable
             ndim   = len(self.var.shape)
@@ -2689,6 +2691,54 @@ class PlotSlab:
         self.filltype = "contourf"
         self.pltFxn(self.pNum)
 
+    #This function controls the color palette selection
+    def selectionChangeColorPalette(self,i):
+        self.changeColor = True
+        self.cmap2 = self.appobj.colorlist[i]
+        #Create cmap for Satellite Water Vapor
+        if (self.cmap2 == 'sat_WV'):
+            self.max_val = 273.
+            self.min_val = 163.
+            position = [0,(195.-self.min_val)/(self.max_val-self.min_val),
+                        (223.-self.min_val)/(self.max_val-self.min_val),
+                        (243.-self.min_val)/(self.max_val-self.min_val),
+                        (261.-self.min_val)/(self.max_val-self.min_val),
+                        (263.-self.min_val)/(self.max_val-self.min_val),1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+        #Create cmap for Satellite IR
+        elif (self.cmap2 == 'sat_IR'):
+            self.max_val = 300.
+            self.min_val = 170.
+            position = [0,(200.-self.min_val)/(self.max_val-self.min_val),
+                        (208.-self.min_val)/(self.max_val-self.min_val),
+                          (218.-self.min_val)/(self.max_val-self.min_val),
+                          (228.-self.min_val)/(self.max_val-self.min_val),
+                          (245.-self.min_val)/(self.max_val-self.min_val),
+                          (253.-self.min_val)/(self.max_val-self.min_val),
+                          (258.-self.min_val)/(self.max_val-self.min_val),1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+        #Create cmap for Cloud Albedo
+        elif (self.cmap2 == 'cloud_albedo'):
+            self.max_val = 1.0
+            self.min_val = 0.0
+            position = [0,(0.2-self.min_val)/(self.max_val-self.min_val),
+                        (0.4-self.min_val)/(self.max_val-self.min_val),
+                          (0.6-self.min_val)/(self.max_val-self.min_val),
+                          (0.8-self.min_val)/(self.max_val-self.min_val),
+                          1]
+            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
+            plt.register_cmap(cmap=new_cmap)
+        else:
+            self.max_val = None
+            self.min_val = None
+
+        self.pltFxn(self.pNum)
+
     #Function to allow the user to turn on and off the lat/lon grid
     def plotLatLonGrid(self):
         if self.plotlatlon == False:
@@ -3092,31 +3142,31 @@ class AppForm(QMainWindow):
                           'viridis','magma','gray','pyart_NWSRef','sat_WV',
                           'sat_IR','cloud_albedo']
         jet = QAction("&Default (jet)",self)
-        jet.triggered.connect(lambda: self.selectionChangeColorPallete(0))
+        jet.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(0))
         brg = QAction(QIcon('brg.png'),"&BlueRedGreen",self)
-        brg.triggered.connect(lambda: self.selectionChangeColorPallete(1))
+        brg.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(1))
         rainbow = QAction("&Rainbow",self)
-        rainbow.triggered.connect(lambda: self.selectionChangeColorPallete(2))
+        rainbow.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(2))
         bwr = QAction("&BlueWhiteRed",self)
-        bwr.triggered.connect(lambda: self.selectionChangeColorPallete(3))
+        bwr.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(3))
         rdbu = QAction("&RedBlue",self)
-        rdbu.triggered.connect(lambda: self.selectionChangeColorPallete(4))
+        rdbu.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(4))
         ylorrd = QAction("&YellowOrangeRed",self)
-        ylorrd.triggered.connect(lambda: self.selectionChangeColorPallete(5))
+        ylorrd.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(5))
         viridis = QAction("&Viridis",self)
-        viridis.triggered.connect(lambda: self.selectionChangeColorPallete(6))
+        viridis.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(6))
         magma = QAction("&Magma",self)
-        magma.triggered.connect(lambda: self.selectionChangeColorPallete(7))
+        magma.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(7))
         gray = QAction("&Gray",self)
-        gray.triggered.connect(lambda: self.selectionChangeColorPallete(8))
+        gray.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(8))
         ref = QAction("&NWS Reflectivity",self)
-        ref.triggered.connect(lambda: self.selectionChangeColorPallete(9))
+        ref.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(9))
         satWV = QAction("&Satellite Water Vapor",self)
-        satWV.triggered.connect(lambda: self.selectionChangeColorPallete(10))
+        satWV.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(10))
         satIR = QAction("&Satellite IR",self)
-        satIR.triggered.connect(lambda: self.selectionChangeColorPallete(11))
+        satIR.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(11))
         cldA = QAction("&Cloud Albedo",self)
-        cldA.triggered.connect(lambda: self.selectionChangeColorPallete(12))
+        cldA.triggered.connect(lambda: self.slbplt[self.currentPlot].selectionChangeColorPalette(12))
 
         #Create map background menu bar
         defaultClear = QAction("&Default (Clear)", self)
@@ -3314,10 +3364,10 @@ class AppForm(QMainWindow):
         self.numDset = 0
         self.on_draw(None)
         #self.axes1 = []   
-        self.cmap = 'jet'
-        self.changeColor = False
-        self.max_val = None
-        self.min_val = None
+        #self.cmap = 'jet'
+        #self.changeColor = False
+        #self.max_val = None
+        #self.min_val = None
 
         #Path is needed to define CRTM coefficient data location
         self.main_path = os.path.abspath(__file__).split("main_GUI.py")[0]
@@ -3489,53 +3539,6 @@ class AppForm(QMainWindow):
         else:
             self.EOMerror()
             
-    def selectionChangeColorPallete(self,i):
-        self.changeColor = True
-        self.cmap = self.colorlist[i]
-        #Create cmap for Satellite Water Vapor
-        if (self.cmap == 'sat_WV'):
-            self.max_val = 273.
-            self.min_val = 163.
-            position = [0,(195.-self.min_val)/(self.max_val-self.min_val),
-                        (223.-self.min_val)/(self.max_val-self.min_val),
-                        (243.-self.min_val)/(self.max_val-self.min_val),
-                        (261.-self.min_val)/(self.max_val-self.min_val),
-                        (263.-self.min_val)/(self.max_val-self.min_val),1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)          
-            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
-            plt.register_cmap(cmap=new_cmap)
-        #Create cmap for Satellite IR
-        elif (self.cmap == 'sat_IR'):
-            self.max_val = 300.
-            self.min_val = 170.
-            position = [0,(200.-self.min_val)/(self.max_val-self.min_val),
-                        (208.-self.min_val)/(self.max_val-self.min_val),
-                          (218.-self.min_val)/(self.max_val-self.min_val),
-                          (228.-self.min_val)/(self.max_val-self.min_val),
-                          (245.-self.min_val)/(self.max_val-self.min_val),
-                          (253.-self.min_val)/(self.max_val-self.min_val),
-                          (258.-self.min_val)/(self.max_val-self.min_val),1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
-            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
-            plt.register_cmap(cmap=new_cmap)
-        #Create cmap for Cloud Albedo
-        elif (self.cmap == 'cloud_albedo'):
-            self.max_val = 1.0
-            self.min_val = 0.0
-            position = [0,(0.2-self.min_val)/(self.max_val-self.min_val),
-                        (0.4-self.min_val)/(self.max_val-self.min_val),
-                          (0.6-self.min_val)/(self.max_val-self.min_val),
-                          (0.8-self.min_val)/(self.max_val-self.min_val), 
-                          1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap)
-            new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
-            plt.register_cmap(cmap=new_cmap)
-        else:
-            self.max_val = None
-            self.min_val = None
-            
-        self.on_draw(self.currentPlot)
-
     #Create exit pop up window    
     def close_program(self):
        
