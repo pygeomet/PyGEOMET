@@ -60,7 +60,7 @@ class CmaqDataset:
         #Define plot type available for the dataset within the GUI
         #Should make this file type dependent for CMAQ
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 
-                       'Time Series', 'Difference Plot']
+                       'Time Series', 'Difference Plot', 'Spatial Stats']
                        #, 'Hovmoller Diagram']
 
     def name(self, path, prefix) :

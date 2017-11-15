@@ -139,6 +139,12 @@ class CanvasWidget(QWidget):
             self.plotObj.plot()
             self.canvas.draw()
 
+        #Spatial average
+        if (self.plotObj.currentPType == 'Spatial Stats'):
+            self.plotObj.spatialStats()
+            self.plotObj.plot()
+            self.canvas.draw()
+
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.NoButton:
             print("Simple mouse motion",event.buttons())
@@ -325,6 +331,9 @@ class PlotSlab:
         self.xinterval = 1
         self.max_val = None
         self.min_val = None
+        #Set spatial statistics types
+        self.spatialOptions = ['Mean','Max','Min']
+        self.spatialControl = None
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -341,16 +350,8 @@ class PlotSlab:
             self.pNum = plotnum
            
     def readField(self):
-        #print("read plot tab", self.appobj.plotControlTabs.currentIndex())
-        #print("PIndex:",self.cPIndex)
-        #print("Grid Num", self.dataSet.currentGrid-1)
-        #if (self.appobj.plotControlTabs.currentIndex() != self.cPIndex):
-        #    self.dataSet.updateData()
-        #    print("in")
         if not self.derivedVar:
             if self.currentVar != None:
-                #self.currentVar = np.where(np.array(self.dataSet.variableList) == "T2")[0][0]
-                #self.nz = 1
                 #Updata data here to accomidate multiple grids with multiple plots
                 self.dataSet.setGrid(self.currentGrid)
                 self.var = self.dataSet.readNCVariable(self.dataSet.variableList[self.currentVar],
@@ -358,8 +359,6 @@ class PlotSlab:
                     contour2=self.plotcontour2)
                 self.varTitle = self.dataSet.description +' ('+self.dataSet.units
                 self.varTitle = self.varTitle +') \n'+self.dataSet.getTime()
-                #print(self.varTitle)
-                #print(self.var.shape)
                 #account for unstaggering of the grids in 3-dimensional variables
                 if self.dataSet.dsetname == 'WRF' or self.dataSet.dsetname == 'MET':
                     if len(self.var.shape) == 3:
@@ -692,6 +691,15 @@ class PlotSlab:
                     self.error3DVar()
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var - self.diffvar
+                elif (self.currentPType == 'Spatial Stats'):
+                    #Determine the stat type
+                    statType = self.spatialOptions[self.spatialSType.currentIndex()]
+                    if (statType == 'Mean'):
+                        pltfld = np.nanmean(self.statVar,axis=0)
+                    elif (statType == 'Max'):
+                        pltfld = np.nanmax(self.statVar,axis=0)
+                    else:
+                        pltfld = np.nanmin(self.statVar,axis=0)
                 else:
                     pltfld = self.var
             else:
@@ -703,6 +711,19 @@ class PlotSlab:
                     var = self.var - self.diffvar
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var[self.currentLevel] - self.diffvar[self.currentLevel]
+                elif (self.currentPType == 'Spatial Stats'):
+                    #Add the level indicator to the variable title
+                    self.varTitle = self.varTitle + '\n Level = ' + str(self.currentLevel+1)
+                    #Determine the stat type
+                    statType = self.spatialOptions[self.spatialSType.currentIndex()]
+                    #Setup a dummy variable to get the 3d (t,y,x) variable from 4d (t,z,y,x)
+                    dum = np.squeeze(self.statVar[:,self.currentLevel,:,:])
+                    if (statType == 'Mean'):
+                        pltfld = np.nanmean(dum,axis=0)
+                    elif (statType == 'Max'):
+                        pltfld = np.nanmax(dum,axis=0)                    
+                    else:
+                        pltfld = np.nanmin(dum,axis=0)
                 else:
                     pltfld = self.var[self.currentLevel]
             
@@ -1512,6 +1533,53 @@ class PlotSlab:
         #print(time.clock() - t0, "Seconds process time")
         #print(time.time() - t1, "Seconds wall time")
 
+    #This function calculates the spatial statistics (mean,max,min) over a specified time interval
+    def spatialStats(self):
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        #Create list to hold values at selected point and time
+        var_stat = []
+        self.time_stat = []
+        append_var = var_stat.append
+        append_time = self.time_stat.append
+        #Save the dataset current time index
+        input_time_index = self.dataSet.currentTimeIndex
+        #Start time
+        self.timeStatStart = self.spatialSTime.currentIndex()
+        #self.timeSeriesEnd = self.endTime.getCurrentIndex()
+        #End Time
+        self.timeStatEnd = self.spatialETime.currentIndex()
+        #If the number of dimensions is less than 3 then the selected variable is 2D
+        if len(self.var.shape) < 3:
+            #for ii in range(numfiles*ntimes):
+             for ii in range(self.timeStatStart,self.timeStatEnd+1):
+                timeIndex = self.dataSet.setTimeIndex(ii)
+                self.dataSet.getTime()
+                append_time(self.dataSet.timeObj)#.strftime("%Y-%m-%d %H:%M:%S"))
+                self.readField()
+                append_var(self.var)
+        else:
+            #for ii in range(numfiles*ntimes):
+             for ii in range(self.timeStatStart,self.timeStatEnd+1):
+                timeIndex = self.dataSet.setTimeIndex(ii)
+                self.dataSet.getTime()
+                append_time(self.dataSet.timeObj)
+                self.readField()
+                append_var(self.var)
+        self.dataSet.setTimeIndex(input_time_index)
+        self.statVar = np.array(var_stat)
+        #Create the plot title - different than the one created in readField
+        #If plotting a derived variable, used the short title created in readField
+        start = self.time_stat[0].strftime("%b %d %Y, %H:%M:%S")
+        end = self.time_stat[-1].strftime("%b %d %Y, %H:%M:%S UTC")
+        if (self.derivedVar == True):
+            self.varTitle = self.spatialOptions[self.spatialSType.currentIndex()] +' '
+            self.varTitle = self.varTitle + self.sTitle
+        else:
+            self.varTitle = self.spatialOptions[self.spatialSType.currentIndex()] +' '
+            self.varTitle = self.varTitle + self.dataSet.description +' ('+self.dataSet.units+')'
+        self.varTitle = self.varTitle + '\n' + start + '  -  ' + end 
+        QApplication.restoreOverrideCursor()
+
     def displayValuesXYZ(self,var):
         self.axes1.imshow(var, interpolation='nearest')
         #numrows, numcols = var.shape
@@ -1807,6 +1875,74 @@ class PlotSlab:
                 count += 1
             self.dControl.show()
 
+        #Time Series
+        if (self.currentPType == 'Spatial Stats'):
+
+            #Create tab to control the spatial stats time options and condition
+            self.spatialControl = QGroupBox()
+            Title = 'Spatial Statistics Plot Control'
+            self.spatialControlLayout = QVBoxLayout(self.spatialControl)
+
+            #Statistics control
+            statsWidget = QWidget()
+            statsWidgetLayout = QHBoxLayout(statsWidget)
+            statsLabel = QLabel()
+            statsLabel.setText('Statistic Type:')
+
+            self.spatialSType = QComboBox()
+            self.spatialSType.setStyleSheet(Layout.QComboBox())
+            self.spatialSType.addItems(self.spatialOptions)
+            self.spatialSType.setCurrentIndex(0)
+            self.spatialSType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
+            #Start time control
+            startWidget = QWidget()
+            startWidgetLayout = QHBoxLayout(startWidget)
+
+            startLabel = QLabel()
+            startLabel.setText('Start Time:')
+
+            self.spatialSTime = QComboBox()
+            self.spatialSTime.setStyleSheet(Layout.QComboBox())
+            self.spatialSTime.addItems(self.dataSet.timeList[self.currentGrid])
+            self.spatialSTime.setCurrentIndex(0)
+            self.spatialSTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
+            #End time control
+            endWidget = QWidget()
+            endWidgetLayout = QHBoxLayout(endWidget)
+
+            endLabel = QLabel()
+            endLabel.setText('End Time:')
+
+            self.spatialETime = QComboBox()
+            self.spatialETime.setStyleSheet(Layout.QComboBox())
+            self.spatialETime.addItems(self.dataSet.timeList[self.currentGrid])
+            self.spatialETime.setCurrentIndex(len(self.dataSet.timeList[self.currentGrid])-1)
+            self.spatialETime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+
+            #Plot button
+            SpatialPlotButton = QPushButton('Create Plot')
+            SpatialPlotButton.setStyleSheet(Layout.QPushButton3())
+            SpatialPlotButton.resize(SpatialPlotButton.minimumSizeHint())
+            SpatialPlotButton.clicked.connect(self.getTimeStatsStartEnd)
+
+
+            #Add widgets and create Tab
+            statsWidgetLayout.addWidget(statsLabel)
+            statsWidgetLayout.addWidget(self.spatialSType)            
+            startWidgetLayout.addWidget(startLabel)
+            startWidgetLayout.addWidget(self.spatialSTime)
+            endWidgetLayout.addWidget(endLabel)
+            endWidgetLayout.addWidget(self.spatialETime)
+            self.spatialControlLayout.addWidget(statsWidget)
+            self.spatialControlLayout.addWidget(startWidget)
+            self.spatialControlLayout.addWidget(endWidget)
+            self.spatialControlLayout.addWidget(SpatialPlotButton)
+            self.optionTabs.addTab(self.spatialControl,Title)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)
+
     #Function that handles the plot type changes
     def selectionChangePlot(self,i):
         
@@ -1880,15 +2016,20 @@ class PlotSlab:
             self.pControl.setParent(None)
             self.pControl = None
 
-        #Difference plot control widget if necessary
+        #Clear difference plot control widget if necessary
         if self.diffControl != None:
             self.diffControl.setParent(None)
             self.diffControl = None     
 
-        #Time series plot control widget if necessary
+        #Clear time series plot control widget if necessary
         if self.seriesControl != None:
             self.seriesControl.setParent(None)
             self.seriesControl = None
+
+        #Clear Spatial stats plot control widget if necessary
+        if self.spatialControl != None:
+            self.spatialControl.setParent(None)
+            self.spatialControl = None
                  
         #Initialize the plot options    
         self.initializePlotOptions()    
@@ -2638,7 +2779,7 @@ class PlotSlab:
             self.resolution = 'f'
         self.pltFxn(self.pNum)
 
-    #This function calls plotting routine after change the time index
+    #This function calls plotting routine after changing the time index
     # Needed so the user doesn't have to click the map again just to 
     # change the time
     def getTimeSeriesStartEnd(self):
@@ -2648,6 +2789,9 @@ class PlotSlab:
         #self.timeSeriesEnd = self.endTime.getCurrentIndex()
         self.pltFxn(self.pNum)
 
+    #This function calls plotting routine after changing the stats options
+    def getTimeStatsStartEnd(self):
+        self.pltFxn(self.pNum)
         
     def enterPress(self):
         self.ref_pt = np.float(self.refbox.text())

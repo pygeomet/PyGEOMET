@@ -119,8 +119,8 @@ class WrfDataset:
  
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
-                       'Vertical Profile', 'Time Series', 'Difference Plot']
-                       #, 'Hovmoller Diagram']
+                       'Vertical Profile', 'Time Series', 'Difference Plot',
+                       'Spatial Stats'] #, 'Hovmoller Diagram']
 
 
     # name() is the function for specifying the WRF dataset. #
