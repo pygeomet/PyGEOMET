@@ -145,6 +145,13 @@ class CanvasWidget(QWidget):
             self.plotObj.plot()
             self.canvas.draw()
 
+        #Spatial average
+        if (self.plotObj.currentPType == 'Anomaly'):
+            self.plotObj.calculateAnomaly()
+            if (self.plotObj.cAnomaly == True):
+                self.plotObj.plot()
+                self.canvas.draw()
+
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.NoButton:
             print("Simple mouse motion",event.buttons())
@@ -700,6 +707,8 @@ class PlotSlab:
                         pltfld = np.nanmax(self.statVar,axis=0)
                     else:
                         pltfld = np.nanmin(self.statVar,axis=0)
+                elif (self.currentPType == 'Anomaly'):
+                    pltfld = self.var - self.meanAnomaly
                 else:
                     pltfld = self.var
             else:
@@ -724,6 +733,8 @@ class PlotSlab:
                         pltfld = np.nanmax(dum,axis=0)                    
                     else:
                         pltfld = np.nanmin(dum,axis=0)
+                elif (self.currentPType == 'Anomaly'):
+                    pltfld = self.var[self.currentLevel] - self.meanAnomaly
                 else:
                     pltfld = self.var[self.currentLevel]
             
@@ -1580,6 +1591,46 @@ class PlotSlab:
         self.varTitle = self.varTitle + '\n' + start + '  -  ' + end 
         QApplication.restoreOverrideCursor()
 
+    #This function is used to calculate anomalies
+    def calculateAnomaly(self):
+        #Save the dataset current time index
+        input_time_index = self.dataSet.currentTimeIndex
+        #Get the current selected hour,minute,second - used to get the simulation mean at that time
+        cHour = self.dataSet.timeObj.strftime("%H:%M")
+        #Determine number of times in loaded files 
+        numfiles = self.dataSet.getNumFiles()
+        ntimes = self.dataSet.ntimes
+        #Loop through the files times and save times matching the current time of day
+        meanVar = []
+        for ii in range(numfiles*ntimes):
+            self.dataSet.setTimeIndex(ii)
+            #Update the time object
+            self.dataSet.getTime()
+            nHour = self.dataSet.timeObj.strftime("%H:%M")
+            if (nHour == cHour):
+                #Get the current variable
+                self.readField()
+                #Check if the field has a z-component
+                if (self.nz == 1):
+                    meanVar.append(self.var)
+                else:
+                    meanVar.append(self.var[self.currentLevel])
+        #Get the original data back
+        self.dataSet.setTimeIndex(input_time_index)
+        self.readField()
+        #Check if there is at least more than 1 file occurring at the same time of day
+        if (len(meanVar) >= 2):
+            self.meanAnomaly = np.nanmean(meanVar,axis=0)
+            self.cAnomaly = True
+        else:
+            self.errorAnomaly()
+            #Switch back to horizontal plot
+            self.currentPType = 'Horizontal Slice'
+            ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
+            self.dataSet.selectPlotType.setCurrentIndex(ind)
+            self.cAnomaly = False
+            self.pltFxn(self.pNum)        
+ 
     def displayValuesXYZ(self,var):
         self.axes1.imshow(var, interpolation='nearest')
         #numrows, numcols = var.shape
@@ -3118,6 +3169,14 @@ class PlotSlab:
         msg.setWindowTitle("Warning")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()  
+
+    def errorAnomaly(self):
+        msg = QMessageBox(self.appobj)
+        msg.setIcon(QMessageBox.Information)
+        msg.setText('The current dataset does not contain more than one value at the current time of day')
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
     def errorPlotChange(self):
         msg = QMessageBox(self.appobj)

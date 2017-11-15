@@ -111,7 +111,7 @@ class METDataset:
 
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
-                       'Time Series', 'Difference Plot', 'Spatial Stats']
+                       'Time Series', 'Difference Plot', 'Spatial Stats', 'Anomaly']
                        
 
     # name() is the function for specifying the WRF dataset. #
