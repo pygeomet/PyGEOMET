@@ -1503,85 +1503,45 @@ class PlotSlab:
         fig.autofmt_xdate()
 
     def createTimeSeries(self,i,j):
-        #t0 = time.clock()
-        #t1 = time.time()
         QApplication.setOverrideCursor(Qt.WaitCursor) 
         #Save the indices so function can be called within the plotobj
         self.timeI = i
         self.timeJ = j
-        #Create list to hold values at selected point and time
-        var_series = []
-        self.time_series = []
-        append_var = var_series.append
-        append_time = self.time_series.append
-        #numfiles = self.dataSet.getNumFiles()
-        #ntimes = self.dataSet.ntimes
+        #Hold the current time for resetting the data
         input_time_index = self.dataSet.currentTimeIndex
         #Start time
         self.timeSeriesStart = self.startTime.currentIndex()
         #End Time
         self.timeSeriesEnd = self.endTime.currentIndex()
+        #Get variable over time range
+        varSeries, self.time_series = self.getVarOverRange(self.timeSeriesStart,self.timeSeriesEnd)
         #If the number of dimensions is less than 3 then the selected variable is 2D
-        if len(self.var.shape) < 3:
-            #for ii in range(numfiles*ntimes):
-             for ii in range(self.timeSeriesStart,self.timeSeriesEnd+1):
-                timeIndex = self.dataSet.setTimeIndex(ii)
-                self.dataSet.getTime()
-                append_time(self.dataSet.timeObj)#.strftime("%Y-%m-%d %H:%M:%S"))
-                self.readField()
-                append_var(self.var[j,i])
+        if (len(self.var.shape) < 3):
+            self.var_series = np.array(varSeries[:,j,i])
         else:
-            #for ii in range(numfiles*ntimes):
-             for ii in range(self.timeSeriesStart,self.timeSeriesEnd+1):
-                timeIndex = self.dataSet.setTimeIndex(ii)
-                self.dataSet.getTime()
-                append_time(self.dataSet.timeObj)
-                self.readField()
-                append_var(self.var[:,j,i])        
+            self.var_series = np.array(varSeries[:,:,j,i])
         self.dataSet.setTimeIndex(input_time_index)
-        self.var_series = np.array(var_series) 
         QApplication.restoreOverrideCursor()
-        #print(time.clock() - t0, "Seconds process time")
-        #print(time.time() - t1, "Seconds wall time")
 
     #This function calculates the spatial statistics (mean,max,min) over a specified time interval
     def spatialStats(self):
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        #Create list to hold values at selected point and time
-        var_stat = []
-        self.time_stat = []
-        append_var = var_stat.append
-        append_time = self.time_stat.append
         #Save the dataset current time index
         input_time_index = self.dataSet.currentTimeIndex
         #Start time
-        self.timeStatStart = self.spatialSTime.currentIndex()
+        timeStatStart = self.spatialSTime.currentIndex()
         #self.timeSeriesEnd = self.endTime.getCurrentIndex()
         #End Time
-        self.timeStatEnd = self.spatialETime.currentIndex()
-        #If the number of dimensions is less than 3 then the selected variable is 2D
-        if len(self.var.shape) < 3:
-            #for ii in range(numfiles*ntimes):
-             for ii in range(self.timeStatStart,self.timeStatEnd+1):
-                timeIndex = self.dataSet.setTimeIndex(ii)
-                self.dataSet.getTime()
-                append_time(self.dataSet.timeObj)#.strftime("%Y-%m-%d %H:%M:%S"))
-                self.readField()
-                append_var(self.var)
-        else:
-            #for ii in range(numfiles*ntimes):
-             for ii in range(self.timeStatStart,self.timeStatEnd+1):
-                timeIndex = self.dataSet.setTimeIndex(ii)
-                self.dataSet.getTime()
-                append_time(self.dataSet.timeObj)
-                self.readField()
-                append_var(self.var)
+        timeStatEnd = self.spatialETime.currentIndex()
+        #Get variable over time range
+        self.statVar, timeRange = self.getVarOverRange(timeStatStart,timeStatEnd)        
+        self.statVar = np.array(self.statVar)
+        #Reset the data
         self.dataSet.setTimeIndex(input_time_index)
-        self.statVar = np.array(var_stat)
         #Create the plot title - different than the one created in readField
         #If plotting a derived variable, used the short title created in readField
-        start = self.time_stat[0].strftime("%b %d %Y, %H:%M:%S")
-        end = self.time_stat[-1].strftime("%b %d %Y, %H:%M:%S UTC")
+        start = timeRange[0].strftime("%b %d %Y, %H:%M:%S")
+        end = timeRange[-1].strftime("%b %d %Y, %H:%M:%S UTC")
         if (self.derivedVar == True):
             self.varTitle = self.spatialOptions[self.spatialSType.currentIndex()] +' '
             self.varTitle = self.varTitle + self.sTitle
@@ -1590,6 +1550,32 @@ class PlotSlab:
             self.varTitle = self.varTitle + self.dataSet.description +' ('+self.dataSet.units+')'
         self.varTitle = self.varTitle + '\n' + start + '  -  ' + end 
         QApplication.restoreOverrideCursor()
+
+    #This function returns an array containing a variable over a given time range
+    def getVarOverRange(self,start,end):
+        #Create list to hold values at selected point and time
+        var_sum = []
+        timeRange = []
+        append_var = var_sum.append
+        append_time = timeRange.append
+        #If the number of dimensions is less than 3 then the selected variable is 2D
+        if (len(self.var.shape) < 3):
+             for i in range(start,end+1):
+                timeIndex = self.dataSet.setTimeIndex(i)
+                self.dataSet.getTime()
+                append_time(self.dataSet.timeObj)#.strftime("%Y-%m-%d %H:%M:%S"))
+                self.readField()
+                append_var(self.var)
+        else:
+             for i in range(start,end+1):
+                timeIndex = self.dataSet.setTimeIndex(i)
+                self.dataSet.getTime()
+                append_time(self.dataSet.timeObj)
+                self.readField()
+                append_var(self.var)
+
+        return var_sum, timeRange
+
 
     #This function is used to calculate anomalies
     def calculateAnomaly(self):
@@ -1818,7 +1804,6 @@ class PlotSlab:
             self.startTime.addItems(self.dataSet.timeList[self.currentGrid])
             self.startTime.setCurrentIndex(0)
             self.startTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-            #startTime.activated.connect(self.selectionChangeTimeSeriesStart)
 
             #End time control
             endWidget = QWidget()
@@ -1832,7 +1817,6 @@ class PlotSlab:
             self.endTime.addItems(self.dataSet.timeList[self.currentGrid])
             self.endTime.setCurrentIndex(len(self.dataSet.timeList[self.currentGrid])-1)
             self.endTime.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-            #endTime.activated.connect(self.selectionChangeTimeSeriesEnd)
 
             #Plot button
             SeriesPlotButton = QPushButton('Replot')
@@ -2298,14 +2282,6 @@ class PlotSlab:
 
         self.readField()
         self.setPlotVars()
-
-    #This function controls the Times Series start selection
-    def selectionChangeTimeSeriesStart(self,i):
-       self.timeSeriesStart = i
-
-    #This function controls the Times Series end selection
-    def selectionChangeTimeSeriesEnd(self,i):
-       self.timeSeriesEnd = i
 
     #This function is called to set plotting variables
     #  after a varaible (var or dvar) is changed.
