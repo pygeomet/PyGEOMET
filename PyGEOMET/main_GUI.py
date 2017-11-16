@@ -1437,7 +1437,7 @@ class PlotSlab:
         eind = self.endTime.currentIndex()
         #If the time indices changed, get the variable over the new
         # time range
-        if (sind != self.timeSeriesStart and eind != self.timeSeriesEnd):
+        if (sind != self.timeSeriesStart or eind != self.timeSeriesEnd):
             self.createTimeSeries(self.timeI,self.timeJ)
         
         #Get start and end time
@@ -1515,11 +1515,12 @@ class PlotSlab:
         self.timeSeriesEnd = self.endTime.currentIndex()
         #Get variable over time range
         varSeries, self.time_series = self.getVarOverRange(self.timeSeriesStart,self.timeSeriesEnd)
+        varSeries = np.array(varSeries)
         #If the number of dimensions is less than 3 then the selected variable is 2D
         if (len(self.var.shape) < 3):
-            self.var_series = np.array(varSeries[:,j,i])
+            self.var_series = varSeries[:,j,i]
         else:
-            self.var_series = np.array(varSeries[:,:,j,i])
+            self.var_series = varSeries[:,:,j,i]
         self.dataSet.setTimeIndex(input_time_index)
         QApplication.restoreOverrideCursor()
 
@@ -2811,10 +2812,6 @@ class PlotSlab:
     # Needed so the user doesn't have to click the map again just to 
     # change the time
     def getTimeSeriesStartEnd(self):
-        #Start time
-        #self.timeSeriesStart = self.startTime.getCurrentIndex()
-        #End Time        
-        #self.timeSeriesEnd = self.endTime.getCurrentIndex()
         self.pltFxn(self.pNum)
 
     #This function calls plotting routine after changing the stats options
