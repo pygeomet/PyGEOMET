@@ -2084,14 +2084,17 @@ class PlotSlab:
 
         #Don't allow plotting if no variable is selected
         if (self.currentVar != None or self.currentdVar != None):
+            #Updata data here to accomidate multiple grids with multiple plots
+            self.dataSet.setGrid(self.currentGrid)
             #Make sure there is a 3D variable selected before allowing 
             # a vertical slice plot to be made
             if (self.currentPType == 'Vertical Slice' and len(self.var.shape) < 3):
                 #Switch back to the previous plot
                 self.currentPType = self.prevPType
                 #Determine previous plot type index
-                ind = np.where(self.dataSet.ptypes == self.currentPType)[0]
-                self.dataSet.selectPlotType.setCurrentIndex(ind)
+                ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
+                #THIS IS A PROBLEM
+                #self.dataSet.selectPlotType.setCurrentIndex(ind)
                 #Throw an error
                 self.error3DVar()   
             else:            
