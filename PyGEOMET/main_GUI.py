@@ -1622,6 +1622,7 @@ class PlotSlab:
         if (len(meanVar) >= 2):
             self.meanAnomaly = np.nanmean(meanVar,axis=0)
             self.cAnomaly = True
+            self.varTitle = 'Anomalous ' + self.varTitle
         else:
             self.errorAnomaly()
             #Switch back to horizontal plot
