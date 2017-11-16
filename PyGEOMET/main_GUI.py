@@ -275,6 +275,7 @@ class PlotSlab:
         self.colormin = None
         self.colormax = None
         self.ncontours = None
+        self.calTimeRange = True
         self.colorbox = None
         self.vslicebox = None
         self.orientList = ['xz','yz','custom']
@@ -721,8 +722,6 @@ class PlotSlab:
                 elif (self.currentPType == 'Difference Plot'):
                     pltfld = self.var[self.currentLevel] - self.diffvar[self.currentLevel]
                 elif (self.currentPType == 'Spatial Stats'):
-                    #Add the level indicator to the variable title
-                    self.varTitle = self.varTitle + '\n Level = ' + str(self.currentLevel+1)
                     #Determine the stat type
                     statType = self.spatialOptions[self.spatialSType.currentIndex()]
                     #Setup a dummy variable to get the 3d (t,y,x) variable from 4d (t,z,y,x)
@@ -1535,21 +1534,28 @@ class PlotSlab:
         #End Time
         timeStatEnd = self.spatialETime.currentIndex()
         #Get variable over time range
-        self.statVar, timeRange = self.getVarOverRange(timeStatStart,timeStatEnd)        
-        self.statVar = np.array(self.statVar)
-        #Reset the data
-        self.dataSet.setTimeIndex(input_time_index)
+        if (self.calTimeRange == True):
+            self.statVar, self.timeRange = self.getVarOverRange(timeStatStart,timeStatEnd)        
+            self.statVar = np.array(self.statVar)
+            #Reset the data
+            self.dataSet.setTimeIndex(input_time_index)
+        else:
+            #Reset
+            self.calTimeRange = True
         #Create the plot title - different than the one created in readField
         #If plotting a derived variable, used the short title created in readField
-        start = timeRange[0].strftime("%b %d %Y, %H:%M:%S")
-        end = timeRange[-1].strftime("%b %d %Y, %H:%M:%S UTC")
+        start = self.timeRange[0].strftime("%b %d %Y, %H:%M:%S")
+        end = self.timeRange[-1].strftime("%b %d %Y, %H:%M:%S UTC")
         if (self.derivedVar == True):
             self.varTitle = self.spatialOptions[self.spatialSType.currentIndex()] +' '
             self.varTitle = self.varTitle + self.sTitle
         else:
             self.varTitle = self.spatialOptions[self.spatialSType.currentIndex()] +' '
             self.varTitle = self.varTitle + self.dataSet.description +' ('+self.dataSet.units+')'
-        self.varTitle = self.varTitle + '\n' + start + '  -  ' + end 
+        self.varTitle = self.varTitle + '\n' + start + '  -  ' + end     
+        #Add the level to the variable title if 3D
+        if (self.nz > 1):
+            self.varTitle = self.varTitle + '\n Level = ' + str(self.currentLevel+1)
         QApplication.restoreOverrideCursor()
 
     #This function returns an array containing a variable over a given time range
@@ -1580,44 +1586,49 @@ class PlotSlab:
 
     #This function is used to calculate anomalies
     def calculateAnomaly(self):
-        #Save the dataset current time index
-        input_time_index = self.dataSet.currentTimeIndex
-        #Get the current selected hour,minute,second - used to get the simulation mean at that time
-        cHour = self.dataSet.timeObj.strftime("%H:%M")
-        #Determine number of times in loaded files 
-        numfiles = self.dataSet.getNumFiles()
-        ntimes = self.dataSet.ntimes
-        #Loop through the files times and save times matching the current time of day
-        meanVar = []
-        for ii in range(numfiles*ntimes):
-            self.dataSet.setTimeIndex(ii)
-            #Update the time object
-            self.dataSet.getTime()
-            nHour = self.dataSet.timeObj.strftime("%H:%M")
-            if (nHour == cHour):
-                #Get the current variable
-                self.readField()
-                #Check if the field has a z-component
-                if (self.nz == 1):
-                    meanVar.append(self.var)
-                else:
-                    meanVar.append(self.var[self.currentLevel])
-        #Get the original data back
-        self.dataSet.setTimeIndex(input_time_index)
-        self.readField()
-        #Check if there is at least more than 1 file occurring at the same time of day
-        if (len(meanVar) >= 2):
-            self.meanAnomaly = np.nanmean(meanVar,axis=0)
-            self.cAnomaly = True
-            self.varTitle = 'Anomalous ' + self.varTitle
+        #Check if the mean needs to be calculated again
+        if (self.calTimeRange == True):
+            #Save the dataset current time index
+            input_time_index = self.dataSet.currentTimeIndex
+            #Get the current selected hour,minute,second - used to get the simulation mean at that time
+            cHour = self.dataSet.timeObj.strftime("%H:%M")
+            #Determine number of times in loaded files 
+            numfiles = self.dataSet.getNumFiles()
+            ntimes = self.dataSet.ntimes
+            #Loop through the files times and save times matching the current time of day
+            meanVar = []
+            for ii in range(numfiles*ntimes):
+                self.dataSet.setTimeIndex(ii)
+                #Update the time object
+                self.dataSet.getTime()
+                nHour = self.dataSet.timeObj.strftime("%H:%M")
+                if (nHour == cHour):
+                    #Get the current variable
+                    self.readField()
+                    #Check if the field has a z-component
+                    if (self.nz == 1):
+                        meanVar.append(self.var)
+                    else:
+                        meanVar.append(self.var[self.currentLevel])
+            #Get the original data back
+            self.dataSet.setTimeIndex(input_time_index)
+            self.readField()
+            #Check if there is at least more than 1 file occurring at the same time of day
+            if (len(meanVar) >= 2):
+                self.meanAnomaly = np.nanmean(meanVar,axis=0)
+                self.cAnomaly = True
+                self.varTitle = 'Anomalous ' + self.varTitle
+            else:
+                self.errorAnomaly()
+                #Switch back to horizontal plot
+                self.currentPType = 'Horizontal Slice'
+                ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
+                self.dataSet.selectPlotType.setCurrentIndex(ind)
+                self.cAnomaly = False
+                self.pltFxn(self.pNum)       
         else:
-            self.errorAnomaly()
-            #Switch back to horizontal plot
-            self.currentPType = 'Horizontal Slice'
-            ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
-            self.dataSet.selectPlotType.setCurrentIndex(ind)
-            self.cAnomaly = False
-            self.pltFxn(self.pNum)        
+            self.cAnomaly = True
+            self.calTimeRange = True 
  
     def displayValuesXYZ(self,var):
         self.axes1.imshow(var, interpolation='nearest')
@@ -2531,6 +2542,7 @@ class PlotSlab:
             #Difference plot - read in difference data
             if (self.currentPType == 'Difference Plot'):
                 self.readDiffField()
+            self.calTimeRange = False
             self.pltFxn(self.pNum)
 
     def selectionChangeDset(self,i):
@@ -2697,6 +2709,7 @@ class PlotSlab:
                 self.barbs.remove()
                 self.vectors2.remove()
             self.barbs = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to add wind vectors to the plot
@@ -2716,6 +2729,7 @@ class PlotSlab:
                 self.vectorkey.remove()
             self.vectors = None
             self.vectorkey = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to add second contour to the plot
@@ -2730,6 +2744,7 @@ class PlotSlab:
                 for labels in self.cs2label:
                     labels.remove()
             self.cs2 = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to toggle coastlines on/off
@@ -2741,6 +2756,7 @@ class PlotSlab:
             if self.coasts != None:
                 self.coasts.remove()
                 self.coasts = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to toggle counties on/off
@@ -2752,6 +2768,7 @@ class PlotSlab:
             if self.countries != None:
                 self.countries.remove()
                 self.countries = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to toggle states on/off
@@ -2763,6 +2780,7 @@ class PlotSlab:
             if self.states != None:
                 self.states.remove()
                 self.states = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to toggle counties on/off
@@ -2774,6 +2792,7 @@ class PlotSlab:
             if self.counties != None:
                 self.counties.remove()
                 self.counties = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function that changes the background color option when user selected
@@ -2791,6 +2810,7 @@ class PlotSlab:
             self.background = '.shadedrelief'
         else:
             self.background = '.etopo'
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     def changeResolution(self,i):
@@ -2806,6 +2826,7 @@ class PlotSlab:
             self.resolution = 'h'
         else:
             self.resolution = 'f'
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #This function calls plotting routine after changing the time index
@@ -2828,6 +2849,7 @@ class PlotSlab:
         self.colormin = np.float(self.selectMin.text())
         self.colormax = np.float(self.selectMax.text())
         self.ncontours = np.float(self.selectcontours.text())
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to define subsample interval
@@ -2855,6 +2877,7 @@ class PlotSlab:
         self.subBox.close()
         self.xinterval = np.int(self.selectSubsample.text())
         self.yinterval = np.int(self.selectSubsample.text())
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Change from contourf to pcolormesh
@@ -2868,6 +2891,7 @@ class PlotSlab:
         self.cs = None
         self.domain_average = None
         self.filltype = "pcolormesh"
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Change plot from pcolormesh to contour
@@ -2879,6 +2903,7 @@ class PlotSlab:
         self.parallels = None
         self.meridians = None
         self.filltype = "contourf"
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #This function controls the color palette selection
@@ -2926,7 +2951,7 @@ class PlotSlab:
         else:
             self.max_val = None
             self.min_val = None
-
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #Function to allow the user to turn on and off the lat/lon grid
@@ -2953,6 +2978,7 @@ class PlotSlab:
                     self.meridians[mer][1][0].remove()
         self.parallels = None
         self.meridians = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     #This function creates the popup so users can input
@@ -3104,6 +3130,7 @@ class PlotSlab:
             self.counties = None
             self.meridians = None
             self.parallels = None
+            self.calTimeRange = False
             self.pltFxn(self.pNum)
 
     #Function to set values back to default of None
@@ -3130,6 +3157,7 @@ class PlotSlab:
         self.counties = None
         self.meridians = None
         self.parallels = None
+        self.calTimeRange = False
         self.pltFxn(self.pNum)
 
     def error3DVar(self):

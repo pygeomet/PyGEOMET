@@ -584,8 +584,9 @@ class WrfDataset:
             if count == 0:
                 count += 1
             else:
-                dsetname = os.path.basename(str(plotObj.dSet[count].path))
-                self.selectDset.addItem(dsetname+' [Dataset '+str(count)+']')
+                #dsetname = os.path.basename(str(plotObj.dSet[count].path))
+                #self.selectDset.addItem(dsetname+' [Dataset '+str(count)+']')
+                self.selectDset.addItem(str(plotObj.dSet[count].path)+' [Dataset '+str(count)+']')
                 count += 1
         self.selectDset.setCurrentIndex(plotObj.currentDset-1)
         self.selectDset.setSizeAdjustPolicy(QComboBox.AdjustToContents)
