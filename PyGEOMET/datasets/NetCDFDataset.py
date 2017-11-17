@@ -38,8 +38,6 @@ class NetCDFDataset:
 
         self.ntimes = None
 
-        self.runType = None
-
         self.currentTimeIndex = 0
 
         self.currentFileIndex = 0
@@ -523,14 +521,14 @@ class NetCDFDataset:
         selectPlotWidget.setLayout(selectPlotWidgetLayout)
         selectPlotLabel = QLabel()
         selectPlotLabel.setText('Plot Type:')
-        self.selectPlotType = QComboBox()
-        self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.selectPlotType.addItems(self.ptypes)
-        self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.selectPlotType.activated.connect(plotObj.selectionChangePlot)
-        self.selectPlotType.setMinimumContentsLength(2)
+        plotObj.selectPlotType = QComboBox()
+        plotObj.selectPlotType.setStyleSheet(Layout.QComboBox())
+        plotObj.selectPlotType.addItems(self.ptypes)
+        plotObj.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        plotObj.selectPlotType.activated.connect(plotObj.selectionChangePlot)
+        plotObj.selectPlotType.setMinimumContentsLength(2)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
-        selectPlotWidgetLayout.addWidget(self.selectPlotType)
+        selectPlotWidgetLayout.addWidget(plotObj.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)      
 
         # Create combo box for selecting model variables

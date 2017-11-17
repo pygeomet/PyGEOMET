@@ -55,6 +55,8 @@ class GOESDataset:
 
         self.resolution = "l"
 
+        self.runType = None
+
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice']
 

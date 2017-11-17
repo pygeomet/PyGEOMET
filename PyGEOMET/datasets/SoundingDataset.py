@@ -24,7 +24,6 @@ class SoundingDataset:
         self.currentGrid = 1
         self.currentVarIndex = 1
         self.currentGridIndex = 67
-        self.runType = 'Sound'
         self.dsetname = "Sounding"
         self.projectionType = "lcc"
         self.resolution = 'l'
@@ -583,12 +582,12 @@ class SoundingDataset:
         selectPlotWidget.setLayout(selectPlotWidgetLayout)
         selectPlotLabel = QLabel()
         selectPlotLabel.setText('Plot Type:')
-        self.selectPlotType = QComboBox()
-        self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.selectPlotType.addItems(self.ptypes)
-        self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        plotObj.selectPlotType = QComboBox()
+        plotObj.selectPlotType.setStyleSheet(Layout.QComboBox())
+        plotObj.selectPlotType.addItems(self.ptypes)
+        plotObj.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
-        selectPlotWidgetLayout.addWidget(self.selectPlotType)
+        selectPlotWidgetLayout.addWidget(plotObj.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)
 
         #Time Control

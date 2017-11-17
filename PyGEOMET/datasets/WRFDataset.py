@@ -537,18 +537,10 @@ class WrfDataset:
 #####################  End of function setGridCorners() #######################
 
     def getDsetControlBar(self, plotObj):
-        #self.DCBar = QWidget()
-        #plotObj.MBar = QGroupBox(self.DCBar)
         self.tabbing = QWidget()
         plotObj.tabbingLayout = QVBoxLayout() 
         self.tabbing.setLayout(plotObj.tabbingLayout)
-        #self.qscroll = QScrollArea(plotObj.MBar)
-        #self.qscroll = QScrollArea(self.DCBar)
         self.qscroll = QScrollArea()
-        #self.qscroll.setMinimumSize(310,620)
-        #self.qscroll.setMaximumSize(310,620)        
-        #print("here", self.qscroll.geometry())
-
 
         qscrollContents = QWidget()
         plotObj.qscrollLayout = QVBoxLayout(qscrollContents)
@@ -556,17 +548,7 @@ class WrfDataset:
         self.qscroll.setWidget(qscrollContents)
         self.qscroll.setWidgetResizable(True)
 
-        #qfigWidget = QWidget(qscrollContents)
-        #plotObj.qscrollLayout.addWidget(qfigWidget)
-        #qscrollContents.setLayout(plotObj.qscrollLayout)
-        
-        #boxTitleString = 'Plot # ' +str(plotObj.plotCount)
-        #self.gbox = QGroupBox(boxTitleString,self.DCBar)
         self.gbox = QGroupBox()
-
-        #font = QFont();
-        #font.setBold(True);
-        #self.gbox.setFont(font);
         self.gboxLayout = QVBoxLayout()
         self.gbox.setLayout(self.gboxLayout)
 
@@ -606,14 +588,14 @@ class WrfDataset:
         selectPlotWidget.setLayout(selectPlotWidgetLayout)
         selectPlotLabel = QLabel()
         selectPlotLabel.setText('Plot Type:')
-        self.selectPlotType = QComboBox()
-        self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.selectPlotType.addItems(self.ptypes)
-        self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        self.selectPlotType.activated.connect(plotObj.selectionChangePlot)
-        self.selectPlotType.setMinimumContentsLength(2)
+        plotObj.selectPlotType = QComboBox()
+        plotObj.selectPlotType.setStyleSheet(Layout.QComboBox())
+        plotObj.selectPlotType.addItems(self.ptypes)
+        plotObj.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        plotObj.selectPlotType.activated.connect(plotObj.selectionChangePlot)
+        plotObj.selectPlotType.setMinimumContentsLength(2)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
-        selectPlotWidgetLayout.addWidget(self.selectPlotType)
+        selectPlotWidgetLayout.addWidget(plotObj.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)      
 
         # Create combo box for selecting model variables

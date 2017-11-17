@@ -329,12 +329,12 @@ class Radardataset:
         selectPlotWidget.setLayout(selectPlotWidgetLayout)
         selectPlotLabel = QLabel()
         selectPlotLabel.setText('Plot Type:')
-        self.selectPlotType = QComboBox()
-        self.selectPlotType.setStyleSheet(Layout.QComboBox())
-        self.selectPlotType.addItems(self.ptypes)
-        self.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        plotObj.selectPlotType = QComboBox()
+        plotObj.selectPlotType.setStyleSheet(Layout.QComboBox())
+        plotObj.selectPlotType.addItems(self.ptypes)
+        plotObj.selectPlotType.setSizeAdjustPolicy(QComboBox.AdjustToContents)
         selectPlotWidgetLayout.addWidget(selectPlotLabel)
-        selectPlotWidgetLayout.addWidget(self.selectPlotType)
+        selectPlotWidgetLayout.addWidget(plotObj.selectPlotType)
         self.gboxLayout.addWidget(selectPlotWidget)
 
         #Time Control

@@ -1623,7 +1623,7 @@ class PlotSlab:
                 #Switch back to horizontal plot
                 self.currentPType = 'Horizontal Slice'
                 ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
-                self.dataSet.selectPlotType.setCurrentIndex(ind)
+                self.selectPlotType.setCurrentIndex(ind)
                 self.cAnomaly = False
                 self.pltFxn(self.pNum)       
         else:
@@ -2093,8 +2093,7 @@ class PlotSlab:
                 self.currentPType = self.prevPType
                 #Determine previous plot type index
                 ind = np.where(np.array(self.dataSet.ptypes) == self.currentPType)[0]
-                #THIS IS A PROBLEM
-                #self.dataSet.selectPlotType.setCurrentIndex(ind)
+                self.selectPlotType.setCurrentIndex(ind)
                 #Throw an error
                 self.error3DVar()   
             else:            
@@ -2611,6 +2610,8 @@ class PlotSlab:
             self.selectVar.addItems(self.dataSet.variableList)
         self.axes1 = None
         self.figure.clear()
+        if 'runType' not in dir(self.dataSet):
+            self.dataSet.runType = None
         self.pltFxn(self.pNum)
 
     #Function connected to the time list combobox
