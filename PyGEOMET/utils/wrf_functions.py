@@ -35,7 +35,9 @@ import PyGEOMET.utils
 # 21. mean_layer                                                              #
 # 22. pot_vort (Written by Andrew White - whiteat@nsstc.uah.edu)              #
 # 23. rel_vort                                                                #
-# 24. rel_vortWRF (Written by Andrew White - whiteat@nsstc.uah.edu)
+# 24. rel_vortWRF (Written by Andrew White - whiteat@nsstc.uah.edu)           #
+# 25. wind_chill                                                              #
+# 26. heat_index                                                              #
 #                                                                             #
 ###############################################################################
 
@@ -1116,6 +1118,65 @@ def rel_vort(u,v,dx,dy):
 
 ###############################################################################
 ##########################  End function rel_vort()  ##########################
+###############################################################################
+
+
+#################### 25.Begin function of wind_chill()   ######################
+## Required libraries: numpy                                                  #
+##                                                                            #
+## Inputs: t2m = ndarray of 2-meter temperature values (Units: F)             #
+##                                                                            #
+##         wind = ndarray of 10-meter bulk wind values (Units: MPH)           #
+##                                                                            #
+###############################################################################
+
+def wind_chill(t2m,wind):
+    
+    # equation retrieved from https://www.weather.gov/media/epz/wxcalc/windChill.pdf
+    wc = 35.74 + (0.6215*t2m) - (35.75*wind**0.16) +\
+    (0.4275*t2m*wind**0.16)
+
+    return wc
+
+###############################################################################
+#########################  End function wind_chill()  #########################
+###############################################################################
+
+#################### 25.Begin function of heat_index()   ######################
+## Required libraries: numpy                                                  #
+##                                                                            #
+## Inputs: t2m = ndarray of 2-meter temperature values (Units: F)             #
+##                                                                            #
+##         wind = ndarray of 10-meter bulk wind values (Units: MPH)           #
+##                                                                            #
+###############################################################################
+
+def heat_index(t2m,rh):
+    dims = np.shape(t2m)
+    # equation retrieved from http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
+    hi = 0.5*(t2m + 61.0 + ((t2m-68.)*1.2) + (rh*0.094))
+
+    for i in range(0,dims[0]):
+        for j in range(0,dims[1]):
+            if hi[i,j] > 80:
+                hi[i,j] = (-42.379 + 2.04901523*t2m[i,j] + 10.14333127*rh[i,j]
+                      - 0.22475541*t2m[i,j]*rh[i,j] - 0.00683783*t2m[i,j]*t2m[i,j]
+                      - 0.05481717*rh[i,j]*rh[i,j] + 0.00122874*t2m[i,j]*t2m[i,j]*rh[i,j]
+                      + 0.00085282*t2m[i,j]*rh[i,j]*rh[i,j] - 0.00000199*t2m[i,j]*t2m[i,j]*rh[i,j]*rh[i,j])
+                if rh[i,j] < 13 and t2m[i,j] <= 112:
+                    hi[i,j] -= ((13.-rh[i,j])/4.)*((17.-np.abs(t2m[i,j]-95.))/17.)**(0.5)
+                if rh[i,j] > 85 and t2m[i,j] <= 87:
+                    hi[i,j] += ((rh[i,j]-85.)/10.)*((87.-t2m[i,j])/5.)
+
+
+    #hi[rh < 13 and t2m <= 112 and t2m >= 80] -= ((13.-rh)/4.)*((17.-np.abs(t2m-95.))/17.)**(0.5)
+    #hi[rh > 85 and t2m >= 80 and t2m <= 87] += ((rh-85.)/10.)*((87.-t2m)/5.)
+    #hi[hi <= 80] = 0.5*(t2m + 61.0 + ((t2m-68.)*1.2) + (rh*0.094))
+
+    return hi
+
+###############################################################################
+#########################  End function heat_index()  #########################
 ###############################################################################
 
 ################################################################################
