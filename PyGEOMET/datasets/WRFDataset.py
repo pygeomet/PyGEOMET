@@ -120,7 +120,7 @@ class WrfDataset:
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
                        'Vertical Profile', 'Time Series', 'Difference Plot',
-                       'Spatial Stats', 'Anomaly'] #, 'Hovmoller Diagram']
+                       'Spatial Stats', 'Anomaly', 'Surface Statistics'] #, 'Hovmoller Diagram']
 
 
     # name() is the function for specifying the WRF dataset. #
@@ -358,7 +358,7 @@ class WrfDataset:
         if update is None:
             self.updateData()
 
-    def getTime(self) :
+    def getTime(self,obj=None) :
         tm = self.readNCVariable('Times')
         tstr   = tm[0]
         year   = tm[0]+tm[1]+tm[2]+tm[3]
@@ -392,7 +392,10 @@ class WrfDataset:
                               "{0:0>3}".format(int(tmp1+tmp2)) + 
                               ':' + "{0:0>2}".format(int(tmp3)) +
                               ':' + "{0:0>2}".format(int(tmp4)))
-        return self.timeString
+        if (obj is None):
+            return self.timeString
+        else: 
+            return self.timeObj
 
     def variableExist(self,varname):
         if varname in self.variableList :

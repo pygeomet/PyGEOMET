@@ -38,6 +38,7 @@ import PyGEOMET.datasets.GOESRDataset as GOESRDataset
 import PyGEOMET.utils.LayoutFormat as Layout
 import PyGEOMET.utils.sensor_info as CRTMInfo
 import PyGEOMET.utils.create_colormap as create_colormap
+import PyGEOMET.utils.readObs as readObs
 import time
 import os
 import warnings
@@ -145,12 +146,18 @@ class CanvasWidget(QWidget):
             self.plotObj.plot()
             self.canvas.draw()
 
-        #Spatial average
+        #Anomaly
         if (self.plotObj.currentPType == 'Anomaly'):
             self.plotObj.calculateAnomaly()
             if (self.plotObj.cAnomaly == True):
                 self.plotObj.plot()
                 self.canvas.draw()
+
+        #Surfae Statistics
+        if (self.plotObj.currentPType == 'Surface Statistics'):
+            self.plotObj.sfcStats()
+            self.plotObj.plot()
+            self.canvas.draw()        
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.NoButton:
@@ -342,6 +349,8 @@ class PlotSlab:
         #Set spatial statistics types
         self.spatialOptions = ['Mean','Max','Min']
         self.spatialControl = None
+        self.statsControl = None
+        self.statsChangeTime = True
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -358,10 +367,12 @@ class PlotSlab:
             self.pNum = plotnum
            
     def readField(self):
+        #Updata data here to accomidate multiple grids with multiple plots
+        self.dataSet.setGrid(self.currentGrid)
         if not self.derivedVar:
             if self.currentVar != None:
-                #Updata data here to accomidate multiple grids with multiple plots
-                self.dataSet.setGrid(self.currentGrid)
+                ##Updata data here to accomidate multiple grids with multiple plots
+                #self.dataSet.setGrid(self.currentGrid)
                 self.var = self.dataSet.readNCVariable(self.dataSet.variableList[self.currentVar],
                     barbs=self.plotbarbs, vectors = self.plotvectors,
                     contour2=self.plotcontour2)
@@ -387,8 +398,8 @@ class PlotSlab:
                 pass
         else:
             if self.currentdVar != None:
-                #Updata data here to accomidate multiple grids with multiple plots
-                self.dataSet.setGrid(self.currentGrid)
+                ##Updata data here to accomidate multiple grids with multiple plots
+                #self.dataSet.setGrid(self.currentGrid)
                 t0 = time.clock()
                 t1 = time.time()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -689,10 +700,12 @@ class PlotSlab:
         if self.counties != None:
             self.counties.remove()
 
-        #Determine if a variable was passed - plots grid if not
-        if(self.currentVar != None or self.currentdVar != None):
+        #Determine if a variable was passed - plots grid if not (technically you dont have to select a variable
+        # to set currentVar of currentdVar in order to still create a surface stat plot)
+        if (self.currentVar != None or self.currentdVar != None 
+            or self.currentPType == 'Surface Statistics'):
             #Determine if the passed variable is 3D
-            if(self.nz == 1):
+            if (self.nz == 1 and self.currentPType != 'Surface Statistics'):
                 #Make sure the variable is 3D for vertical cross section
                 if (self.currentPType == 'Vertical Slice' or (self.currentPType == 'Difference Plot' and
                     self.prevPType == 'Vertical Slice')):
@@ -712,7 +725,7 @@ class PlotSlab:
                     pltfld = self.var - self.meanAnomaly
                 else:
                     pltfld = self.var
-            else:
+            elif (self.nz > 1 and self.currentPType != 'Surface Statistics'):
                 #If vertical cross section take the whole array
                 if (self.currentPType == 'Vertical Slice'):
                     var = self.var
@@ -736,16 +749,24 @@ class PlotSlab:
                     pltfld = self.var[self.currentLevel] - self.meanAnomaly
                 else:
                     pltfld = self.var[self.currentLevel]
-            
+            elif (self.currentPType == 'Surface Statistics'):
+                pltfld = self.stat
+ 
             #Set time string for saving the figure
             # timeObj is None in the NEXRAD dataset
             if (self.dataSet.dsetname != 'NEXRAD Radar'):
                 time_string = self.dataSet.timeObj.strftime("%Y%m%d_%H%M%S")
                 #Get variable name
-                if not self.derivedVar:
-                    varname = self.dataSet.variableList[self.currentVar]
+                if (self.currentPType == 'Surface Statistics'):
+                    if (self.selectedStatType == 'Bias'):
+                        varname = 'MeanBias'
+                    else:
+                        varname = 'RMSE' 
                 else:
-                    varname = self.dataSet.dvarlist[self.currentdVar]
+                    if not self.derivedVar:
+                        varname = self.dataSet.variableList[self.currentVar]
+                    else:
+                        varname = self.dataSet.dvarlist[self.currentdVar]
 
                 #change the default plot name - for saving figure
                 self.figure.canvas.get_default_filename = lambda: (varname + '_' + time_string + '.png')
@@ -804,13 +825,13 @@ class PlotSlab:
                     xdim = self.dataSet.ny[self.currentGrid-1]-1
 
             #Initialize colorbar range and increment
-            if self.colormin is None or self.colormax is None or self.ncontours is None:
+            if (self.colormin is None or self.colormax is None or self.ncontours is None):
                 self.colormin = np.nanmin(pltfld)
                 self.colormax = np.nanmax(pltfld)
                 self.ncontours = 41.
                 #Check for NAN
                 if self.colormin != self.colormin:
-                    if (self.currentPType == 'Difference Plot'):
+                    if (self.currentPType == 'Difference Plot' or self.currentPType == 'Surface Statistics'):
                         self.colormin = -1.
                     else:
                         self.colormin = 0.
@@ -824,7 +845,9 @@ class PlotSlab:
                         self.colormax = np.abs(self.colormax) * 2
             
             #For difference plot to normalize colorscale
-            if (self.currentPType == 'Difference Plot'):
+            if (self.currentPType == 'Difference Plot' or (self.currentPType == 'Surface Statistics' 
+                and self.selectedStatType == 'Bias')):
+                print ("Here:", self.selectedStatType)
                 if (self.colormin >= 0):
                     self.colormin = -1.*self.colormax
                 if (self.colormax <= 0):
@@ -834,7 +857,7 @@ class PlotSlab:
                 self.shiftedColorMap(cmap=matplotlib.cm.seismic, midpoint=midpoint, name='shifted')
                 #self.cmap = self.newmap
                 self.cmap = 'shifted'
-
+            print(self.cmap)
             #Sets up user colorbar control   
             if self.colorbox is None:
                 self.controlColorBar()
@@ -870,7 +893,7 @@ class PlotSlab:
             #Define plotting levels
             lvls = np.linspace(self.colormin,self.colormax,self.ncontours)
             #Create plots - either contourf or pcolormesh
-            if self.filltype == "contourf":
+            if (self.filltype == "contourf" and self.currentPType != "Surface Statistics"):
                 #Remove old contour before plotting - don't have to recall projection
                 if (self.cs is not None):
                     for coll in self.cs.collections:
@@ -914,7 +937,8 @@ class PlotSlab:
                                       latlon=True,extend=self.extend,
                                       cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha, ax=self.axes1)
-            elif self.filltype == "pcolormesh":
+
+            elif (self.filltype == "pcolormesh" and self.currentPType != "Surface Statistics"):
                 #Mask values less than the minimum for pcolormesh
                 pltfld = np.ma.masked_less_equal(pltfld,self.colormin)
                 #Normalize colors between min and max
@@ -969,6 +993,14 @@ class PlotSlab:
                                       norm=norm,
                                       latlon=True,cmap=plt.cm.get_cmap(str(self.cmap)),
                                       alpha=alpha, ax=self.axes1)
+
+            elif (self.currentPType == "Surface Statistics"):
+                #Normalize colors between min and max
+                norm = matplotlib.colors.Normalize(vmin=np.amin(lvls),vmax=np.amax(lvls))
+                self.cs = self.dataSet.map[self.currentGrid-1].scatter(
+                                      self.obslon,self.obslat,4*abs(pltfld),c=pltfld,
+                                      norm=norm,cmap=plt.cm.get_cmap(str(self.cmap)),
+                                      latlon=True)
                   
             #Clear old colorbar
             if self.ColorBar != None:
@@ -987,7 +1019,6 @@ class PlotSlab:
                 self.ColorBar = self.figure.colorbar(self.cs,cax=cax, orientation='vertical')         
 
             #Extend colorbar if contourf - pcolormesh doesn't allow extend at this point
-            #if self.filltype == "contourf":
             self.ColorBar.extend = self.extend
            
             #Create colorbar ticks 
@@ -995,15 +1026,26 @@ class PlotSlab:
             self.axes1.set_title(self.varTitle,fontsize = 10)
 
             #Call function to determine values on map while you hoover your mouse
-            self.displayValuesXYZ(pltfld)
+            if (self.currentPType == "Surface Statistics"):
+                pass #Gives an error for this plot, haven't looked into the problem
+            else:
+                self.displayValuesXYZ(pltfld)
             
             #Display domain average on the map
             if self.domain_average != None:
                 self.domain_average.remove()
             #Calculate domain average
-            davg = np.nanmean(pltfld)
+            if (self.currentPType == "Surface Statistics"):
+                davg = self.dom_stat
+                if (self.selectedStatType == 'Bias'):
+                    name = "Mean Bias: "
+                elif (self.selectedStatType == 'Error'):
+                    name = "RMSE: "
+            else:
+                davg = np.nanmean(pltfld)
+                name = "Domain Average: "
             self.domain_average = self.axes1.text(0.95, -0.12,
-                 ("Domain Average: " + str(davg)),
+                 (name + str(davg)),
                  verticalalignment='bottom',horizontalalignment='right',
                  transform = self.axes1.transAxes,
                  color='k',fontsize=10)
@@ -1629,7 +1671,164 @@ class PlotSlab:
         else:
             self.cAnomaly = True
             self.calTimeRange = True 
- 
+
+    #This function extracts the loaded observation data at the current time
+    # and calculates the statitsics (Bias and RMSE)
+    def sfcStats(self):
+        #Check if time was changed
+        if (self.statsChangeTime):
+            #Get the index where the obs times match the current time
+            ctime = self.dataSet.getTime(obj=True)
+            ind = np.where(self.obsdate == ctime)[0]
+        
+            #Read in the model variables
+            u10 = self.dataSet.readNCVariable('U10')
+            v10 = self.dataSet.readNCVariable('V10')
+            sinalpha = self.dataSet.readNCVariable('SINALPHA')
+            cosalpha = self.dataSet.readNCVariable('COSALPHA')
+            t2 = self.dataSet.readNCVariable('T2')
+            q2 = self.dataSet.readNCVariable('Q2')*1000. #Convert to g/kg
+
+            #Calculate Earth relative model winds and convert to wind speed
+            # and meteorological wind direction in degrees
+            uearth = u10*cosalpha - v10*sinalpha
+            vearth = v10*cosalpha + u10*sinalpha
+            wrf_ws = np.sqrt(uearth*uearth + vearth*vearth)
+            wrf_wd = 270 - np.arctan2(vearth,uearth)*(180./np.pi) 
+
+            #Get WRF lower left corner
+            x0wrf, y0wrf = self.dataSet.map[self.currentGrid-1](
+                           self.dataSet.glons[self.currentGrid-1][0,0],
+                           self.dataSet.glats[self.currentGrid-1][0,0])
+            x0wrf = x0wrf - self.dataSet.dx[self.currentGrid-1]/2.
+            y0wrf = y0wrf - self.dataSet.dx[self.currentGrid-1]/2.
+
+            #Determine the i and j indexs on the WRF grid cooresponding to the
+            # obs locations and perform bilinear interpolation of the model to 
+            # the obs point
+            self.obslon = []
+            self.obslat = []
+            ws_bias = []
+            wd_bias = []
+            t_bias = []
+            q_bias = []
+            ws_err = []
+            wd_err = []
+            t_err = []
+            q_err = []
+            for i in range(len(ind)):
+                x, y = self.dataSet.map[self.currentGrid-1](self.olon[ind][i],self.olat[ind][i])
+                ii = (x-x0wrf)/self.dataSet.dx[self.currentGrid-1]
+                jj = (y-y0wrf)/self.dataSet.dx[self.currentGrid-1]
+                #Check if the observation falls within the grid
+                if (np.floor(ii) > 0 and np.floor(ii) < self.dataSet.nx[self.currentGrid-1]-2 and
+                    np.floor(jj) > 0 and np.floor(jj) < self.dataSet.ny[self.currentGrid-1]-2):
+
+                    #Observations
+                    ws = self.ws_obs[ind][i]
+                    wd = self.wd_obs[ind][i]
+                    t = self.t_obs[ind][i]
+                    q = self.q_obs[ind][i]
+                    self.obslon.append(self.olon[ind][i])
+                    self.obslat.append(self.olat[ind][i])
+
+                    #Bilinear interpolation to observation point
+                    #Wind Speed
+                    term1 = (1./((np.floor(ii)+1 - np.floor(ii))*(np.floor(jj)+1 - np.floor(jj))))
+                    term2 = wrf_ws[np.int(jj),np.int(ii)]*(np.floor(ii)+1-ii)*(np.floor(jj)+1-jj)
+                    term3 = wrf_ws[np.int(jj),np.int(ii)+1]*(ii-np.floor(ii))*(np.floor(jj)+1-jj)
+                    term4 = wrf_ws[np.int(jj)+1,np.int(ii)]*(np.floor(ii)+1-ii)*(jj-np.floor(jj))
+                    term5 = wrf_ws[np.int(jj)+1,np.int(ii)+1]*(ii-np.floor(ii))*(jj-np.floor(jj))
+                    ws_mod = term1*(term2+term3+term4+term5)
+
+                    #Wind Direction
+                    term2 = wrf_wd[np.int(jj),np.int(ii)]*(np.floor(ii)+1-ii)*(np.floor(jj)+1-jj)
+                    term3 = wrf_wd[np.int(jj),np.int(ii)+1]*(ii-np.floor(ii))*(np.floor(jj)+1-jj)
+                    term4 = wrf_wd[np.int(jj)+1,np.int(ii)]*(np.floor(ii)+1-ii)*(jj-np.floor(jj))
+                    term5 = wrf_wd[np.int(jj)+1,np.int(ii)+1]*(ii-np.floor(ii))*(jj-np.floor(jj))
+                    wd_mod = term1*(term2+term3+term4+term5)
+
+                    #Temperature
+                    term2 = t2[np.int(jj),np.int(ii)]*(np.floor(ii)+1-ii)*(np.floor(jj)+1-jj)
+                    term3 = t2[np.int(jj),np.int(ii)+1]*(ii-np.floor(ii))*(np.floor(jj)+1-jj)
+                    term4 = t2[np.int(jj)+1,np.int(ii)]*(np.floor(ii)+1-ii)*(jj-np.floor(jj))
+                    term5 = t2[np.int(jj)+1,np.int(ii)+1]*(ii-np.floor(ii))*(jj-np.floor(jj))
+                    t_mod = term1*(term2+term3+term4+term5)
+
+                    #Water Vapor Mixing Ratio
+                    term2 = q2[np.int(jj),np.int(ii)]*(np.floor(ii)+1-ii)*(np.floor(jj)+1-jj)
+                    term3 = q2[np.int(jj),np.int(ii)+1]*(ii-np.floor(ii))*(np.floor(jj)+1-jj)
+                    term4 = q2[np.int(jj)+1,np.int(ii)]*(np.floor(ii)+1-ii)*(jj-np.floor(jj))
+                    term5 = q2[np.int(jj)+1,np.int(ii)+1]*(ii-np.floor(ii))*(jj-np.floor(jj))
+                    q_mod = term1*(term2+term3+term4+term5)
+
+                    #Calculate bias
+                    ws_bias.append(ws_mod - ws)
+                    wd_bias.append(wd_mod - wd)
+                    t_bias.append(t_mod - t)
+                    q_bias.append(q_mod - q)
+
+                    #Calculate Error
+                    ws_err.append((ws_mod - ws)**2)
+                    wd_err.append((wd_mod - wd)**2)
+                    t_err.append((t_mod - t)**2)
+                    q_err.append((q_mod - q)**2)
+
+            self.ws_bias = np.array(ws_bias)
+            self.ws_err = np.array(ws_err)
+            self.wd_bias = np.array(wd_bias)
+            self.wd_err = np.array(wd_err)
+            self.t_bias = np.array(t_bias)
+            self.t_err = np.array(t_err)
+            self.q_bias = np.array(q_bias)
+            self.q_err = np.array(q_err)        
+        
+        #Determine selected variable
+        if (self.selectedStatsVar == 'Wind Speed'):
+            bias_var = self.ws_bias
+            mean_sq = self.ws_err
+            err_var = np.sqrt(self.ws_err)
+            units = 'm s$^{-1}$'
+        elif (self.selectedStatsVar == 'Wind Direction'):
+            bias_var = self.wd_bias
+            mean_sq = self.wd_err
+            err_var = np.sqrt(self.wd_err)
+            units = 'degrees'
+        elif (self.selectedStatsVar == 'Temperature'):
+            bias_var = self.t_bias
+            mean_sq = self.t_err
+            err_var = np.sqrt(self.t_err)
+            units = 'K'
+        elif (self.selectedStatsVar == 'Water Vapor Mixing Ratio'):
+            bias_var = self.q_bias
+            mean_sq = self.q_err
+            err_var = np.sqrt(self.q_err)
+            units = 'g kg$^{-1}$'
+
+        #Calculate mean bias
+        mb = np.nanmean(bias_var)
+        #Calculate RMSE
+        rmse = np.sqrt(np.nanmean(mean_sq))
+   
+        #Determine selected stat type
+        if (self.selectedStatType == 'Bias'):
+           self.stat = bias_var
+           self.dom_stat = mb
+           self.varTitle = 'Model ' + self.selectedStatsVar + ' Bias: '
+           self.varTitle = self.varTitle + '('+ units + ') \n'+self.dataSet.getTime()
+        elif (self.selectedStatType == 'Error'):
+           self.stat = err_var
+           self.dom_stat = rmse
+           self.varTitle = 'Model ' + self.selectedStatsVar + ' Error: '
+           self.varTitle = self.varTitle + '('+ units + ') \n'+self.dataSet.getTime()
+        
+        #Reset 
+        self.statsChangeTime = True
+
+        #Recall projection
+        self.recallProjection = True
+        self.clear = True
+
     def displayValuesXYZ(self,var):
         self.axes1.imshow(var, interpolation='nearest')
         #numrows, numcols = var.shape
@@ -1794,6 +1993,65 @@ class PlotSlab:
             self.optionTabs.addTab(self.vertControl,vertTitle)
             self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
             self.tabbingLayout.addWidget(self.optionTabs)
+
+        #Surface Statistics
+        if (self.currentPType == 'Surface Statistics'):
+            #Define intial variable and statistic type
+            self.selectedStatsVar = 'Wind Speed'
+            self.selectedStatType = 'Bias'
+            #Get start and enddate of WRF files
+            begdate = self.dataSet.timeList[self.dataSet.currentGrid][0]
+            enddate = self.dataSet.timeList[self.dataSet.currentGrid][-1]
+            #Read in the observation file
+            obsFile = QFileDialog.getOpenFileName(self.appobj, 'Select File')
+            if (len(obsFile) > 0):
+                QApplication.setOverrideCursor(Qt.WaitCursor)
+                self.obsdate, self.olat, self.olon, \
+                              self.t_obs, self.q_obs, \
+                              self.ws_obs, self.wd_obs = readObs.readObs(obsFile[0],begdate,enddate)
+                QApplication.restoreOverrideCursor()
+            else:
+                print("File was not selected")
+
+            #Create tab to control sfc stats variable
+            self.statsControl = QGroupBox()
+            statsTitle = 'Surface Statistic Control'
+            self.statsControlLayout = QVBoxLayout(self.statsControl)
+
+            selectVarWidget = QWidget()
+            selectVarWidgetLayout = QVBoxLayout()
+            selectVarWidget.setLayout(selectVarWidgetLayout)
+
+            #Variable control
+            selectVarLabel = QLabel()
+            selectVarLabel.setText('Variable:')
+            selectSfcVar = QComboBox()
+            selectSfcVar.setStyleSheet(Layout.QComboBox())
+            self.sfcList = ['Wind Speed', 'Temperature', 'Water Vapor Mixing Ratio']
+            selectSfcVar.addItems(self.sfcList)
+            selectSfcVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectSfcVar.currentIndexChanged.connect(self.selectionChangedStatVar)
+        
+            #Stat type control
+            selectStatTLabel = QLabel()
+            selectStatTLabel.setText('Statistic:')
+            selectStatVar = QComboBox()
+            selectStatVar.setStyleSheet(Layout.QComboBox())
+            self.statList = ['Bias', 'Error']
+            selectStatVar.addItems(self.statList)
+            selectStatVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectStatVar.currentIndexChanged.connect(self.selectionChangedStatType)        
+        
+            #Add widgets
+            selectVarWidgetLayout.addWidget(selectVarLabel)
+            selectVarWidgetLayout.addWidget(selectSfcVar)
+            selectVarWidgetLayout.addWidget(selectStatTLabel)
+            selectVarWidgetLayout.addWidget(selectStatVar)
+            self.statsControlLayout.addWidget(selectVarWidget)
+
+            self.optionTabs.addTab(self.statsControl,statsTitle)
+            self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
+            self.tabbingLayout.addWidget(self.optionTabs)            
 
         #Time Series
         if (self.currentPType == 'Time Series'):
@@ -2004,7 +2262,7 @@ class PlotSlab:
             self.col = None
 
         #If changed from difference plot - get the old colormap back
-        if (self.currentPType == 'Difference Plot'):
+        if (self.currentPType == 'Difference Plot' or self.currentPType == 'Surface Statistics'):
             self.cmap = self.cmap2
             
         #Set the new plot type
@@ -2078,12 +2336,18 @@ class PlotSlab:
         if self.spatialControl != None:
             self.spatialControl.setParent(None)
             self.spatialControl = None
+
+        #Clear Sfc Stats plot control widget if necessary
+        if self.statsControl != None:
+            self.statsControl.setParent(None)
+            self.statsControl = None        
                  
         #Initialize the plot options    
         self.initializePlotOptions()    
 
         #Don't allow plotting if no variable is selected
-        if (self.currentVar != None or self.currentdVar != None):
+        if (self.currentVar != None or self.currentdVar != None 
+            or self.currentPType == 'Surface Statistics'):
             #Updata data here to accomidate multiple grids with multiple plots
             self.dataSet.setGrid(self.currentGrid)
             #Make sure there is a 3D variable selected before allowing 
@@ -2438,6 +2702,30 @@ class PlotSlab:
         self.vplot = dVvar.var
         self.VertvarTitle = dVvar.varTitle
 
+    #This function is called when the sfc statistics variable is changed
+    def selectionChangedStatVar(self,i):
+        self.selectedStatsVar = self.sfcList[i]
+        #Time didnt change so set to False
+        self.statsChangeTime = False
+        #Reset color scale
+        self.colormin = None
+        self.colormax = None
+        self.ncontours = None
+        self.pltFxn(self.pNum)
+
+    #This function is called when the sfc statistics type is changed
+    def selectionChangedStatType(self,i):
+        self.selectedStatType = self.statList[i]
+        #Time didnt change so set to False
+        self.statsChangeTime = False
+        if (self.selectedStatType == 'Error'):
+            self.cmap = self.cmap2
+        #Reset color scale
+        self.colormin = None 
+        self.colormax = None 
+        self.ncontours = None
+        self.pltFxn(self.pNum)
+
     def selectionChangeParcel(self,i):
         self.selectedParcel = i
         if self.selectedParcel == 0:
@@ -2679,7 +2967,8 @@ class PlotSlab:
                         
         #Make sure a variable is selected before plotting
         #Needed to allow changing of plot type 
-        if (self.currentVar != None or self.currentdVar != None):
+        if (self.currentVar != None or self.currentdVar != None 
+            or self.currentPType == 'Surface Statistics'):
             self.pltFxn(self.pNum)
 
     def selectionChangeOrient(self,i):
@@ -2923,7 +3212,7 @@ class PlotSlab:
                         (243.-self.min_val)/(self.max_val-self.min_val),
                         (261.-self.min_val)/(self.max_val-self.min_val),
                         (263.-self.min_val)/(self.max_val-self.min_val),1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            ctable_path = os.path.join(self.appobj.main_path,'utils','colortables',self.cmap2)
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)
         #Create cmap for Satellite IR
@@ -2937,7 +3226,7 @@ class PlotSlab:
                           (245.-self.min_val)/(self.max_val-self.min_val),
                           (253.-self.min_val)/(self.max_val-self.min_val),
                           (258.-self.min_val)/(self.max_val-self.min_val),1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            ctable_path = os.path.join(self.appobj.main_path,'utils','colortables',self.cmap2)
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)
         #Create cmap for Cloud Albedo
@@ -2949,7 +3238,7 @@ class PlotSlab:
                           (0.6-self.min_val)/(self.max_val-self.min_val),
                           (0.8-self.min_val)/(self.max_val-self.min_val),
                           1]
-            ctable_path = os.path.join(self.main_path,'utils','colortables',self.cmap2)
+            ctable_path = os.path.join(self.appobj.main_path,'utils','colortables',self.cmap2)
             new_cmap = create_colormap.make_cmap(ctable_path,position=position,bit=False)
             plt.register_cmap(cmap=new_cmap)
         else:
