@@ -1352,7 +1352,7 @@ def convertWind_MStoMPH(wind):
 def get_distance(lat1,lon1,lat2,lon2):
 
     #set up the constants for the distance calculation
-    r = 6371000. #Earth's radius (units: meters)
+    r = 6371. #Earth's radius (units: kilometers)
 
     #convert the latitudes into radians
     l1 = lat1*(np.pi/180.)    
@@ -1366,7 +1366,7 @@ def get_distance(lat1,lon1,lat2,lon2):
     (np.cos(l1)*np.cos(l2)*np.cos(dlon)))*r
 
     #return the distance between the two latitudes (Units: km)
-    return dist/1000.
+    return dist
 
 ###############################################################################
 #######################  End function get_distance()  #########################
