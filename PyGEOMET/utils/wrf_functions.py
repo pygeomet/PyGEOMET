@@ -1199,6 +1199,7 @@ def heat_index(t2m,rh):
 # 13. unstaggerX                                                               #
 # 14. unstaggerY                                                               #
 # 15. unstaggerZ                                                               #
+# 16. geo2lam          (Written by Andrew White - whiteat@nsstc.uah.edu)       #
 #                                                                              #
 ################################################################################
 
@@ -1667,6 +1668,109 @@ def unstaggerZ(var):
 
 ###############################################################################
 #######################  End function unstaggerZ()  ###########################
+###############################################################################
+
+#######################  Begin function of geo2lam()  #########################
+## Required libraries: numpy                                                  #
+##                                                                            #
+## Inputs: clat = center latitude                                             #
+##         clon = center longitude                                            #
+##         tlat1,tlat2 = true latitudes                                       #
+##         xloc,yloc = lambert distances (output if None)                     #
+##         xlon,ylat = lat/long (output if None)                              #
+##                                                                            #
+##                                                                            #
+###############################################################################
+
+def geo2lam(clat,clon,tlat1,tlat2,xloc=None,yloc=None,xlon=None,ylat=None):
+
+    #Constants
+    deg2rad = np.pi/180.
+    rad2deg = 180./np.pi
+    r_earth = 6370.
+    pole = 90.
+
+    #Determine the center point
+    if (clat < 0):
+        sign = -1.
+    else:
+        sign = 1.
+
+    #Error check true lats
+    if (abs(tlat1) > 90.):
+        tlat1 = sign * 60.
+        tlat2 = sign * 30.
+
+    if (tlat1 == tlat2):
+        xn = np.sin(tlat1*deg2rad)
+    else:
+        xn = ( (np.log10(np.cos(tlat1*deg2rad)) - np.log10(np.cos(tlat2*deg2rad))) /
+               (np.log10(np.tan((45.-sign*tlat1/2.)*deg2rad)) -
+                np.log10(np.tan((45.-sign*tlat2/2.)*deg2rad))) )
+
+    psi1 = (90. - sign*tlat1)*deg2rad
+    if (clat < 0):
+       psi1 = -1*psi1
+       pole = -1*pole
+    psi0 = (pole-clat)*deg2rad
+    xc = 0
+    yc = ((-1.)*r_earth)/xn*np.sin(psi1)*(np.tan(psi0/2.)/np.tan(psi1/2))**xn
+
+    #Convert from Lambert to Geo
+    if (xloc != None and yloc != None):
+        xloc = xloc + xc
+        yloc = yloc + yc
+        if (yloc == 0):
+            if (xloc >= 0):
+                flp = 90.*deg2rad
+            else:
+                flp = -90.*deg2rad
+        else:
+            if (clat < 0):
+                flp = np.atan2(xloc,yloc)
+            else:
+                flp = np.atan2(xloc,-yloc)
+        flpp = (flp/xn)*rad2deg + clon
+        if (flpp < -180.): flpp = flpp + 360.
+        if (flpp >  180.): flpp = flpp - 360.
+
+        #Set longitude
+        xlon = flpp
+
+        r = np.sqrt(xloc**2 + yloc**2)
+        if (clat < 0): r = -r
+        cel1 = (r*xn)/(r_earth*np.sin(psi1))
+        rxn = 1/xn
+        cel1 = np.tan(psi1/2.)*cel1**rxn
+        cel2 = np.atan(cel1)
+        psx = 2*cel2*rad2deg
+        #Set latitude
+        ylat = pole - psx
+
+        return xlon, ylat
+
+    else: #Convert from Geo to Lambert
+        ylon = xlon - clon
+        if (ylon >  180.): ylon = ylon - 360.
+        if (ylon < -180.): ylon = ylon + 360.
+        flp1 = xn*ylon*deg2rad
+        psx = (pole - ylat)*deg2rad
+        r = ((-1.)*r_earth)/xn*np.sin(psi1)*(np.tan(psx/2.)/np.tan(psi1/2.))**xn
+
+        if (clat < 0):
+            xloc = r*np.sin(flp1)
+            yloc = r*np.cos(flp1)
+        else:
+            xloc = -r*np.sin(flp1)
+            yloc = r*np.cos(flp1)
+
+        xloc = xloc - xc
+        yloc = yloc - yc
+
+        return xloc, yloc
+
+###############################################################################
+#########################  End function geo2lam()  ############################
 ###############################################################################
 
 ################################################################################
