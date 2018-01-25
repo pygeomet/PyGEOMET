@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import glob
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.path as mplPath
 import scipy.spatial as spatial
 import netCDF4
 import PyGEOMET.utils.wrf_functions as wrf
@@ -311,6 +312,7 @@ class PlotSlab:
         self.plotcountries = True
         self.plotstates = True
         self.plotcounties = False
+        self.plotcities = False
         self.plotlatlon = True
         self.cs = None
         self.cs2 = None
@@ -326,6 +328,7 @@ class PlotSlab:
         self.countries = None
         self.states = None
         self.counties = None
+        self.cities = False
         self.parallels = None
         self.meridians = None
         self.cmap = self.cmap2
@@ -1212,6 +1215,13 @@ class PlotSlab:
                 self.states = self.dataSet.map[self.currentGrid-1].drawstates(ax=self.axes1)
             if self.plotcounties:
                 self.counties = self.dataSet.map[self.currentGrid-1].drawcounties(ax=self.axes1,linewidth=0.5)
+            if self.plotcities and self.cities is False:
+                for info,shape in zip(self.dataSet.map[self.currentGrid-1].cities_info,self.dataSet.map[self.currentGrid-1].cities):
+                    if info['UATYP10'] is 'U':
+                        poly = mplPath.Path(np.array(shape))
+                        x,y = zip(*shape)
+                        self.dataSet.map[self.currentGrid-1].plot(x,y, color='k', linewidth=0.5, ax=self.axes1)
+                self.cities = True
             # draw parallels
             if self.dataSet.projectionType == "robin" or self.dataSet.projectionType == "geos" or \
                self.dataSet.projectionType == "ortho" or self.dataSet.projectionType == "aeqd":
@@ -3088,6 +3098,21 @@ class PlotSlab:
         self.calTimeRange = False
         self.pltFxn(self.pNum)
 
+    #Function to toggle cities on/off (US only - read from utils/city_shapefiles/ directory)
+    def plotCities(self):
+        if self.plotcities == False:
+            self.plotcities = True
+            print(self.appobj.main_path)
+            self.dataSet.map[self.currentGrid-1].readshapefile(self.appobj.main_path + "utils/city_shapefile/cb_2016_us_ua10_500k",'cities',drawbounds=False)
+        else:
+            self.plotcities = False
+            self.cities = False
+            #if self.cities != None:
+            #    self.cities.remove()
+            #    self.cities = None
+        self.calTimeRange = False
+        self.pltFxn(self.pNum)
+
     #Function that changes the background color option when user selected
     def changeBackground(self,i):
         #self.ColorBar = None
@@ -3840,7 +3865,9 @@ class AppForm(QMainWindow):
         states.setStatusTip('Overlay State Boundaries')
         county = QAction("Counties",self)
         county.triggered.connect(lambda: self.slbplt[self.currentPlot].plotCounties())
-        county.setStatusTip('Overlay County Boundaries')
+        city = QAction("Cities",self)
+        city.triggered.connect(lambda: self.slbplt[self.currentPlot].plotCities())
+        city.setStatusTip('Overlay City Boundaries')
         llgrid = QAction("Lat/Lon Grid",self)
         llgrid.triggered.connect(lambda: self.slbplt[self.currentPlot].plotLatLonGrid())
         llgrid.setStatusTip('Overlay Lat/Lon Grid')
@@ -3860,6 +3887,7 @@ class AppForm(QMainWindow):
         geogMenu.addAction(ctries)
         geogMenu.addAction(states)
         geogMenu.addAction(county)
+        geogMenu.addAction(city)
         geogMenu.addAction(llgrid)
         self.overlayMenu.addAction(c2)
         self.overlayMenu.addAction(wb)
