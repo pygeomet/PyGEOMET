@@ -2765,6 +2765,10 @@ class PlotSlab:
         #Check if we need to change the map resolution
         if (self.dataSet.map[self.currentGrid-1].resolution != self.resolution):
             self.changeRes = True
+        if (self.plotcities == True):    
+            self.cities = False
+            self.plotcities = False
+            self.plotCities(plot=False)
         self.currentTime = 0
         if self.colorlock == False:
             #Reset colorbar settings
@@ -3099,10 +3103,9 @@ class PlotSlab:
         self.pltFxn(self.pNum)
 
     #Function to toggle cities on/off (US only - read from utils/city_shapefiles/ directory)
-    def plotCities(self):
+    def plotCities(self,plot=None):
         if self.plotcities == False:
             self.plotcities = True
-            print(self.appobj.main_path)
             self.dataSet.map[self.currentGrid-1].readshapefile(self.appobj.main_path + "utils/city_shapefile/cb_2016_us_ua10_500k",'cities',drawbounds=False)
         else:
             self.plotcities = False
@@ -3111,7 +3114,8 @@ class PlotSlab:
             #    self.cities.remove()
             #    self.cities = None
         self.calTimeRange = False
-        self.pltFxn(self.pNum)
+        if (plot is None):
+            self.pltFxn(self.pNum)
 
     #Function that changes the background color option when user selected
     def changeBackground(self,i):
