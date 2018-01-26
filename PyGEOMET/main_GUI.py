@@ -2190,8 +2190,10 @@ class PlotSlab:
                 count += 1
             self.dControl.show()
 
-        #Time Series
+        #Spatial Statistics
         if (self.currentPType == 'Spatial Stats'):
+            #Initialize to True when selected
+            self.calTimeRange = True
 
             #Create tab to control the spatial stats time options and condition
             self.spatialControl = QGroupBox()
@@ -2242,7 +2244,6 @@ class PlotSlab:
             SpatialPlotButton.resize(SpatialPlotButton.minimumSizeHint())
             SpatialPlotButton.clicked.connect(self.getTimeStatsStartEnd)
 
-
             #Add widgets and create Tab
             statsWidgetLayout.addWidget(statsLabel)
             statsWidgetLayout.addWidget(self.spatialSType)            
@@ -2257,6 +2258,11 @@ class PlotSlab:
             self.optionTabs.addTab(self.spatialControl,Title)
             self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
             self.tabbingLayout.addWidget(self.optionTabs)
+
+        #Anomaly
+        if (self.currentPType == 'Anomaly'):
+            #Initialize to True when selected
+            self.calTimeRange = True
 
     #Function that handles the plot type changes
     def selectionChangePlot(self,i):
