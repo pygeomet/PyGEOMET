@@ -354,6 +354,7 @@ class PlotSlab:
         self.spatialControl = None
         self.statsControl = None
         self.statsChangeTime = True
+        self.selectedStatType = 'Bias'
 
         #self.cPIndex = self.appobj.plotControlTabs.currentIndex()
         if 'runType' not in dir(self.dataSet):
@@ -850,7 +851,6 @@ class PlotSlab:
             #For difference plot to normalize colorscale
             if (self.currentPType == 'Difference Plot' or (self.currentPType == 'Surface Statistics' 
                 and self.selectedStatType == 'Bias')):
-                print ("Here:", self.selectedStatType)
                 if (self.colormin >= 0):
                     self.colormin = -1.*self.colormax
                 if (self.colormax <= 0):
@@ -860,7 +860,6 @@ class PlotSlab:
                 self.shiftedColorMap(cmap=matplotlib.cm.seismic, midpoint=midpoint, name='shifted')
                 #self.cmap = self.newmap
                 self.cmap = 'shifted'
-            print(self.cmap)
             #Sets up user colorbar control   
             if self.colorbox is None:
                 self.controlColorBar()
@@ -2316,6 +2315,11 @@ class PlotSlab:
         #Remove the plotting axes and clear the figure
         self.axes1 = None
         self.figure.clear()
+
+        #Make sure to replot cities if necessary
+        if (self.currentPType != 'Vertical Slice'):
+            if (self.plotcities == True):
+                self.cities = False
 
         #Remove vertical slice controls if necessary
         if self.vslicebox != None:
