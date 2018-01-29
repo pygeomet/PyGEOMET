@@ -278,6 +278,7 @@ class WrfDataset:
         self.lat2 = []
         self.lon0 = []
         self.lat0 = []
+        self.moad_cen_lat = []
         self.map   = [None]*self.numGrids
         self.wd     = [0.0]*self.numGrids
         self.ht     = [0.0]*self.numGrids
@@ -313,7 +314,8 @@ class WrfDataset:
             self.lat1.append(self.ncId.__dict__['TRUELAT1'])
             self.lat2.append(self.ncId.__dict__['TRUELAT2'])
             self.lon0.append(self.ncId.__dict__['CEN_LON'])
-            self.lat0 .append(self.ncId.__dict__['CEN_LAT'])
+            self.lat0.append(self.ncId.__dict__['CEN_LAT'])
+            self.moad_cen_lat.append(self.ncId.__dict__['MOAD_CEN_LAT'])
 
         if len(self.nx) == self.numGrids:
             self.currentGrid = cg
