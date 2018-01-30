@@ -106,6 +106,8 @@ class METDataset:
 
         self.resolution = "l"
 
+        self.numGrids = 0
+
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
                        'Time Series', 'Difference Plot', 'Spatial Stats', 'Anomaly']
@@ -122,13 +124,13 @@ class METDataset:
     def name(self, path, prefix) :
 
         # If no valid path and prefix are specified, then do #
-        # nothing and set number of grids = 0                #
+        # nothing                                            #
 
         self.path = path
 
         if path == None :
 
-            self.numGrids = 0
+            pass
 
         else :
 

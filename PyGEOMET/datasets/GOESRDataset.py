@@ -60,6 +60,8 @@ class GOESRDataset:
 
         self.resolution = "l"
 
+        self.numGrids = 0
+
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice']
 
@@ -78,7 +80,7 @@ class GOESRDataset:
         self.path = "/home/GOES_R"
         if files == None :
 
-            self.numGrids = 0
+            pass
 
         else :
 

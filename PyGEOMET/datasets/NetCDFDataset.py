@@ -48,6 +48,8 @@ class NetCDFDataset:
 
         self.resolution = "l"
  
+        self.numGrids = 0
+
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
                        'Vertical Profile', 'Time Series', 'Difference Plot']
@@ -65,7 +67,7 @@ class NetCDFDataset:
 
         if files == None :
 
-            self.numGrids = 0
+            pass
 
         else :
 

@@ -54,6 +54,8 @@ class CmaqDataset:
  
         self.varList = []
 
+        self.numGrids = 0
+
         #Define plot type available for the dataset within the GUI
         #Should make this file type dependent for CMAQ
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 
@@ -67,13 +69,13 @@ class CmaqDataset:
     def name(self, path, prefix) :
 
         # If no valid path and prefix are specified, then do #
-        # nothing and set number of grids = 0                #
+        # nothing                                            #
 
         self.path = path
 
         if path == None :
 
-            self.numGrids = 0
+            pass
 
         else :
 
