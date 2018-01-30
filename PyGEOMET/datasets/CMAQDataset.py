@@ -19,9 +19,6 @@ class CmaqDataset:
         self.fileList = []
 
         self.timeList = [None]
-        # Specify the CMAQ dataset by calling the function name()#
-
-        self.name(path, prefix)
 
         # Current grid to which all operations apply !
 
@@ -63,6 +60,9 @@ class CmaqDataset:
                        'Time Series', 'Difference Plot', 'Spatial Stats',
                        'Anomaly']
                        #, 'Hovmoller Diagram']
+
+        # Specify the CMAQ dataset by calling the function name()#
+        self.name(path, prefix)
 
     def name(self, path, prefix) :
 

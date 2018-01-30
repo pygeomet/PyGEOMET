@@ -25,9 +25,6 @@ class GOESRDataset:
         self.fileList = []
 
         self.timeList = [None]
-        # Specify the WRF dataset by calling the function name()#
-
-        self.name(files)
 
         # Current grid to which all operations apply !
 
@@ -65,6 +62,10 @@ class GOESRDataset:
 
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['Horizontal Slice']
+
+        # Specify the WRF dataset by calling the function name()#
+        self.name(files)
+
 
     # name() is the function for specifying the WRF dataset. #
     # Based on the directory name and prefix for WRF output  #

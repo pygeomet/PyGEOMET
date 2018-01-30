@@ -87,9 +87,6 @@ class WrfDataset:
         self.fileList = [None]
 
         self.timeList = [None]
-        # Specify the WRF dataset by calling the function name()#
-
-        self.name(path, prefix)
 
         # Current grid to which all operations apply !
 
@@ -123,6 +120,10 @@ class WrfDataset:
                        'Spatial Stats', 'Anomaly', 'Surface Statistics'] #, 'Hovmoller Diagram']
 
 
+        # Specify the WRF dataset by calling the function name()#
+        self.name(path, prefix)
+    
+    
     # name() is the function for specifying the WRF dataset. #
     # Based on the directory name and prefix for WRF output  #
     # files, this function will compile a list of file names #

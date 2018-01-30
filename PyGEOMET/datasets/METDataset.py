@@ -81,9 +81,6 @@ class METDataset:
         self.fileList = [None]
 
         self.timeList = [None]
-        # Specify the WRF dataset by calling the function name()#
-
-        self.name(path, prefix)
 
         # Current grid to which all operations apply !
 
@@ -113,6 +110,9 @@ class METDataset:
         self.ptypes = ['Horizontal Slice', 'Vertical Slice', 'SkewT/Hodograph',
                        'Time Series', 'Difference Plot', 'Spatial Stats', 'Anomaly']
                        
+
+        # Specify the WRF dataset by calling the function name()#
+        self.name(path, prefix)
 
     # name() is the function for specifying the WRF dataset. #
     # Based on the directory name and prefix for WRF output  #
