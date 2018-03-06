@@ -182,6 +182,46 @@ def linear_interpolate(float[:,:,:] var, float[:,:,:] z,
 ###################  End function linear_interpolate()  ####################
 ###############################################################################
 
+################  Begin function linear_interpolate2DTarget  ####################
+#This function interpolates a variable to a 2D target height level
+
+def linear_interpolate2DTarget(float[:,:,:] var, float[:,:,:] z,
+                               float[:,:] ztarget):
+
+    #Define variables
+    cdef int nx = var.shape[2]
+    cdef int ny = var.shape[1]
+    cdef int nz = var.shape[0]
+    cdef double[:,:] var_new = np.zeros((ny,nx))
+    cdef int i, j, k, ind
+    cdef double diff
+
+    #Start the program
+    for i in range(nx):
+        for j in range(ny):
+            #Check if ztarget is below surface before looping
+            if z[0,j,i] > ztarget[j,i]:
+                var_new[j,i] = np.nan
+            else:
+                for k in range(nz):
+                    diff = z[k,j,i] - ztarget[j,i]
+                    if (diff >= 0):
+                        ind = k - 1
+                        #Interpolate to level
+                        var_new[j,i] = ( var[ind+1,j,i] - ((var[ind+1,j,i]-var[ind,j,i])/
+                                         (z[ind+1,j,i]-z[ind,j,i]))*(z[ind+1,j,i]-ztarget[j,i]))
+                        break
+                    #Condition if ztarget is less than z at model top
+                    if (k == nz-1):
+                        var_new[j,i] = np.nan
+
+    return var_new
+
+###############################################################################
+###################  End function linear_interpolate2DTarget()  ####################
+###############################################################################
+
+
 ################  Begin function linear_interpolate1d  ####################
 #This function interpolates a variable to a target height level
 #Input is a 1D array

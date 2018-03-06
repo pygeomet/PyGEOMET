@@ -454,7 +454,7 @@ class WrfDataset:
                                       lat_0=self.lat0[i],lon_0=self.lon0[i],
                                       llcrnrlon=llcrnrlon,llcrnrlat=llcrnrlat,
                                       urcrnrlat=urcrnrlat,urcrnrlon=urcrnrlon,
-                                      resolution=self.resolution)
+                                      resolution=self.resolution,area_thresh=10000)
             else:
                 self.map[i] = Basemap(ax=axs,projection=self.projectionType,lon_0=self.lon0[i],
                                      lat_0=self.lat0[i],lat_1=self.lat1[i],lat_2=self.lat2[i],
