@@ -47,7 +47,11 @@ class Radardataset:
         self.currentGridIndex = 69 #69 is KHTX
         self.description = None
         self.dsetname = "NEXRAD Radar"
-        self.gridList, latitudes, longitudes = NEXRADsites.get_sites()
+        #self.gridList, latitudes, longitudes = NEXRADsites.get_sites()
+        loc = pyart.io.nexrad_common.NEXRAD_LOCATIONS
+        self.gridList = sorted(loc.keys())
+        latitudes = [loc[x]['lat'] for x in self.gridList]
+        longitudes = [loc[x]['lon'] for x in self.gridList]
         self.grid = self.gridList[self.currentGridIndex]
         self.projectionType = "lcc"
         self.resolution = 'i'
@@ -185,6 +189,9 @@ class Radardataset:
         ms = self.mmssList[self.currentHourIndex][self.currentMinuteIndex]
         self.currentTimeIndex = np.where(np.array(self.farr).astype(int) == np.array(hr+ms).astype(int))[0][0]
         self.getTime()
+
+    def setGrid(self,grid):
+        pass
 
     def setGridList(self, year,month,day):
         s3conn = boto.connect_s3()
@@ -619,14 +626,14 @@ class Radardataset:
         self.plothook.selectHour.setCurrentIndex(self.currentHourIndex)
         self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
         self.NEXRADfile(update=True)
-        self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
+        self.setProjection(axs=self.plothook.axes1)
         self.plothook.nz = 1
         self.plothook.currentVar = self.currentVarIndex
         self.plothook.currentTime = self.currentTimeIndex
         self.plothook.readField()
         self.plothook.pltFxn(self.plothook.pNum)
-#        if len(self.plothook.appobj.axes1) != 0:
-#            self.plothook.appobj.axes1.remove(self.plothook.appobj.axes1[self.plothook.pNum-1])
+#        if len(self.plothook.axes1) != 0:
+#            self.plothook.axes1.remove(self.plothook.axes1[self.plothook.pNum-1])
 #            self.plothook.figure.clear()
 #        self.plotRadarData()#self.plothook.pNum)
 
@@ -668,7 +675,7 @@ class Radardataset:
             self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
-            self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
+            self.setProjection(axs=self.plothook.axes1)
             self.plothook.readField()
             self.plothook.pltFxn(self.plothook.pNum)
         else:
@@ -703,7 +710,7 @@ class Radardataset:
             self.plothook.selectMMSS.setCurrentIndex(self.currentMinuteIndex)
             self.plothook.currentTime = self.currentTimeIndex
             self.NEXRADfile(update=True)
-            self.setProjection(axs=self.plothook.appobj.axes1[self.plothook.pNum-1])
+            self.setProjection(axs=self.plothook.axes1)
             self.plothook.readField()
             self.plothook.pltFxn(self.plothook.pNum)
 #            self.plotRadarData()
@@ -711,7 +718,7 @@ class Radardataset:
             pass
 
     def errorInvalidYear(self):
-        msg = QMessageBox(self.plothook.appobj)
+        msg = QMessageBox(self.plothook)
         msg.setIcon(QMessageBox.Information)
         msg.setText('The AWS NEXRAD GUI is only set up from ' +\
                      self.yearList[-1] + '-' + self.yearList[0])
