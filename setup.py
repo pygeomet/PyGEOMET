@@ -19,7 +19,7 @@ from Cython.Build import cythonize
 # where pg is a pgi fortran compiler. Default is gfortran
 USE_CRTM = True
 #Set the crtm_path once CRTM has been compiled
-crtm_path = "/rhome/whiteat/CRTM/REL-2.1.3"
+crtm_path = "/rhome/freitagb/PyGEOMET/REL-2.1.3"
 #Set the endian type for CRTM
 #Options are Little_Endian or Big_Endian
 #Depends on your system or compiler options (byte swapping)

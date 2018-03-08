@@ -1332,7 +1332,6 @@ class PlotSlab:
                     self.dataSet.lat0[0], marker='o',markersize=4,color='black',latlon=True, ax = self.axes1)
 
         #Plot sounding locations on the map and add a title
-        print(self.dataSet.dsetname)
         if (self.dataSet.dsetname == 'Sounding'):
             #Plot station markers
             self.dataSet.map[self.currentGrid-1].plot(self.dataSet.glons[self.currentGrid-1],
@@ -4362,7 +4361,7 @@ class DataSelector():
         self.xs = []
         self.ys = []
         #print('init',self.xs)
-        print("data selector")
+        #print("data selector")
         line.figure.canvas.setFocusPolicy( Qt.ClickFocus )
         line.figure.canvas.setFocus()
         #self.cid = line.figure.canvas.mpl_connect('button_press_event',self)

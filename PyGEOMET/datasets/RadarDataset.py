@@ -6,6 +6,7 @@ import boto
 import netCDF4
 import os
 import datetime
+import scipy.spatial as spatial
 import matplotlib as mpl
 from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -44,26 +45,46 @@ class Radardataset:
         self.currentMinuteIndex = -1
         self.currentTimeIndex = -1
         self.currentSweep = 0
-        self.currentGridIndex = 69 #69 is KHTX
+        #self.currentGridIndex = 69 #69 is KHTX
         self.description = None
         self.dsetname = "NEXRAD Radar"
-        #self.gridList, latitudes, longitudes = NEXRADsites.get_sites()
+        #self.stat_id, latitudes, longitudes = NEXRADsites.get_sites()
         loc = pyart.io.nexrad_common.NEXRAD_LOCATIONS
-        self.gridList = sorted(loc.keys())
-        latitudes = [loc[x]['lat'] for x in self.gridList]
-        longitudes = [loc[x]['lon'] for x in self.gridList]
-        self.grid = self.gridList[self.currentGridIndex]
+        self.stat_id = sorted(loc.keys())
+        self.obs_lat = [loc[x]['lat'] for x in self.stat_id]
+        self.obs_lon = [loc[x]['lon'] for x in self.stat_id]
+        #self.glons = [self.obs_lon]
+        #self.glats = [self.obs_lat]
+        #self.grid = self.stat_id[self.currentGridIndex]
         self.projectionType = "lcc"
         self.resolution = 'i'
         self.cmap = 'pyart_NWSRef'
         self.range = [0,80]
         self.lon0 = [None]
         self.lat0 = [None]
-        self.NEXRADfile(update=True)
-
+        self.NEXRADsites()
+        #self.NEXRADfile(update=True)
         #Define plot type available for the dataset within the GUI
         self.ptypes = ['1-panel']#,'2-panel','4-panel']
-        self.setProjection()
+        #self.setProjection()
+
+    def NEXRADsites(self):
+        #Draw the plot to select the radar sites
+        self.fig = plt.figure(figsize=(9,6))
+        self.ax = self.fig.add_subplot(111)
+        #create a basemap for CONUS
+        self.conus = Basemap(projection='lcc',lon_0=-95,lat_0=35.,
+               llcrnrlat=20,urcrnrlat=50,llcrnrlon=-120,
+               urcrnrlon=-60, resolution='l',ax=self.ax)
+        #draw the geography for the basemap
+        self.conus.drawcoastlines(linewidth=1,ax=self.ax)
+        self.conus.drawcountries(linewidth=1,ax=self.ax)
+        self.conus.drawstates(linewidth=0.5,ax=self.ax)
+        self.conus.scatter(self.obs_lon,self.obs_lat, marker='o',color='b', latlon=True,ax=self.ax)
+        self.fig.canvas.set_window_title('Select NEXRAD Radar')
+        plt.ion()
+        plt.show()
+        self.fig.canvas.mpl_connect('button_press_event',self.onclick)
 
     def setURL(self,update=None):
         #if no valid path, do nothing:
@@ -190,8 +211,10 @@ class Radardataset:
         self.currentTimeIndex = np.where(np.array(self.farr).astype(int) == np.array(hr+ms).astype(int))[0][0]
         self.getTime()
 
-    def setGrid(self,grid):
-        pass
+    #Note Update is a dummy variable to fit within GUI framework
+    def setGrid(self, Indx, update = None):
+        self.currentGridIndex = Indx
+        #self.grid = self.stat_id[self.currentGridIndex]
 
     def setGridList(self, year,month,day):
         s3conn = boto.connect_s3()
@@ -202,17 +225,17 @@ class Radardataset:
         for key in keys:
             tmp.append(key.name.split('/')[-2])
         
-        self.gridList = tmp
-        if(self.grid not in self.gridList):
+        self.stat_id = tmp
+        if(self.grid not in self.stat_id):
             print("The site selected is not available for " + year 
              + ' ' + month + '/' + day + '. The site has defaulted to : ' +
-             self.gridList[0] + 
+             self.stat_id[0] + 
              '. Please re-select the site you would like to view')
             self.selectionChangeHour(0)
             self.selectionChangeMMSS(0)
             self.selectionChangeGrid(0)
         else:
-            self.currentGridIndex = np.where(np.array(self.gridList) == self.grid)[0][0]
+            self.currentGridIndex = np.where(np.array(self.stat_id) == self.grid)[0][0]
 
     def readNCVariable(self,vname, barbs=None, vectors=None,contour2=None):
         #if vname == 'velocity' and self.currentSweep == 0:
@@ -254,8 +277,6 @@ class Radardataset:
             self.description = 'Cross-Polar Correlation Coefficient'
             self.cmap = 'pyart_RefDiff'
             self.range = [0.5,1]
-        print(vname)
-        print(np.nanmax(variable),np.nanmin(variable))
         return variable 
 
     def setProjection(self,gid=None,axs=None,west=None,north=None,east=None,south=None):
@@ -325,7 +346,6 @@ class Radardataset:
         selectDsetWidgetLayout.addWidget(selectDsetLabel)
         selectDsetWidgetLayout.addWidget(self.selectDset)
         self.gboxLayout.addWidget(selectDsetWidget)
-
         #Plot selection
         pltControlLabel = QLabel()
         pltControlLabel.setText('Plot Control:')
@@ -418,20 +438,20 @@ class Radardataset:
         self.gboxLayout.addWidget(selectMSbar)
 
 
-        gridbar = QWidget()
-        gridbarLayout = QHBoxLayout()
-        gridbar.setLayout(gridbarLayout)
-        gridWidgetLabel = QLabel()
-        gridWidgetLabel.setText('Site:')
-        plotObj.selectGrid = QComboBox()
-        plotObj.selectGrid.setStyleSheet(Layout.QComboBox())
-        plotObj.selectGrid.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-        plotObj.selectGrid.addItems(self.gridList)
-        plotObj.selectGrid.activated.connect(self.selectionChangeGrid)
-        plotObj.selectGrid.setCurrentIndex(self.currentGridIndex)
-        gridbarLayout.addWidget(gridWidgetLabel)
-        gridbarLayout.addWidget(plotObj.selectGrid)
-        self.gboxLayout.addWidget(gridbar)
+        #gridbar = QWidget()
+        #gridbarLayout = QHBoxLayout()
+        #gridbar.setLayout(gridbarLayout)
+        #gridWidgetLabel = QLabel()
+        #gridWidgetLabel.setText('Site:')
+        #plotObj.selectGrid = QComboBox()
+        #plotObj.selectGrid.setStyleSheet(Layout.QComboBox())
+        #plotObj.selectGrid.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+        #plotObj.selectGrid.addItems(self.stat_id)
+        #plotObj.selectGrid.activated.connect(self.selectionChangeGrid)
+        #plotObj.selectGrid.setCurrentIndex(self.currentGridIndex)
+        #gridbarLayout.addWidget(gridWidgetLabel)
+        #gridbarLayout.addWidget(plotObj.selectGrid)
+        #self.gboxLayout.addWidget(gridbar)
 
         swpbar = QWidget()
         swpbarLayout = QHBoxLayout()
@@ -527,7 +547,7 @@ class Radardataset:
         self.dayList = ["%02d" % x for x in tmp]
         self.day = self.dayList[self.currentDayIndex]
         self.setGridList(self.year,self.month,self.day)
-        self.plothook.selectGrid.addItems(self.gridList)
+        self.plothook.selectGrid.addItems(self.stat_id)
         #Set current grid index
         self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
         self.plothook.selectMonth.addItems(self.monList)
@@ -554,7 +574,7 @@ class Radardataset:
         self.plothook.selectDay.clear()
         self.plothook.selectGrid.clear()
         self.plothook.selectDay.addItems(self.dayList)
-        self.plothook.selectGrid.addItems(self.gridList)
+        self.plothook.selectGrid.addItems(self.stat_id)
         #Set current grid index
         self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
 
@@ -568,7 +588,7 @@ class Radardataset:
         self.plothook.selectVar.clear()
         self.plothook.selectHour.clear()
         self.plothook.selectMMSS.clear()
-        self.plothook.selectGrid.addItems(self.gridList)
+        self.plothook.selectGrid.addItems(self.stat_id)
         #Set current grid index
         self.plothook.selectGrid.setCurrentIndex(self.currentGridIndex)
         self.plothook.selectVar.addItems(self.variableList)
@@ -600,7 +620,7 @@ class Radardataset:
         self.plothook.selectHour.clear()
         self.plothook.selectMMSS.clear()
         self.currentGridIndex = i
-        self.grid = self.gridList[i]
+        self.grid = self.stat_id[i]
         self.currentTimeIndex = 0
         self.currentHourIndex = -1
         self.currentMinuteIndex = -1
@@ -726,4 +746,33 @@ class Radardataset:
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
- 
+    def onclick(self,event):
+        ix, iy = event.xdata, event.ydata
+        #Make sure the user clicks on the map
+        #If they don't, ix and iy will be None.
+        #This will result in an error in the row/col calculations
+        if (ix != None and iy != None):
+            lon, lat  = self.conus(
+                        self.obs_lon,
+                        self.obs_lat)
+            a = np.vstack((lat,lon)).T
+            pt = [iy, ix]
+            distance, index = spatial.KDTree(a).query(pt)
+            #self.currentGridIndex = index
+            #self.grid = self.stat_id[self.currentGridIndex]
+            #self.currentTimeIndex = 0
+            #self.currentHourIndex = -1
+            #self.currentMinuteIndex = -1
+            #self.currentVarIndex = 0
+            #self.var = None
+            try:
+                self.selectionChangeGrid(index)
+            except:
+                self.currentGridIndex = index
+                self.grid = self.stat_id[self.currentGridIndex]
+                self.NEXRADfile(update=True)
+                self.setProjection()
+
+        else:
+            self.errorClick()
+
