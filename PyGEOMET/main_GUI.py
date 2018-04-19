@@ -1252,11 +1252,11 @@ class PlotSlab:
                     linewidth=0
                 # draw parallels
                 if self.parallels == None:
-                    self.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=10,
+                    self.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,
                                  ax=self.axes1,linewidth=linewidth)
                 # draw meridians
                 if self.meridians == None:
-                    self.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=10,
+                    self.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,
                                  ax=self.axes1,linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.recallProjection = False
@@ -2792,7 +2792,10 @@ class PlotSlab:
             if self.currentVar != None:
                 varname = self.dataSet.variableList[self.currentVar]
         self.dataSet.setTimeIndex(self.currentTime)
-        #self.dataSet.setGrid(self.currentGrid)
+        #Need this before adding the new variables
+        #However, this gets called again later in readField so this
+        # reads the data twice for now. Fix it later!
+        self.dataSet.setGrid(self.currentGrid)
         self.selectTime.clear()
         self.selectTime.addItems(self.dataSet.timeList[self.currentGrid])
         self.selectVar.clear()
