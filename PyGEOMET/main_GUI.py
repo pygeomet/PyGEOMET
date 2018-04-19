@@ -1252,11 +1252,11 @@ class PlotSlab:
                     linewidth=0
                 # draw parallels
                 if self.parallels == None:
-                    self.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=6,
+                    self.parallels = self.dataSet.map[self.currentGrid-1].drawparallels(parallels,labels=[1,0,0,0],fontsize=8,
                                  ax=self.axes1,linewidth=linewidth)
                 # draw meridians
                 if self.meridians == None:
-                    self.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=6,
+                    self.meridians = self.dataSet.map[self.currentGrid-1].drawmeridians(meridians,labels=[0,0,0,1],fontsize=8,
                                  ax=self.axes1,linewidth=linewidth)
             #Switch to not call projection again until grid or dataset is changed - for speed
             self.recallProjection = False
@@ -1313,11 +1313,11 @@ class PlotSlab:
                 # draw parallels.
                 plim = max(int((abs(self.dataSet.glats[self.currentGrid-1]).max()-abs(self.dataSet.glats[self.currentGrid-1]).min())/2.5),0.5)
                 parallels = np.arange(-90.,90.,plim)
-                map2.drawparallels(parallels,labels=[0,1,0,0],fontsize=6)
+                map2.drawparallels(parallels,labels=[0,1,0,0],fontsize=8)
                 # draw meridians
                 mlim = max(int((abs(self.dataSet.glons[self.currentGrid-1]).max()-abs(self.dataSet.glons[self.currentGrid-1]).min())/2.5),0.5)
                 meridians = np.arange(0.,360.,mlim)
-                map2.drawmeridians(meridians,labels=[0,0,1,0],fontsize=6)
+                map2.drawmeridians(meridians,labels=[0,0,1,0],fontsize=8)
                 if self.orientList[self.currentOrient] == 'xz':
                     xx, yy = map2(horiz[0,:], horiz2[0,:])
                 if self.orientList[self.currentOrient] == 'yz':
