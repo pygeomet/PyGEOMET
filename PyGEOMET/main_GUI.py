@@ -647,7 +647,7 @@ class PlotSlab:
         if self.background is not None:
             pre = 'self.dataSet.map['
             gridnum = str(self.currentGrid-1)+']'
-            end = self.background+'(ax=self.axes1['+str(self.pNum-1)+'])'
+            end = self.background+'(ax=self.axes1)'
             exec(pre+gridnum+end,None,None)
             #Make variable transparent
             alpha=0.75
