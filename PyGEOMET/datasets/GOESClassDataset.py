@@ -270,7 +270,7 @@ class GOESClassDataset:
         self.map[i] = Basemap(ax=axs, projection=self.projectionType,
                       lat_ts = self.lat0[i], llcrnrlon = llcrnrlon,
                       llcrnrlat = llcrnrlat, urcrnrlon = urcrnrlon,
-                      urcrnrlat = llcrnrlon, resolution=self.resolution)
+                      urcrnrlat = urcrnrlat, resolution=self.resolution)
 
         self.maplon[i],self.maplat[i] = self.map[i].makegrid(self.nx[i],self.ny[i])
 
