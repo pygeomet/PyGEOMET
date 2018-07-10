@@ -1429,6 +1429,9 @@ class PlotSlab:
     def plotVertPro(self,i,j):
         
         if self.vplot is not None:
+            #Set the value in the tab display (change to clicked values)
+            self.selectIindex.setText(str(i))
+            self.selectJindex.setText(str(j))
             #Create new figure that will pop-up when called
             fig = plt.figure(figsize=(8, 7))
             fig.canvas.set_window_title('Vertical Profile at i='+str(i)+' j='+str(j))
@@ -1997,7 +2000,31 @@ class PlotSlab:
             selectdVarWidgetLayout.addWidget(selectdVVar)
             self.vertControlLayout.addWidget(selectdVarWidget)
 
+            #Add input i and j location ability
+            iLabel = QLabel()
+            iLabel.setText('I index')
+            self.selectIindex = QLineEdit()
+            self.selectIindex.setStyleSheet(Layout.QLineEdit())
+            self.selectIindex.setText(None)
 
+            jLabel = QLabel()
+            jLabel.setText('J index')
+            self.selectJindex = QLineEdit()
+            self.selectJindex.setStyleSheet(Layout.QLineEdit())
+            self.selectJindex.setText(None)
+
+            #Plot button
+            VertPlotButton = QPushButton('Create Plot')
+            VertPlotButton.setStyleSheet(Layout.QPushButton3())
+            VertPlotButton.resize(VertPlotButton.minimumSizeHint())
+            VertPlotButton.clicked.connect(self.enterIJindex)
+
+            self.vertControlLayout.addWidget(iLabel)
+            self.vertControlLayout.addWidget(self.selectIindex)
+            self.vertControlLayout.addWidget(jLabel)
+            self.vertControlLayout.addWidget(self.selectJindex)
+            self.vertControlLayout.addWidget(VertPlotButton)           
+ 
             self.optionTabs.addTab(self.vertControl,vertTitle)
             self.optionTabs.setCurrentIndex(self.optionTabs.count()-1)
             self.tabbingLayout.addWidget(self.optionTabs)
@@ -3186,6 +3213,25 @@ class PlotSlab:
         self.calTimeRange = False
         self.pltFxn(self.pNum)
 
+    def enterIJindex(self):
+        self.Iindex = np.int(self.selectIindex.text())
+        self.Jindex = np.int(self.selectJindex.text())
+        #Check for valid inputs
+        ibad = False
+        jbad = False
+        if (self.Iindex > self.dataSet.nx[self.currentGrid-1]):
+            ibad = True
+        if (self.Jindex > self.dataSet.nx[self.currentGrid-1]):
+            jbad = True
+        #Call error 
+        if (ibad or jbad):
+            self.errorIJindex(ibad,jbad)
+        else:
+            #Set the values used in the plot call
+            self.col = self.Iindex
+            self.row = self.Jindex
+            self.pltFxn(self.pNum)
+
     #Function to define subsample interval
     def setSubsampleValue(self):
 
@@ -3534,6 +3580,19 @@ class PlotSlab:
         msg = QMessageBox(self.appobj)
         msg.setIcon(QMessageBox.Information)
         msg.setText('Please select a variable from the pop-up Vertical Profile Control')
+        msg.setWindowTitle("Warning")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def errorIJindex(self,i,j):
+        msg = QMessageBox(self.appobj)
+        msg.setIcon(QMessageBox.Information)
+        if (i and j):
+            msg.setText('Invalid I and J index')
+        elif (i):
+            msg.setText('Invalid I index')
+        elif (j):
+            msg.setText('Invalid J index')
         msg.setWindowTitle("Warning")
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
