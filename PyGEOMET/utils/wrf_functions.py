@@ -1795,7 +1795,7 @@ def getDvarList(varlist,runtype):
     dvarlist.extend(['CAPE_SB','CAPE_ML','CAPE_MU',
                      'CIN_SB','CIN_ML','CIN_MU',
                      'mslp','pwat','temp-3d',
-                     'theta','theta-e-3d','RH','Total Pressure'])
+                     'theta','theta-e-3d','RH','Total Pressure','Sat_QVapor'])
 
     if runtype == 'REAL':
         dvarlist.extend(['lcl_hgt','temp_ML','t2m',
@@ -1824,8 +1824,7 @@ def getDvarList(varlist,runtype):
         and 'QGRAUP' in variables) or ('REFL_10CM' in variables):
         dvarlist.append('refl')
 
-    if ('SWDNT' in variables and 'SWUPTC' in variables
-        and 'SWUPT' in variables):
+    if ('SWDNB' in variables and 'SWDNBC' in variables):
         dvarlist.append('cloud albedo')
 
     #Check if available variables are present for CRTM input

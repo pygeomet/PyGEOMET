@@ -146,6 +146,8 @@ class WRFDerivedVar:
                 self.relative_humidity()
             elif var == 'Total Pressure':
                 self.total_pressure()
+            elif var == 'Sat_QVapor':
+                self.sat_qvapor()
             else:
                 print("Cannot find input variable")
                 self.var = None
@@ -831,19 +833,24 @@ class WRFDerivedVar:
     def cloud_albedo(self):
         
         #Read in radiation variables
+        #Instantaneous downwelling flux at the bottom
+        swdnb = self.dataSet.readNCVariable('SWDNB')
+        #Instantaneous downwelling flux at the bottom  - clear sky
+        swdnbc = self.dataSet.readNCVariable('SWDNBC')
+
         #Instantaneous downwelling flux at the top
-        swdnt = self.dataSet.readNCVariable('SWDNT')
+        #swdnt = self.dataSet.readNCVariable('SWDNT')
         #Instantaneous upwelling flux at the top - clear sky
-        swuptc = self.dataSet.readNCVariable('SWUPTC')
+        #swuptc = self.dataSet.readNCVariable('SWUPTC')
         #Instantaneous upwelling flux at the top
-        swupt = self.dataSet.readNCVariable('SWUPT')
+        #swupt = self.dataSet.readNCVariable('SWUPT')
 
         #Calculate cloud albedo
-        self.var = ((swupt - swuptc) / swdnt) * 100.
+        self.var = (1 - (swdnb / swdnbc)) * 100.
         self.var2 = self.var
         self.varTitle = "Cloud Albedo \n"+ self.dataSet.getTime() 
         #Set short variable title for time series
-        self.sTitle = "Total Water Mixing Ratio (kg kg$^{-1}$)"
+        self.sTitle = "Cloud Albedo"
 
     def mean_layer_temp(self):
         height = wrf.unstaggerZ(self.height)
@@ -867,6 +874,18 @@ class WRFDerivedVar:
         self.varTitle = "Relative Humidity (%) \n"+ self.dataSet.getTime()
         #Set short variable title for time series
         self.sTitle = "Relative Humidity (%)" 
+
+    #Function to calculate the saturation mixing ratio
+    def sat_qvapor(self):
+
+        #Calculate the saturation vapor pressure - Clausius Clapeyron Equation (Bolton, 1980)
+        es = 611.2 * np.exp(17.67*(self.temp-273.15) / (self.temp-273.15+243.5))
+        #Calculate saturation mixing ratio
+        self.var = 0.62197 * (es/(self.press-es))
+        self.var2 = self.var
+        self.varTitle = "Saturation Mixing Ratio (kg/kg) \n"+ self.dataSet.getTime()
+        #Set short variable title for time series
+        self.sTitle = "Saturation Mixing Ratio (kg/kg)"
 
     #Function to determine the brightness temperature or radiance
     def crtm_wrapper(self,request_var):
