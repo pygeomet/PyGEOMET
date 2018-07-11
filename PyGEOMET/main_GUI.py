@@ -1462,7 +1462,7 @@ class PlotSlab:
                 var = self.vplot[:,j,i]       
 
             #Create plot
-            ax.plot(var, press, 'k', linewidth=2.0)
+            ax.plot(var, press, 'k', linewidth=2.0,label='1st Var')
             ax.xaxis.grid(True)
             #ax.set_ylim(press.max()*1.02,press.min())
             ax.set_ylim(1000., press.min())
@@ -1479,6 +1479,29 @@ class PlotSlab:
             ax.margins(0.02)
             #Turn major and minor grid lines on
             ax.yaxis.grid(True, which='both')
+
+            #Check for second variable to plot
+            if (self.plotsecVar.isChecked()):
+                x = self.vplot2
+                #Get vertical profile of input field
+                dims2 = x.shape
+                if dims2[0] != len(press):
+                    dvar2 = wrf.unstaggerZ(x)
+                    var2 = dvar2[:,j,i]
+                else:
+                    var2 = x[:,j,i]
+                #Check if we need to create another x-axis
+                if (self.sameAxis.isChecked()):
+                    ax3 = ax.twiny()
+                    ax3.set_xlabel(self.VertvarTitle2)
+                    ax3.plot(var2,press,'k--', linewidth=2.0,label='2nd Var')
+                    h1, l1 = ax.get_legend_handles_labels()
+                    h2, l2 = ax3.get_legend_handles_labels()
+                    ax.legend(h1+h2, l1+l2, loc='best')
+                else:
+                    ax.plot(var2,press,'k--', linewidth=2.0,label='2nd Var')
+                    #Create ledgend
+                    ax.legend(loc='best')
         else:
            self.errorSelectVVar()
 
@@ -1969,6 +1992,7 @@ class PlotSlab:
             selectVarWidgetLayout = QHBoxLayout()
             selectVarWidget.setLayout(selectVarWidgetLayout)
 
+            #Default dataset variables
             selectVarLabel = QLabel()
             selectVarLabel.setText('Vertical Variable:')
 
@@ -1999,6 +2023,37 @@ class PlotSlab:
             selectdVarWidgetLayout.addWidget(selectdVarLabel)
             selectdVarWidgetLayout.addWidget(selectdVVar)
             self.vertControlLayout.addWidget(selectdVarWidget)
+
+            #Check buttons to control 2nd plot variable
+            check = QWidget()
+            checklayout = QHBoxLayout()
+            check.setLayout(checklayout)
+            self.plotsecVar = QCheckBox("Plot Second Variable")
+            self.plotsecVar.setStyleSheet(Layout.QCheckBox())
+            self.plotsecVar.stateChanged.connect(lambda: self.selectionChangeSecVerticalVar)
+            self.sameAxis = QCheckBox("Use Different X-axis")
+            self.sameAxis.setStyleSheet(Layout.QCheckBox())
+            checklayout.addWidget(self.plotsecVar)
+            checklayout.addWidget(self.sameAxis)
+            self.vertControlLayout.addWidget(check)
+
+            #Second vertical variable control
+            selectSecVarWidget = QWidget()
+            selectSecVarWidgetLayout = QHBoxLayout()
+            selectSecVarWidget.setLayout(selectSecVarWidgetLayout)
+
+            selectSecVarLabel = QLabel()
+            selectSecVarLabel.setText('Second Vertical Variable:')
+
+            selectSecVVar = QComboBox()
+            selectSecVVar.setStyleSheet(Layout.QComboBox())
+            self.SecVvarlist = self.dataSet.threeDVars + self.dVvarlist
+            selectSecVVar.addItems(self.SecVvarlist)
+            selectSecVVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            selectSecVVar.activated.connect(self.selectionChangeSecVerticalVar)
+            selectSecVarWidgetLayout.addWidget(selectSecVarLabel)
+            selectSecVarWidgetLayout.addWidget(selectSecVVar)
+            self.vertControlLayout.addWidget(selectSecVarWidget)
 
             #Add input i and j location ability
             iLabel = QLabel()
@@ -2732,10 +2787,9 @@ class PlotSlab:
         self.selecteddVvar = None
         self.selectedVvar = i
         self.vplot = self.dataSet.readNCVariable(self.Vvarlist[i],
-                     barbs=self.plotbarbs, contour2=self.plotcontour2)
+                     barbs=self.plotbarbs, contour2=self.plotcontour2)    
         self.VertvarTitle = self.dataSet.description +' ('+self.dataSet.units
         self.VertvarTitle = self.VertvarTitle +') \n'+self.dataSet.getTime()
-        print("Variable has been changed reg")
     
     def selectionChangedVerticalVar(self,i):
         self.selectedVvar = None
@@ -2748,7 +2802,29 @@ class PlotSlab:
                                        req_var = self.crtmVar)
         self.vplot = dVvar.var
         self.VertvarTitle = dVvar.varTitle
-        print("Variable has been changed dev")
+
+    #Function to get the second vertical variable for the vertical plot
+    def selectionChangeSecVerticalVar(self,i):
+        #Get variable name
+        varName = self.SecVvarlist[i]
+        #Determine if it is a dervied variable or not
+        if (varName in self.dVvarlist):
+            #Find the variable index
+            ind = np.where(np.array(self.dVvarlist) == varName)[0]
+            dVvar = wrf_dvar.WRFDerivedVar(dset = self.dataSet,
+                                           var = self.dVvarlist[ind[0]],
+                                           ptype = self.currentPType, sensor = self.crtmSensor,
+                                           channel = self.crtmChannel,
+                                           path = self.appobj.main_path,
+                                           req_var = self.crtmVar)
+            self.vplot2 = dVvar.var
+            self.VertvarTitle2 = dVvar.sTitle
+        else:
+            #Find the variable index
+            ind = np.where(np.array(self.Vvarlist) == varName)[0]
+            self.vplot2 = self.dataSet.readNCVariable(self.Vvarlist[ind[0]],
+                          barbs=self.plotbarbs, contour2=self.plotcontour2)
+            self.VertvarTitle2 = self.dataSet.description +' ('+self.dataSet.units+')'
 
     #This function is called when the sfc statistics variable is changed
     def selectionChangedStatVar(self,i):
