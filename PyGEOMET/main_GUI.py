@@ -1992,7 +1992,7 @@ class PlotSlab:
 
             selectdVVar = QComboBox()
             selectdVVar.setStyleSheet(Layout.QComboBox())
-            self.dVvarlist = ['wind-3d']
+            self.dVvarlist = ['wind-3d','total water','Sat_QVapor']
             selectdVVar.addItems(self.dVvarlist)
             selectdVVar.setSizeAdjustPolicy(QComboBox.AdjustToContents)
             selectdVVar.activated.connect(self.selectionChangedVerticalVar)
@@ -2735,7 +2735,8 @@ class PlotSlab:
                      barbs=self.plotbarbs, contour2=self.plotcontour2)
         self.VertvarTitle = self.dataSet.description +' ('+self.dataSet.units
         self.VertvarTitle = self.VertvarTitle +') \n'+self.dataSet.getTime()
-
+        print("Variable has been changed reg")
+    
     def selectionChangedVerticalVar(self,i):
         self.selectedVvar = None
         self.selecteddVvar = i
@@ -2747,6 +2748,7 @@ class PlotSlab:
                                        req_var = self.crtmVar)
         self.vplot = dVvar.var
         self.VertvarTitle = dVvar.varTitle
+        print("Variable has been changed dev")
 
     #This function is called when the sfc statistics variable is changed
     def selectionChangedStatVar(self,i):
