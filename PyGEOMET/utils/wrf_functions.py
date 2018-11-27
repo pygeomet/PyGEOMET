@@ -1142,7 +1142,7 @@ def wind_chill(t2m,wind):
 #########################  End function wind_chill()  #########################
 ###############################################################################
 
-#################### 25.Begin function of heat_index()   ######################
+#################### 26.Begin function of heat_index()   ######################
 ## Required libraries: numpy                                                  #
 ##                                                                            #
 ## Inputs: t2m = ndarray of 2-meter temperature values (Units: F)             #
@@ -1178,6 +1178,58 @@ def heat_index(t2m,rh):
 ###############################################################################
 #########################  End function heat_index()  #########################
 ###############################################################################
+
+
+################## 27.Begin function of rigrad_bruntv()   #####################
+## Required libraries: numpy                                                  #
+##                                                                            #
+## Inputs: thv = ndarray of virtual potential temperature (Units: K)          #
+##                                                                            #
+##         u = ndarray of zonal wind (Units: m/s)                             #
+##                                                                            #
+##         v = ndarray of meridional wind (Units: m/s)                        #
+##                                                                            #
+##         press = ndarray of atmospheric pressure (Units: pa)                #
+##                                                                            #
+##         height = ndarray of height (Units: m)                              #
+##                                                                            #
+##         opt = return option (not implemented)                              #
+##                                                                            #
+##         ref_val = interpolation height (Units: m)                          #
+##                                                                            #
+###############################################################################
+
+def rigrad_bruntv(thv,u,v,press,height,opt, ref_val):
+    tv_arr = self.get_temp(thv)
+    tv_lvl = self.linear_interpolate(tv, height, ref_val)
+    tv = (tv_arr[0] + tv_lvl)/2.
+    dthvdz = (linear_interpolate(thv,height,ref_val) - thv[0])/(ref_val - height[0])
+
+    #unstagger the wrf u and v winds
+    ucorr = unstaggerX(u)
+    vcorr = unstaggerY(v)
+
+    #interpolate the u and v wind fields to the reference level
+    #Switched to Cython
+    u_lvl = np.array(wrf_cython.linear_interpolate(ucorr, grid, ref_val))
+    v_lvl = np.array(wrf_cython.linear_interpolate(vcorr, grid, ref_val))
+
+    #get the u and v wind fields at the surface
+    u_sfc = ucorr[0,:,:]
+    v_sfc = vcorr[0,:,:]
+
+    #get the u and v components of the shear
+    u_shear = (u_lvl - u_sfc)**2
+    v_shear = (v_lvl - v_sfc)**2
+
+    ri = ((9.81/thv)*dthvdz)/(u_shear + v_shear)
+
+    return ri
+
+###############################################################################
+#######################  End function rigrad_bruntv()  ########################
+###############################################################################
+
 
 ################################################################################
 #                                                                              #
